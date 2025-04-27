@@ -68,7 +68,11 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                         {
                             Debug.WriteLine($"Transcript: {args}");
                         };
-                        await _trancriptionService.InitializeAsync(new WaveFormat(8000, 16, 1));
+                        _trancriptionService.RecognizingTranscriptReceived += (o, args) =>
+                        {
+                            Debug.WriteLine($"Recognizing: {args}...");
+                        };
+                        await _trancriptionService.InitializeAsync(new WaveFormat(32000, 8, 1));
                         await characteristic.StartUpdatesAsync();
                     }
                     catch (DeviceConnectionException ex)

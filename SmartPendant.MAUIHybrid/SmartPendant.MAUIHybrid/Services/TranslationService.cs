@@ -20,9 +20,9 @@ namespace SmartPendant.MAUIHybrid.Services
         public TranscriptionService(Uri endpoint, string subscriptionKey)
         {
             _speechConfig = SpeechConfig.FromEndpoint(endpoint, subscriptionKey);
-            _speechConfig.SpeechRecognitionLanguage = "en-US";
-            _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
-            _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
+            _speechConfig.SpeechRecognitionLanguage = "en-IN";
+            //_speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
+            //_speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
         }
 
         public async Task InitializeAsync(WaveFormat micFormat)
@@ -67,7 +67,12 @@ namespace SmartPendant.MAUIHybrid.Services
         {
             if (_pushStream != null)
             {
-                try { _pushStream.Write(audioData); }
+                try 
+                {
+
+                    var signedData = TranscriptionService.ConvertUnsignedToSigned(audioData);
+                    _pushStream.Write(signedData); 
+                }
                 catch (Exception ex) { Console.WriteLine($"Error writing Mic chunk: {ex.Message}"); }
             }
             return Task.CompletedTask;
@@ -91,5 +96,16 @@ namespace SmartPendant.MAUIHybrid.Services
             TranscriptReceived = null;
             Debug.WriteLine("Azure Transcription Service disposed.");
         }
+
+        private static byte[] ConvertUnsignedToSigned(byte[] unsignedData)
+        {
+            byte[] signedData = new byte[unsignedData.Length];
+            for (int i = 0; i < unsignedData.Length; i++)
+            {
+                signedData[i] = (byte)(unsignedData[i] - 128);
+            }
+            return signedData;
+        }
+
     }
 }

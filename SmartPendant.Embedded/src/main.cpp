@@ -75,14 +75,14 @@ void setup()
       ;
   }
 
-  //Mic setup
+  // Mic setup
   //========================================
-   auto miccfg = M5.Mic.config();
-   miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
-   M5.Log(ESP_LOG_VERBOSE, "Mic magnification: %d", miccfg.magnification);
-   miccfg.magnification = 32; // 0-32
-   M5.Mic.config(miccfg);
-   M5.Mic.begin();
+  auto miccfg = M5.Mic.config();
+  miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
+  M5.Log(ESP_LOG_VERBOSE, "Mic magnification: %d", miccfg.magnification);
+  miccfg.magnification = 32; // 0-32
+  M5.Mic.config(miccfg);
+  M5.Mic.begin();
 
   // BLE setup
   //=================
@@ -116,12 +116,12 @@ void setup()
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
-  pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
+ pAdvertising->setMinPreferred(0x0); // set value to 0x00 to not advertise this parameter
+                        // request larger MTU, or 247 if your client supports it
+
   BLEDevice::startAdvertising();
   M5.Log(ESP_LOG_INFO, "Waiting a client connection to notify...");
 }
-
-
 
 void loop()
 {
@@ -132,6 +132,7 @@ void loop()
       pCharacteristic->setValue(rec_data, record_size);
       pCharacteristic->notify();
       // M5.Log(ESP_LOG_INFO, "Recorded and sent data over BLE");
+      M5.delay(5); // give the bluetooth stack the chance to process previous events
     }
     else
     {

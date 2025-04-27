@@ -68,7 +68,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                         {
                             Debug.WriteLine($"Transcript: {args}");
                         };
-                        await _trancriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
+                        await _trancriptionService.InitializeAsync(new WaveFormat(8000, 16, 1));
                         await characteristic.StartUpdatesAsync();
                     }
                     catch (DeviceConnectionException ex)
@@ -91,16 +91,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
         public async void StopRecording()
         {
-            //disconnect the device
-            await _trancriptionService.StopAsync();
-            //component is getting disposed
-            //if (_connected)
-            //{
-            //    await _adapter.DisconnectDeviceAsync(_connectedDevice);
-            //    _connected = false;
-            //    await InvokeAsync(StateHasChanged);
-            //}
             
+            await _trancriptionService.StopAsync();
         }
     }
 }

@@ -1,6 +1,11 @@
 ﻿@page "/"
 
 <MudStack AlignItems="AlignItems.Center"  Justify="Justify.Center" Style="height: 100%;">
-    <MudText Typo="Typo.h2">Hello, world!</MudText>
-    <MudText Typo="Typo.body1">Welcome to your new app.</MudText>
+    <MudText Typo="Typo.h5" Align="Align.Center">
+        Device Connected: <b>@_connected</b>
+    </MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="StopRecording" Class="rounded-pill">
+        Stop Recording
+    </MudButton>
 </MudStack>

@@ -18,7 +18,7 @@
 
 // statics
 //================
-static constexpr const size_t record_size = 10000;
+static constexpr const size_t record_size = 200;
 static constexpr const size_t record_samplerate = 16000;
 static int16_t *rec_data;
 
@@ -45,7 +45,7 @@ class MyServerCallbacks : public BLEServerCallbacks
   {
     deviceConnected = true;
     M5.Log(ESP_LOG_INFO, "Client connected");
-    //get the client device name
+    // get the client device name
   };
 
   void onDisconnect(BLEServer *pServer)
@@ -64,11 +64,27 @@ void setup()
   M5.begin(cfg);
   setupLogging();
 
+  // Allocating memory for recording data
+  //========================================
+    rec_data = (typeof(rec_data))heap_caps_malloc(record_size * sizeof(int16_t), MALLOC_CAP_8BIT);
+    memset(rec_data, 0, record_size * sizeof(int16_t));
+  if (rec_data == nullptr)
+  {
+    M5.Log(ESP_LOG_ERROR, "Failed to allocate memory for rec_data!");
+    while (true)
+      ;
+  }
+
+  //Mic setup
+  //=================
+  auto miccfg = M5.Mic.config();
+  M5.Mic.begin();
+  //miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
+  //M5.Mic.config(miccfg); 
+
   // BLE setup
   //=================
-
   BLEDevice::init("ESP32");
-
   // Create the BLE Server
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -103,19 +119,27 @@ void setup()
   M5.Log(ESP_LOG_INFO, "Waiting a client connection to notify...");
 }
 
+
+
 void loop()
 {
   if (deviceConnected)
   {
-    pCharacteristic->setValue(value);
-    pCharacteristic->notify();
-    value++;
-    M5.delay(1000);
+    if (M5.Mic.record(rec_data, record_size, record_samplerate, false))
+    {
+      pCharacteristic->setValue((uint8_t *)rec_data, record_size);
+      pCharacteristic->notify();
+      // M5.Log(ESP_LOG_INFO, "Recorded and sent data over BLE");
+    }
+    else
+    {
+      M5.Log(ESP_LOG_ERROR, "Record failed");
+    }
   }
   // disconnecting
   if (!deviceConnected && oldDeviceConnected)
   {
-    M5.delay(500);                  // give the bluetooth stack the chance to get things ready
+    M5.delay(500);               // give the bluetooth stack the chance to get things ready
     pServer->startAdvertising(); // restart advertising
     M5.Log(ESP_LOG_INFO, "start advertising");
     oldDeviceConnected = deviceConnected;
@@ -132,19 +156,19 @@ void loop()
 #if !defined(ARDUINO) && defined(ESP_PLATFORM)
 extern "C"
 {
-    void loopTask(void *)
+  void loopTask(void *)
+  {
+    setup();
+    for (;;)
     {
-        setup();
-        for (;;)
-        {
-            loop();
-        }
-        vTaskDelete(NULL);
+      loop();
     }
+    vTaskDelete(NULL);
+  }
 
-    void app_main()
-    {
-        xTaskCreatePinnedToCore(loopTask, "loopTask", 8192, NULL, 1, NULL, 1);
-    }
+  void app_main()
+  {
+    xTaskCreatePinnedToCore(loopTask, "loopTask", 8192, NULL, 1, NULL, 1);
+  }
 }
 #endif

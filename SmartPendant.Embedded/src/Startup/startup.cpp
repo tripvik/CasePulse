@@ -24,7 +24,7 @@ void setupLogging()
     //***********************************/
     /// You can set Log levels for each output destination.
     /// ESP_LOG_ERROR / ESP_LOG_WARN / ESP_LOG_INFO / ESP_LOG_DEBUG / ESP_LOG_VERBOSE
-    M5.Log.setLogLevel(m5::log_target_serial, ESP_LOG_INFO);
+    M5.Log.setLogLevel(m5::log_target_serial, ESP_LOG_VERBOSE);
     M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_INFO);
     //  M5.Log.setLogLevel(m5::log_target_callback, ESP_LOG_INFO);
 

@@ -18,8 +18,8 @@
 
 // statics
 //================
-static constexpr const size_t record_size = 185;
-static constexpr const size_t record_samplerate = 8000;
+static constexpr const size_t record_size = 500;
+static constexpr const size_t record_samplerate = 32000;
 static uint8_t *rec_data;
 
 // globals
@@ -66,7 +66,7 @@ void setup()
 
   // Allocating memory for recording data
   //========================================
-  M5.Log(ESP_LOG_INFO, "Allocating memory for rec_data...");
+  M5.Log(ESP_LOG_VERBOSE, "Allocating memory for rec_data...");
   rec_data = (uint8_t *)malloc(record_size);
   if (rec_data == nullptr)
   {
@@ -74,6 +74,15 @@ void setup()
     while (true)
       ;
   }
+
+  //Mic setup
+  //========================================
+   auto miccfg = M5.Mic.config();
+   miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
+   M5.Log(ESP_LOG_VERBOSE, "Mic magnification: %d", miccfg.magnification);
+   miccfg.magnification = 32; // 0-32
+   M5.Mic.config(miccfg);
+   M5.Mic.begin();
 
   // BLE setup
   //=================

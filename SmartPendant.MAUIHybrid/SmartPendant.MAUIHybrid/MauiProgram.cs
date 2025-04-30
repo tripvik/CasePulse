@@ -25,13 +25,13 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddMudServices();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
-            //builder.Services.AddSingleton<ITranscriptionService>(sp =>
-            //{
-            //    return new FileTranscriptionService();
-            //}
-            //);
             builder.Services.AddSingleton<ITranscriptionService>(sp =>
             {
+                bool useFileService = builder.Configuration.GetValue<bool>("UseFileRecording");
+                if (useFileService)
+                {
+                    return new FileTranscriptionService();
+                }
                 var endpoint = builder.Configuration["Azure:Speech:Endpoint"] ?? throw new InvalidOperationException("Azure Speech Endpoint is not configured. Please check your appsettings.json or environment variables.");
                 var subscriptionKey = builder.Configuration["Azure:Speech:Key"] ?? throw new InvalidOperationException("Azure Speech Subscription Key is not configured. Please check your appsettings.json or environment variables."); ;
                 var uri = new Uri(endpoint);

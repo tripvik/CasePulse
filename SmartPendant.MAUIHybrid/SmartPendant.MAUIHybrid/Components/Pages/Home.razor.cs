@@ -56,6 +56,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                             try
                             {
                                 var bytes = args.Characteristic.Value;
+                                //implement buffering if required.
                                 await _trancriptionService.ProcessChunkAsync(bytes);
                             }
                             catch (Exception ex)
@@ -97,6 +98,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         {
             
             await _trancriptionService.StopAsync();
+            //disconnect from the device
         }
     }
 }

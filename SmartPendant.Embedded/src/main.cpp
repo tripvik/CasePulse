@@ -18,7 +18,7 @@
 
 // statics
 //================
-static constexpr const size_t record_size = 500;
+static constexpr const size_t record_size = 10000;
 static constexpr const size_t record_samplerate = 32000;
 static uint8_t *rec_data;
 
@@ -129,10 +129,14 @@ void loop()
   {
     if (M5.Mic.record(rec_data, record_size, record_samplerate, false))
     {
-      pCharacteristic->setValue(rec_data, record_size);
-      pCharacteristic->notify();
-      // M5.Log(ESP_LOG_INFO, "Recorded and sent data over BLE");
-      M5.delay(5); // give the bluetooth stack the chance to process previous events
+      // send chucks of 500 BYTES due to BLE limitations
+      for (size_t i = 0; i < record_size; i += 500)
+      {
+        size_t chunk_size = (i + 500 < record_size) ? 500 : (record_size - i);
+        pCharacteristic->setValue(rec_data + i, chunk_size);
+        pCharacteristic->notify();
+        //M5.delay(5); // give the bluetooth stack the chance to process previous events
+      }
     }
     else
     {

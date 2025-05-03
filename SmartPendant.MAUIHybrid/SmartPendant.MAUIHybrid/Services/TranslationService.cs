@@ -2,13 +2,14 @@
 using Microsoft.CognitiveServices.Speech;
 using NAudio.Wave;
 using System.Diagnostics;
+using Microsoft.CognitiveServices.Speech.Transcription;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
     public class TranscriptionService : ITranscriptionService
     {
         private readonly SpeechConfig _speechConfig;
-        private SpeechRecognizer? _recognizer;
+        private ConversationTranscriber? _transcriber;
         private PushAudioInputStream? _pushStream;
 
         // *** NEW: Events for INTERIM recognition results ***
@@ -21,8 +22,9 @@ namespace SmartPendant.MAUIHybrid.Services
         {
             _speechConfig = SpeechConfig.FromEndpoint(endpoint, subscriptionKey);
             _speechConfig.SpeechRecognitionLanguage = "en-IN";
-            //_speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
-            //_speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
+            _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
+            _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
+            _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
         }
 
         public async Task InitializeAsync(WaveFormat micFormat)
@@ -33,33 +35,33 @@ namespace SmartPendant.MAUIHybrid.Services
                 (byte)micFormat.Channels);
 
             _pushStream = AudioInputStream.CreatePushStream(micAudioFormat);
-            _recognizer = new SpeechRecognizer(_speechConfig, AudioConfig.FromStreamInput(_pushStream));
+            _transcriber = new ConversationTranscriber(_speechConfig, AudioConfig.FromStreamInput(_pushStream));
 
             // Handle INTERIM Mic Results
-            _recognizer.Recognizing += (s, e) =>
+            _transcriber.Transcribing += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    RecognizingTranscriptReceived?.Invoke(this, e.Result.Text); // Raise new interim event
+                    RecognizingTranscriptReceived?.Invoke(this, $"{e.Result.SpeakerId} - {e.Result.Text}..."); // Raise new interim event
                 }
             };
 
             // Handle FINAL Mic Results
-            _recognizer.Recognized += (s, e) =>
+            _transcriber.Transcribed += (s, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    TranscriptReceived?.Invoke(this, e.Result.Text);
+                    TranscriptReceived?.Invoke(this, $"{e.Result.SpeakerId} - {e.Result.Text}");
                 }
                 else if (e.Result.Reason == ResultReason.NoMatch)
                 {
                     Debug.WriteLine("MIC NOMATCH: Speech could not be recognized.");
                 }
             };
-            _recognizer.Canceled += (s, e) => Debug.WriteLine($"CANCELED: Reason={e.Reason}, Details={e.ErrorDetails}");
-            _recognizer.SessionStopped += (s, e) => Debug.WriteLine("Session stopped.");
+            _transcriber.Canceled += (s, e) => Debug.WriteLine($"CANCELED: Reason={e.Reason}, Details={e.ErrorDetails}");
+            _transcriber.SessionStopped += (s, e) => Debug.WriteLine("Session stopped.");
 
-            await _recognizer.StartContinuousRecognitionAsync();
+            await _transcriber.StartTranscribingAsync();
             Debug.WriteLine("Recognizer session started.");
         }
 
@@ -82,14 +84,14 @@ namespace SmartPendant.MAUIHybrid.Services
         public async Task StopAsync()
         {
             Debug.WriteLine("Azure Recognizers stopping...");
-            if (_recognizer != null) await _recognizer.StopContinuousRecognitionAsync();
+            if (_transcriber != null) await _transcriber.StopTranscribingAsync();
             _pushStream?.Close();
         }
 
         public async ValueTask DisposeAsync()
         {
             await StopAsync();
-            _recognizer?.Dispose();
+            _transcriber?.Dispose();
             _pushStream?.Dispose();
             // Unsubscribe for safety (though instance disposal usually handles this)
             RecognizingTranscriptReceived = null;

@@ -41,6 +41,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
         public async Task StopAsync()
         {
+            //its going null. 
             if (_waveFormat == null)
             {
                 throw new InvalidOperationException("Service is not initialized.");

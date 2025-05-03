@@ -125,38 +125,33 @@ void setup()
 
 void loop()
 {
-  if (deviceConnected)
-  {
-    if (M5.Mic.record(rec_data, record_size, record_samplerate, false))
-    {
-      // send chucks of 500 BYTES due to BLE limitations
-      for (size_t i = 0; i < record_size; i += 500)
-      {
-        size_t chunk_size = (i + 500 < record_size) ? 500 : (record_size - i);
-        pCharacteristic->setValue(rec_data + i, chunk_size);
-        pCharacteristic->notify();
-        //M5.delay(5); // give the bluetooth stack the chance to process previous events
-      }
+  if (deviceConnected) {
+    if (M5.Mic.record(rec_data, record_size, record_samplerate, false)) {
+        // Send chunks of 500 bytes due to BLE limitations
+        for (size_t i = 0; i < record_size; i += 500) {
+            size_t chunk_size = std::min<size_t>(500, record_size - i);
+            pCharacteristic->setValue(rec_data + i, chunk_size);
+            pCharacteristic->notify();
+            M5.delay(5); // Allow Bluetooth stack to process events
+        }
+    } else {
+        M5.Log(ESP_LOG_ERROR, "Record failed");
     }
-    else
-    {
-      M5.Log(ESP_LOG_ERROR, "Record failed");
-    }
-  }
-  // disconnecting
-  if (!deviceConnected && oldDeviceConnected)
-  {
-    M5.delay(500);               // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    M5.Log(ESP_LOG_INFO, "start advertising");
+} else if (!deviceConnected && oldDeviceConnected) {
+    // Handle disconnection
+    M5.delay(500); // Allow Bluetooth stack to reset
+    pServer->startAdvertising();
+    M5.Log(ESP_LOG_INFO, "Start advertising");
     oldDeviceConnected = deviceConnected;
-  }
-  // connecting
-  if (deviceConnected && !oldDeviceConnected)
-  {
-    // do stuff here on connecting
+} else {
+    // Waiting for client connection
+    M5.delay(500);
+}
+
+if (deviceConnected && !oldDeviceConnected) {
+    // Handle new connection
     oldDeviceConnected = deviceConnected;
-  }
+}
 }
 
 /// for ESP-IDF

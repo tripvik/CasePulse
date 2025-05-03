@@ -15,6 +15,12 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         private readonly ITranscriptionService _trancriptionService;
         private readonly IDevice _connectedDevice;
         private bool _connected = false;
+        private bool _connecting = false;
+        // stop recording will inverse of connected
+        private bool _stopRecording
+        {
+            get => !_connected;
+        }
 
         public Home(ITranscriptionService transcriptionService)
         {
@@ -35,7 +41,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         {
             // This is where you can handle the discovered devices
             // For example, you can add them to a list or display them in the UI
-            if (!_connected)
+            if (!_connecting)
             {
                 if (e.Device.Name == "ESP32")
                 {
@@ -45,10 +51,9 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                     try
                     {
                         await _adapter.ConnectToDeviceAsync(e.Device);
-                        _connected = true; 
-                        await InvokeAsync(StateHasChanged);
                         var _connectedDevice = e.Device;
-                        var size = await _connectedDevice.RequestMtuAsync(185); // Request a larger MTU size if needed
+                        _connecting = true;
+                        //var size = await _connectedDevice.RequestMtuAsync(185); // Request a larger MTU size if needed
                         var service = await _connectedDevice.GetServiceAsync(Guid.Parse("4fafc201-1fb5-459e-8fcc-c5c9c331914b"));
                         var characteristic = await service.GetCharacteristicAsync(Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
                         characteristic.ValueUpdated += async (o, args) =>
@@ -75,6 +80,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                         };
                         await _trancriptionService.InitializeAsync(new WaveFormat(32000, 8, 1));
                         await characteristic.StartUpdatesAsync();
+                        _connected = true;
+                        await InvokeAsync(StateHasChanged);
                     }
                     catch (DeviceConnectionException ex)
                     {
@@ -96,7 +103,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
         public async void StopRecording()
         {
-            
+
             await _trancriptionService.StopAsync();
             //disconnect from the device
         }

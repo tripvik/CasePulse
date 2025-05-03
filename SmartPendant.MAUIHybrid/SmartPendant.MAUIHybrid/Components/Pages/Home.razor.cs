@@ -16,6 +16,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         private readonly IDevice _connectedDevice;
         private bool _connected = false;
         private bool _connecting = false;
+        private MemoryStream _buffer = new MemoryStream();
         // stop recording will inverse of connected
         private bool _stopRecording
         {
@@ -61,8 +62,9 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                             try
                             {
                                 var bytes = args.Characteristic.Value;
-                                //implement buffering if required.
-                                await _trancriptionService.ProcessChunkAsync(bytes);
+                                //implement buffer before sending to Transcription Service
+                                
+                                await BufferAndSendToAzureAsync(bytes);
                             }
                             catch (Exception ex)
                             {
@@ -76,9 +78,9 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                         };
                         _trancriptionService.RecognizingTranscriptReceived += (o, args) =>
                         {
-                            Debug.WriteLine($"Recognizing: {args}...");
+                            //Debug.WriteLine($"Recognizing: {args}...");
                         };
-                        await _trancriptionService.InitializeAsync(new WaveFormat(32000, 8, 1));
+                        await _trancriptionService.InitializeAsync(new WaveFormat(16000, 8, 1));
                         await characteristic.StartUpdatesAsync();
                         _connected = true;
                         await InvokeAsync(StateHasChanged);
@@ -106,6 +108,18 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
             await _trancriptionService.StopAsync();
             //disconnect from the device
+        }
+
+        private async Task BufferAndSendToAzureAsync(byte[] newData)
+        {
+            _buffer.Write(newData, 0, newData.Length);
+
+            if (_buffer.Length >= 10000) // e.g., 100ms of 32kHz mono 8-bit audio
+            {
+                var chunk = _buffer.ToArray();
+                await _trancriptionService.ProcessChunkAsync(chunk);
+                _buffer.SetLength(0); // clear buffer
+            }
         }
     }
 }

@@ -21,7 +21,7 @@ namespace SmartPendant.MAUIHybrid.Services
         public TranscriptionService(Uri endpoint, string subscriptionKey)
         {
             _speechConfig = SpeechConfig.FromEndpoint(endpoint, subscriptionKey);
-            _speechConfig.SpeechRecognitionLanguage = "en-IN";
+            //_speechConfig.SpeechRecognitionLanguage = "en-IN";
             _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");

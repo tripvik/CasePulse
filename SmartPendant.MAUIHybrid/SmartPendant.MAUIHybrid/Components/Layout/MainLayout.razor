@@ -12,10 +12,7 @@
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@ToggleDrawer" />
             }
-            <MudStack Row="true" AlignItems="AlignItems.Center">
-                <MudIconButton Icon="@Icons.Material.Filled.CrisisAlert" Color="Color.Inherit" Href="/" />
-                <MudText Typo="Typo.h6">Smart Pendant</MudText>
-            </MudStack>
+            <MudChip T="string" Icon="@Icons.Material.Filled.CrisisAlert" Color="Color.Primary" Size="Size.Large" Href="/">SmartPendant</MudChip>
             <MudTooltip Duration="1000" Text="@(LayoutService.DarkModeToggle == DarkLightMode.System ? "Switch to Light Theme" : LayoutService.DarkModeToggle == DarkLightMode.Dark ? "Switch to system" : "Switch to Dark Theme")">
                 <MudIconButton Icon="@(LayoutService.DarkModeToggle == DarkLightMode.System ? @Icons.Material.Filled.AutoMode : LayoutService.DarkModeToggle == DarkLightMode.Dark ? @Icons.Material.Rounded.LightMode : @Icons.Material.Outlined.DarkMode)" Color="Color.Inherit" OnClick="@LayoutService.ToggleDarkMode" />
             </MudTooltip>

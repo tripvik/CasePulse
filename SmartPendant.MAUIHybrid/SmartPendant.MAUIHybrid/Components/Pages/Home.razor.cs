@@ -8,24 +8,16 @@ using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Components.Pages
 {
-    public partial class Home
+    public partial class Home(ITranscriptionService transcriptionService, BLEService bleService)
     {
-        private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
-        private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
-        private readonly ITranscriptionService _trancriptionService;
-        private readonly IDevice _connectedDevice;
-        private bool _connected = false;
-        private bool _connecting = false;
+        private readonly ITranscriptionService _trancriptionService = transcriptionService;
+        private readonly BLEService _bleService = bleService;
         private MemoryStream _buffer = new MemoryStream();
+        private bool _connected = false;
         // stop recording will inverse of connected
         private bool _stopRecording
         {
             get => !_connected;
-        }
-
-        public Home(ITranscriptionService transcriptionService)
-        {
-            _trancriptionService = transcriptionService;
         }
 
         protected override async Task OnAfterRenderAsync(bool first)
@@ -33,41 +25,18 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             await base.OnAfterRenderAsync(first);
             if (first)
             {
-                if(await HasCorrectPermissions())
+                var (connectionResult,exception) = await _bleService.ConnectToPendant();
+                if(connectionResult)
                 {
-                    _adapter.DeviceDiscovered += Adapter_DeviceDiscovered;
-                    await _adapter.StartScanningForDevicesAsync();
-                }
-                
-            }
-        }
-
-        private async void Adapter_DeviceDiscovered(object? sender, DeviceEventArgs e)
-        {
-            // This is where you can handle the discovered devices
-            // For example, you can add them to a list or display them in the UI
-            if (!_connecting)
-            {
-                if (e.Device.Name == "ESP32")
-                {
-                    Debug.WriteLine($"Found ESP32 device: {e.Device.Name} - {e.Device.Id}");
-                    // Stop scanning if you found the device you are looking for
-                    await _adapter.StopScanningForDevicesAsync();
-                    try
+                    var (characteristicResult, characteristic) = await _bleService.GetCharacteristic();
+                    if (characteristicResult && characteristic != null)
                     {
-                        await _adapter.ConnectToDeviceAsync(e.Device);
-                        var _connectedDevice = e.Device;
-                        _connecting = true;
-                        //var size = await _connectedDevice.RequestMtuAsync(185); // Request a larger MTU size if needed
-                        var service = await _connectedDevice.GetServiceAsync(Guid.Parse("4fafc201-1fb5-459e-8fcc-c5c9c331914b"));
-                        var characteristic = await service.GetCharacteristicAsync(Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8"));
                         characteristic.ValueUpdated += async (o, args) =>
                         {
                             try
                             {
                                 var bytes = args.Characteristic.Value;
                                 //implement buffer before sending to Transcription Service
-                                
                                 await BufferAndSendToAzureAsync(bytes);
                             }
                             catch (Exception ex)
@@ -82,27 +51,13 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                         };
                         _trancriptionService.RecognizingTranscriptReceived += (o, args) =>
                         {
-                            //Debug.WriteLine($"Recognizing: {args}...");
+                            Debug.WriteLine($"Recognizing: {args}...");
                         };
                         await _trancriptionService.InitializeAsync(new WaveFormat(16000, 8, 1));
                         await characteristic.StartUpdatesAsync();
                         _connected = true;
                         await InvokeAsync(StateHasChanged);
                     }
-                    catch (DeviceConnectionException ex)
-                    {
-                        // ... could not connect to device
-                        Debug.WriteLine($"Could not connect to device: {ex}");
-                    }
-                    catch (Exception ex)
-                    {
-                        // ... other exceptions
-                        Debug.WriteLine($"An error occurred: {ex}");
-                    }
-                }
-                else
-                {
-                    Debug.WriteLine($"Discovered device: {e.Device.Name} - {e.Device.Id}");
                 }
             }
         }
@@ -111,6 +66,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         {
 
             await _trancriptionService.StopAsync();
+            await _bleService.DisconnectFromPendant();
+            _connected = false;
             //disconnect from the device
         }
 
@@ -124,25 +81,6 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                 await _trancriptionService.ProcessChunkAsync(chunk);
                 _buffer.SetLength(0); // clear buffer
             }
-        }
-
-        private async Task<bool> HasCorrectPermissions()
-        {
-            Debug.WriteLine("Verifying Bluetooth permissions..");
-            var permissionResult = await Permissions.CheckStatusAsync<Permissions.Bluetooth>();
-            if (permissionResult != PermissionStatus.Granted)
-            {
-                permissionResult = await Permissions.RequestAsync<Permissions.Bluetooth>();
-            }
-            Debug.WriteLine($"Result of requesting Bluetooth permissions: '{permissionResult}'");
-            if (permissionResult != PermissionStatus.Granted)
-            {
-                Debug.WriteLine("Permissions not available, direct user to settings screen.");
-                AppInfo.ShowSettingsUI();
-                return false;
-            }
-
-            return true;
         }
     }
 }

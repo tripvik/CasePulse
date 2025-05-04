@@ -38,6 +38,7 @@ namespace SmartPendant.MAUIHybrid
                 return new TranscriptionService(uri, subscriptionKey);
             }
             );
+            builder.Services.AddSingleton<BLEService>();
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

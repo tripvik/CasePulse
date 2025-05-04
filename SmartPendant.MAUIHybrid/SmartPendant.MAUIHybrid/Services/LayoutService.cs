@@ -62,7 +62,7 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public event EventHandler MajorUpdateOccured;
+        public event EventHandler? MajorUpdateOccured;
 
         private void OnMajorUpdateOccured() => MajorUpdateOccured?.Invoke(this, EventArgs.Empty);
 

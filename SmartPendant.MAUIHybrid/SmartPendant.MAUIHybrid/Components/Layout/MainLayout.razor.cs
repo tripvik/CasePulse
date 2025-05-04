@@ -17,7 +17,6 @@ namespace SmartPendant.MAUIHybrid.Components.Layout
             get
             {
                 return (DeviceInfo.Platform == DevicePlatform.WinUI ||
-                        DeviceInfo.Platform == DevicePlatform.UWP ||
                         DeviceInfo.Platform == DevicePlatform.macOS);
             }
         }

@@ -1,11 +1,13 @@
 ﻿@page "/"
 
-<MudStack AlignItems="AlignItems.Center"  Justify="Justify.Center" Style="height: 100%;">
-    <MudText Typo="Typo.h5" Align="Align.Center">
-        Device Connected: <b>@_connected</b>
-    </MudText>
-
-    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="StopRecording" Class="rounded-pill" Disabled="@_stopRecording">
-        Stop Recording
-    </MudButton>
+<MudStack AlignItems="AlignItems.Center"  Justify="Justify.SpaceEvenly" Style="height: 100%;">
+    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center">
+        <MudText Typo="Typo.h5" Align="Align.Center">
+            Device Connected: <b>@_connected</b>
+        </MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="StopRecording" Class="rounded-pill" Disabled="@_stopRecording">
+            Stop Recording
+        </MudButton>
+    </MudStack>
+    <Conversation />
 </MudStack>

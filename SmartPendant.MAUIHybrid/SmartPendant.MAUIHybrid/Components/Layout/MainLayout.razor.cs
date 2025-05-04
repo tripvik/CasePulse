@@ -12,6 +12,15 @@ namespace SmartPendant.MAUIHybrid.Components.Layout
 
         private MudThemeProvider _mudThemeProvider;
         private bool _drawerOpen = false;
+        private bool _isDesktop
+        {
+            get
+            {
+                return (DeviceInfo.Platform == DevicePlatform.WinUI ||
+                        DeviceInfo.Platform == DevicePlatform.UWP ||
+                        DeviceInfo.Platform == DevicePlatform.macOS);
+            }
+        }
         protected override void OnInitialized()
         {
             LayoutService.SetBaseTheme(Theme.AdminPanelTheme());

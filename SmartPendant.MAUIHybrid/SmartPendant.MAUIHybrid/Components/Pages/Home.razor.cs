@@ -33,8 +33,12 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             await base.OnAfterRenderAsync(first);
             if (first)
             {
-                _adapter.DeviceDiscovered += Adapter_DeviceDiscovered;
-                await _adapter.StartScanningForDevicesAsync();
+                if(await HasCorrectPermissions())
+                {
+                    _adapter.DeviceDiscovered += Adapter_DeviceDiscovered;
+                    await _adapter.StartScanningForDevicesAsync();
+                }
+                
             }
         }
 
@@ -120,6 +124,25 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                 await _trancriptionService.ProcessChunkAsync(chunk);
                 _buffer.SetLength(0); // clear buffer
             }
+        }
+
+        private async Task<bool> HasCorrectPermissions()
+        {
+            Debug.WriteLine("Verifying Bluetooth permissions..");
+            var permissionResult = await Permissions.CheckStatusAsync<Permissions.Bluetooth>();
+            if (permissionResult != PermissionStatus.Granted)
+            {
+                permissionResult = await Permissions.RequestAsync<Permissions.Bluetooth>();
+            }
+            Debug.WriteLine($"Result of requesting Bluetooth permissions: '{permissionResult}'");
+            if (permissionResult != PermissionStatus.Granted)
+            {
+                Debug.WriteLine("Permissions not available, direct user to settings screen.");
+                AppInfo.ShowSettingsUI();
+                return false;
+            }
+
+            return true;
         }
     }
 }

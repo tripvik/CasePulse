@@ -19,7 +19,7 @@
 // statics
 //================
 static constexpr const size_t record_size = 10000;
-static constexpr const size_t record_samplerate = 16000;
+static constexpr const size_t record_samplerate = 24000;
 static uint8_t *rec_data;
 
 // globals
@@ -78,9 +78,9 @@ void setup()
   // Mic setup
   //========================================
   auto miccfg = M5.Mic.config();
-  //miccfg.noise_filter_level = (miccfg.noise_filter_level - 8) & 255;
+  miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
   //M5.Log(ESP_LOG_VERBOSE, "Mic magnification: %d", miccfg.magnification);
-  //miccfg.magnification = 32; // 0-32
+  miccfg.magnification = 32; // 0-32
   M5.Mic.config(miccfg);
   M5.Mic.begin();
 
@@ -132,7 +132,7 @@ void loop()
             size_t chunk_size = std::min<size_t>(500, record_size - i);
             pCharacteristic->setValue(rec_data + i, chunk_size);
             pCharacteristic->notify();
-            M5.delay(5); // Allow Bluetooth stack to process events
+            //M5.delay(5); // Allow Bluetooth stack to process events
         }
     } else {
         M5.Log(ESP_LOG_ERROR, "Record failed");

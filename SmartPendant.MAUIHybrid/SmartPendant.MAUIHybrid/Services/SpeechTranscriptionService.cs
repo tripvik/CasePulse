@@ -3,25 +3,30 @@ using Microsoft.CognitiveServices.Speech;
 using NAudio.Wave;
 using System.Diagnostics;
 using Microsoft.CognitiveServices.Speech.Transcription;
+using SmartPendant.MAUIHybrid.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
-    public class TranscriptionService : ITranscriptionService
+    public class SpeechTranscriptionService : ITranscriptionService
     {
         private readonly SpeechConfig _speechConfig;
         private ConversationTranscriber? _transcriber;
         private PushAudioInputStream? _pushStream;
 
         // *** NEW: Events for INTERIM recognition results ***
-        public event EventHandler<string>? RecognizingTranscriptReceived;
+        public event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
 
         // *** MODIFIED: Events for FINAL recognized segments ***
-        public event EventHandler<string>? TranscriptReceived; // Changed from string
+        public event EventHandler<ChatMessage>? TranscriptReceived; // Changed from string
 
-        public TranscriptionService(Uri endpoint, string subscriptionKey)
+        public SpeechTranscriptionService(IConfiguration configuration)
         {
-            _speechConfig = SpeechConfig.FromEndpoint(endpoint, subscriptionKey);
-            //_speechConfig.SpeechRecognitionLanguage = "en-IN";
+            var endpoint = configuration["Azure:Speech:Endpoint"] ?? throw new InvalidOperationException("Azure Speech Endpoint is not configured. Please check your appsettings.json or environment variables.");
+            var subscriptionKey = configuration["Azure:Speech:Key"] ?? throw new InvalidOperationException("Azure Speech Subscription Key is not configured. Please check your appsettings.json or environment variables."); ;
+            var uri = new Uri(endpoint);
+            _speechConfig = SpeechConfig.FromEndpoint(uri, subscriptionKey);
+            _speechConfig.SpeechRecognitionLanguage = "en-IN";
             _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
@@ -42,7 +47,14 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    RecognizingTranscriptReceived?.Invoke(this, $"{e.Result.SpeakerId} - {e.Result.Text}..."); // Raise new interim event
+                    var message = new ChatMessage
+                    {
+                        Message = e.Result.Text,
+                        Timestamp = DateTime.Now,
+                        User = e.Result.SpeakerId,
+                        Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
+                    };
+                    RecognizingTranscriptReceived?.Invoke(this, message); // Raise new interim event
                 }
             };
 
@@ -51,7 +63,14 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    TranscriptReceived?.Invoke(this, $"{e.Result.SpeakerId} - {e.Result.Text}");
+                    var message = new ChatMessage
+                    {
+                        Message = e.Result.Text,
+                        Timestamp = DateTime.Now,
+                        User = e.Result.SpeakerId,
+                        Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
+                    };
+                    TranscriptReceived?.Invoke(this, message);
                 }
                 else if (e.Result.Reason == ResultReason.NoMatch)
                 {
@@ -72,7 +91,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 try 
                 {
 
-                    var signedData = TranscriptionService.ConvertUnsignedToSigned(audioData);
+                    var signedData = SpeechTranscriptionService.ConvertUnsignedToSigned(audioData);
                     _pushStream.Write(signedData); 
                 }
                 catch (Exception ex) { Console.WriteLine($"Error writing Mic chunk: {ex.Message}"); }

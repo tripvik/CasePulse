@@ -37,7 +37,16 @@
 
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
     <script src="_framework/blazor.webview.js" autostart="false"></script>
+    <!--inline script for autoscrolling-->
+    <script>
+        function scrollToBottom(containerId) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+    </script>
 
-</body>
+</body >
 
-</html>
+</html >

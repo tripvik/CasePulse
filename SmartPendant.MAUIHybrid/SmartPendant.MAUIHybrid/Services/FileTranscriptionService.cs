@@ -1,29 +1,29 @@
 ﻿using NAudio.Wave;
 using Microsoft.Maui.Storage;
+using SmartPendant.MAUIHybrid.Models;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
     internal class FileTranscriptionService : ITranscriptionService
     {
-        public event EventHandler<string>? RecognizingTranscriptReceived;
-        public event EventHandler<string>? TranscriptReceived;
+        public event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
+        public event EventHandler<ChatMessage>? TranscriptReceived;
 
+        private readonly IStorageService _storageService;
         private readonly MemoryStream _memoryStream = new();
-        private RawSourceWaveStream? _rawWaveStream;
-        private WaveFormat? _waveFormat;
 
-        public async ValueTask DisposeAsync()
+        private static bool IsDesktop =>
+            //DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.macOS;
+            false;
+
+        public FileTranscriptionService(IStorageService storageService)
         {
-            // Ensure proper disposal of resources
-            _rawWaveStream?.Dispose();
-            await _memoryStream.DisposeAsync();
+            _storageService = storageService;
         }
 
-        public Task InitializeAsync(WaveFormat micFormat)
-        {
-            _waveFormat = micFormat ?? throw new ArgumentNullException(nameof(micFormat));
-            return Task.CompletedTask;
-        }
+        public ValueTask DisposeAsync() => _memoryStream.DisposeAsync();
+
+        public Task InitializeAsync(WaveFormat micFormat) => Task.CompletedTask;
 
         public async Task ProcessChunkAsync(byte[] audioData)
         {
@@ -35,45 +35,57 @@ namespace SmartPendant.MAUIHybrid.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error writing mic chunk: {ex.Message}");
+                Console.WriteLine($"[ProcessChunkAsync] Error writing mic chunk: {ex.Message}");
             }
         }
 
         public async Task StopAsync()
         {
-            //its going null. 
-            if (_waveFormat == null)
-            {
-                throw new InvalidOperationException("Service is not initialized.");
-            }
-
-            var directoryPath = Path.Combine(FileSystem.AppDataDirectory, "wavfiles");
-            Directory.CreateDirectory(directoryPath);
-
-            var filePath = Path.Combine(directoryPath, $"{Guid.NewGuid()}.wav");
-
             try
             {
-                _rawWaveStream = new RawSourceWaveStream(new MemoryStream(_memoryStream.ToArray()), _waveFormat);
-                using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write);
-                using var waveFileWriter = new WaveFileWriter(fileStream, _waveFormat);
-
-                // Instead of CopyToAsync, manually write the raw PCM bytes
-                var buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = await _rawWaveStream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                var audioBytes = _memoryStream.ToArray();
+                if (audioBytes.Length == 0)
                 {
-                    waveFileWriter.Write(buffer, 0, bytesRead);
+                    Console.WriteLine("[StopAsync] No audio data to save.");
+                    return;
                 }
 
-                await waveFileWriter.FlushAsync();
-                TranscriptReceived?.Invoke(this, $"file saved {filePath}");
+                var fileName = $"{Guid.NewGuid()}.pcm";
+
+                if (IsDesktop)
+                {
+                    var directoryPath = Path.Combine(FileSystem.AppDataDirectory, "pcmfiles");
+                    Directory.CreateDirectory(directoryPath);
+
+                    var filePath = Path.Combine(directoryPath, fileName);
+                    await File.WriteAllBytesAsync(filePath, audioBytes);
+
+                    TranscriptReceived?.Invoke(this, new ChatMessage
+                    {
+                        Message = $"File saved locally: {filePath}",
+                        Timestamp = DateTime.Now,
+                        User = nameof(FileTranscriptionService),
+                        Initials = "FTS"
+                    });
+                }
+                else
+                {
+                    using var stream = new MemoryStream(audioBytes);
+                    var uri = await _storageService.UploadAudioAsync(stream, fileName);
+
+                    TranscriptReceived?.Invoke(this, new ChatMessage
+                    {
+                        Message = $"File uploaded to Azure Blob Storage: {uri}",
+                        Timestamp = DateTime.Now,
+                        User = nameof(FileTranscriptionService),
+                        Initials = "FTS"
+                    });
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error saving WAV file: {ex.Message}");
+                Console.WriteLine($"[StopAsync] Error saving audio: {ex.Message}");
             }
         }
-
     }
 }

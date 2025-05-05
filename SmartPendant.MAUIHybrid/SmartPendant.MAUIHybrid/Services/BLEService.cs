@@ -71,6 +71,7 @@ namespace SmartPendant.MAUIHybrid.Services
                             // Handle the case when the device is not found or connection fails
                             return (false,new Exception("Unknown error while connecting"));
                         }
+                        Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
                     }
                     catch (DeviceConnectionException ex)
                     {

@@ -1,44 +1,17 @@
-﻿<MudPaper Height="50%" Class="rounded-lg overflow-auto pa-4"id="chatContainer">
-    <MudChat ChatPosition="ChatBubblePosition.Start">
-        <MudAvatar>MD</MudAvatar>
-        <MudChatBubble>
-            It was said that you would, destroy the Sith, not join them.
-        </MudChatBubble>
-        <MudChatBubble>
-            It was you who would bring balance to the Force
-        </MudChatBubble>
-    </MudChat>
-
-    <MudChat ChatPosition="ChatBubblePosition.End">
-        <MudAvatar>
-            JK
-        </MudAvatar>
-        <MudChatBubble>
-            Not leave it in Darkness
-        </MudChatBubble>
-    </MudChat>
-    <MudChat ChatPosition="ChatBubblePosition.End">
-        <MudAvatar>
-            JK
-        </MudAvatar>
-        <MudChatBubble>
-            I will not join you
-        </MudChatBubble>
-    </MudChat>
-    <MudChat ChatPosition="ChatBubblePosition.Start">
-        <MudAvatar>
-            JK
-        </MudAvatar>
-        <MudChatBubble>
-            I will not join you
-        </MudChatBubble>
-    </MudChat>
-    <MudChat ChatPosition="ChatBubblePosition.Start">
-        <MudAvatar>
-            JK
-        </MudAvatar>
-        <MudChatBubble>
-            I will not join you
-        </MudChatBubble>
-    </MudChat>
+﻿<MudPaper Height="50%" Class="rounded-lg overflow-y-scroll pa-4" id="chatContainer" Width="90%">
+    @{
+        for (int i = 0; i < Messages.Count; i++)
+        {
+            var message = Messages[i];
+            var position = i > 0 && Messages[i - 1].User != message.User
+            ? ChatBubblePosition.Start
+            : ChatBubblePosition.End;
+            var time = message.Timestamp.ToString("g");
+            <MudChat ChatPosition="@position">
+                <MudAvatar>@message.Initials</MudAvatar>
+                <MudChatHeader Name="@message.User" Time="@time" />
+                <MudChatBubble>@message.Message</MudChatBubble>
+            </MudChat>
+        }
+    }
 </MudPaper>

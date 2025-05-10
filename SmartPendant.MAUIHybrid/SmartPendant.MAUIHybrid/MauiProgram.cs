@@ -25,6 +25,8 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddMudServices();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
+
+            //Switch between different Transcription Services
             bool useFileService = builder.Configuration.GetValue<bool>("UseFileRecording");
             bool useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
             if (useFileService)
@@ -44,6 +46,8 @@ namespace SmartPendant.MAUIHybrid
                 }
             }
             builder.Services.AddSingleton<IStorageService,BlobStorageService>();
+
+            //Switch between BLE and Bluetooth Classic
             bool useBLE = builder.Configuration.GetValue<bool>("UseBLE");
             if (useBLE)
             {
@@ -51,7 +55,7 @@ namespace SmartPendant.MAUIHybrid
             }
             else
             {
-                builder.Services.AddSingleton<IConnectionService, BluetoothService>();
+                builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
             }
 
 #if DEBUG

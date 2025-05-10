@@ -20,7 +20,7 @@
 //================
 static constexpr const size_t record_size = 10000;
 static constexpr const size_t record_samplerate = 24000;
-static int16_t *rec_data;
+static uint8_t *rec_data;
 
 // globals
 //==================
@@ -67,8 +67,7 @@ void setup()
   // Allocating memory for recording data
   //========================================
   M5.Log(ESP_LOG_VERBOSE, "Allocating memory for rec_data...");
-  rec_data = (typeof(rec_data))heap_caps_malloc(record_size * sizeof(int16_t), MALLOC_CAP_8BIT);
-  memset(rec_data, 0, record_size * sizeof(int16_t));
+  rec_data = (uint8_t *)malloc(record_size);
   if (rec_data == nullptr)
   {
     M5.Log(ESP_LOG_ERROR, "Failed to allocate memory for rec_data!");
@@ -79,17 +78,15 @@ void setup()
   // Mic setup
   //========================================
   auto miccfg = M5.Mic.config();
-  //miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
+  miccfg.noise_filter_level = (miccfg.noise_filter_level + 8) & 255;
   //M5.Log(ESP_LOG_VERBOSE, "Mic magnification: %d", miccfg.magnification);
-  //miccfg.magnification = 32; // 0-32
+  miccfg.magnification = 32; // 0-32
   M5.Mic.config(miccfg);
   M5.Mic.begin();
 
   // BLE setup
   //=================
-  BLEDevice::setMTU(250);
   BLEDevice::init("ESP32");
-
   // Create the BLE Server
   pServer = BLEDevice::createServer();
   pServer->setCallbacks(new MyServerCallbacks());
@@ -133,9 +130,9 @@ void loop()
         // Send chunks of 500 bytes due to BLE limitations
         for (size_t i = 0; i < record_size; i += 500) {
             size_t chunk_size = std::min<size_t>(500, record_size - i);
-            pCharacteristic->setValue((uint8_t *)rec_data + i, chunk_size);
+            pCharacteristic->setValue(rec_data + i, chunk_size);
             pCharacteristic->notify();
-            M5.delay(5); // Allow Bluetooth stack to process events
+            //M5.delay(5); // Allow Bluetooth stack to process events
         }
     } else {
         M5.Log(ESP_LOG_ERROR, "Record failed");

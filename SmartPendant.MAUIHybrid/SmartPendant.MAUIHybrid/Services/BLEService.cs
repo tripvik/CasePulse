@@ -7,129 +7,91 @@ using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
-    public class BLEService
+    public class BLEService : IConnectionService
     {
         private readonly IBluetoothLE _ble = CrossBluetoothLE.Current;
         private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
-        public EventHandler<DeviceEventArgs>? PendantDisconnected;
-        public EventHandler<DeviceErrorEventArgs>? PendantConnectionLost;
-        private IDevice? _connectedDevice = null;
+        private IDevice? _connectedDevice;
+        private ICharacteristic? _characteristic;
         private readonly Guid _serviceId = Guid.Parse("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
-        private readonly Guid _characteristicId = Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8"); 
+        private readonly Guid _characteristicId = Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8");
 
+        public event EventHandler<byte[]>? DataReceived;
+        public event EventHandler<string>? ConnectionLost;
+        public event EventHandler<string>? Disconnected;
 
-        public bool IsConnected {
-            get
-            {
-                return _connectedDevice != null && _connectedDevice.State == DeviceState.Connected;
-            }
-        }
+        public bool IsConnected =>
+            _connectedDevice != null && _connectedDevice.State == DeviceState.Connected;
 
         public BLEService()
         {
-            _adapter.DeviceDisconnected += Adapter_DeviceDisconnected;
-            _adapter.DeviceConnectionLost += Adapter_DeviceConnectionLost;
+            _adapter.DeviceConnectionLost += (s, e) =>
+            {
+                if (_connectedDevice?.Id == e.Device.Id)
+                    ConnectionLost?.Invoke(this, e.Device.Name ?? "Unknown");
+            };
+
+            _adapter.DeviceDisconnected += (s, e) =>
+            {
+                if (_connectedDevice?.Id == e.Device.Id)
+                    Disconnected?.Invoke(this, e.Device.Name ?? "Unknown");
+            };
         }
 
-        private void Adapter_DeviceConnectionLost(object? sender, DeviceErrorEventArgs e)
+        public async Task<(bool, Exception?)> ConnectAsync()
         {
-            if(e.Device.Id == _connectedDevice?.Id)
-            {
-                Debug.WriteLine($"Connection lost to device: {e.Device.Name} - {e.Device.Id}");
-                PendantConnectionLost?.Invoke(this, e);
-            }
-        }
+            if (IsConnected)
+                return (true, null);
 
-        private void Adapter_DeviceDisconnected(object? sender, DeviceEventArgs e)
-        {
-            if (e.Device.Id == _connectedDevice?.Id)
-            {
-                Debug.WriteLine($"Device Disconnected : {e.Device.Name} - {e.Device.Id}");
-                PendantDisconnected?.Invoke(this, e);
-            }
-        }
+            if (!await HasCorrectPermissions())
+                return (false, new Exception("Bluetooth permission not granted"));
 
-        public async Task<(bool,Exception?)> ConnectToPendant()
-        {
-            if(_connectedDevice != null && _connectedDevice.State == DeviceState.Connected)
-            {
-                Debug.WriteLine("Already connected to a device.");
-                return (true,null);
-            }
-            else
-            {
-                if(await HasCorrectPermissions())
-                {
-                    //create a cancellation token for 30s
-                    var cts = new CancellationTokenSource();
-                    cts.CancelAfter(30000);
-                    try
-                    {
-                        _connectedDevice = await _adapter.ConnectToKnownDeviceAsync(GetDeviceId(), default, cts.Token);
-                        if (_connectedDevice == null)
-                        {
-                            // Handle the case when the device is not found or connection fails
-                            return (false,new Exception("Unknown error while connecting"));
-                        }
-                        Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
-                    }
-                    catch (DeviceConnectionException ex)
-                    {
-                        // ... could not connect to device
-                        Debug.WriteLine($"Could not connect to device: {ex}");
-                        return (false, ex);
-                    }
-                    catch (Exception ex)
-                    {
-                        // ... other exceptions
-                        Debug.WriteLine($"An error occurred: {ex}");
-                        return (false, ex);
-                    }
-                }      
-            }
-            return (true, null);
-
-        }
-
-           public async Task<(bool, ICharacteristic?)> GetCharacteristic(Guid? serviceId = null, Guid? characteristicId = null)
-        {
             try
             {
-                // Use the default instance fields if the parameters are null
-                var resolvedServiceId = serviceId ?? _serviceId;
-                var resolvedCharacteristicId = characteristicId ?? _characteristicId;
-
-                if (_connectedDevice == null)
-                {
-                    Debug.WriteLine("Error: No connected device.");
-                    return (false, null);
-                }
-
-                var service = await _connectedDevice.GetServiceAsync(resolvedServiceId);
-                if (service == null)
-                {
-                    Debug.WriteLine($"Error: Service {resolvedServiceId} not found.");
-                    return (false, null);
-                }
-
-                var characteristic = await service.GetCharacteristicAsync(resolvedCharacteristicId);
-                if (characteristic == null)
-                {
-                    Debug.WriteLine($"Error: Characteristic {resolvedCharacteristicId} not found.");
-                    return (false, null);
-                }
-
-                return (true, characteristic);
+                var deviceId = new Guid("00000000-0000-0000-0000-f024f99b2a12");
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                _connectedDevice = await _adapter.ConnectToKnownDeviceAsync(deviceId, default, cts.Token);
+                Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
+                return (true, null);
             }
             catch (Exception ex)
             {
-                // Log the exception for debugging purposes
-                Debug.WriteLine($"Error in GetCharacteristic: {ex.Message}");
-                return (false, null);
+                return (false, ex);
             }
         }
 
+        public async Task<bool> InitializeAsync()
+        {
+            if (_connectedDevice == null)
+            {
+                Debug.WriteLine("Error: No connected device.");
+                return (false);
+            }
 
+            var service = await _connectedDevice.GetServiceAsync(_serviceId);
+            if (service == null) return false;
+
+            _characteristic = await service.GetCharacteristicAsync(_characteristicId);
+            if (_characteristic == null) return false;
+
+            _characteristic.ValueUpdated += (s, e) =>
+            {
+                var data = e.Characteristic.Value;
+                DataReceived?.Invoke(this, data);
+            };
+
+            await _characteristic.StartUpdatesAsync();
+            return true;
+        }
+
+        public async Task DisconnectAsync()
+        {
+            if (_connectedDevice != null)
+            {
+                await _adapter.DisconnectDeviceAsync(_connectedDevice);
+                _connectedDevice = null;
+            }
+        }
 
         private async Task<bool> HasCorrectPermissions()
         {
@@ -155,20 +117,6 @@ namespace SmartPendant.MAUIHybrid.Services
 
             return true;
         }
-
-        public async Task DisconnectFromPendant()
-        {
-            if (_connectedDevice != null)
-            {
-                await _adapter.DisconnectDeviceAsync(_connectedDevice);
-                _connectedDevice = null;
-            }
-        }
-
-        private System.Guid GetDeviceId()
-        {
-            // Eventually get from configuration or save device  
-            return new System.Guid("00000000-0000-0000-0000-f024f99b2a12");
-        }
     }
+
 }

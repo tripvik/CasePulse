@@ -1,99 +1,95 @@
 ﻿using NAudio.Wave;
-using Plugin.BLE;
-using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.EventArgs;
-using Plugin.BLE.Abstractions.Exceptions;
 using SmartPendant.MAUIHybrid.Models;
 using SmartPendant.MAUIHybrid.Services;
 using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Components.Pages
 {
-    public partial class Home(ITranscriptionService transcriptionService, BLEService bleService)
+    public partial class Home(IConnectionService bluetoothService, ITranscriptionService transcriptionService)
     {
-        private readonly ITranscriptionService _trancriptionService = transcriptionService;
-        private readonly BLEService _bleService = bleService;
-        private MemoryStream _buffer = new MemoryStream();
-        private bool _connected = false;
+        private readonly IConnectionService _bluetoothService = bluetoothService;
+        private readonly ITranscriptionService _transcriptionService = transcriptionService;
         private List<ChatMessage> _messages = [];
-        // stop recording will inverse of connected
-        private bool _stopRecording
-        {
-            get => !_connected;
-        }
+        private bool _connected = false;
 
-        protected override async Task OnAfterRenderAsync(bool first)
+        private bool _stopRecording => !_connected;
+
+        protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            await base.OnAfterRenderAsync(first);
-            if (first)
+            if (firstRender)
             {
-                StartRecording();
+                await StartRecordingAsync();
             }
         }
 
         public async void StopRecording()
         {
-
-            await _trancriptionService.StopAsync();
-            //remove any event handlers
-            _trancriptionService.TranscriptReceived -= null;
-            _trancriptionService.RecognizingTranscriptReceived -= null;
-            await _bleService.DisconnectFromPendant();
+            await _transcriptionService.StopAsync();
+            _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
+            _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
+            _bluetoothService.DataReceived -= OnDataReceived;
+            await _bluetoothService.DisconnectAsync();
             _connected = false;
-            //disconnect from the device
             await InvokeAsync(StateHasChanged);
         }
 
-        public async void StartRecording()
+        public async Task StartRecordingAsync()
         {
-
-            var (connectionResult, exception) = await _bleService.ConnectToPendant();
-            if (connectionResult)
+            var (connected, ex) = await _bluetoothService.ConnectAsync();
+            if (!connected)
             {
-                var (characteristicResult, characteristic) = await _bleService.GetCharacteristic();
-                if (characteristicResult && characteristic != null)
-                {
-                    characteristic.ValueUpdated += async (o, args) =>
-                    {
-                        try
-                        {
-                            var bytes = args.Characteristic.Value;
-                            //implement buffer before sending to Transcription Service
-                            await BufferAndSendAsync(bytes);
-                        }
-                        catch (Exception ex)
-                        {
-                            // Log or handle the exception properly
-                            Console.WriteLine($"Error processing chunk: {ex}");
-                        }
-                    };
-                    _trancriptionService.TranscriptReceived += async (o, args) =>
-                    {
-                        Debug.WriteLine($"Transcript: {args.User} - {args.Message}");
-                        _messages.Add(args);
-                        await InvokeAsync(StateHasChanged);
-                    };
-                    _trancriptionService.RecognizingTranscriptReceived += (o, args) =>
-                    {
-                        Debug.WriteLine($"Recognizing: {args.Message}...");
-                    };
-                    await _trancriptionService.InitializeAsync(new WaveFormat(24000, 8, 1));
-                    await characteristic.StartUpdatesAsync();
-                    _connected = true;
-                    await InvokeAsync(StateHasChanged);
-                }
+                Debug.WriteLine($"Failed to connect: {ex?.Message}");
+                return;
+            }
+
+            var initialized = await _bluetoothService.InitializeAsync();
+            if (!initialized)
+            {
+                Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
+                return;
+            }
+
+            _bluetoothService.DataReceived += OnDataReceived;
+            _transcriptionService.TranscriptReceived += OnTranscriptReceived;
+            _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
+
+            await _transcriptionService.InitializeAsync(new WaveFormat(24000, 8, 1));
+            _connected = true;
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private async void OnDataReceived(object? sender, byte[] data)
+        {
+            try
+            {
+                await BufferAndSendAsync(data);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error processing Bluetooth data: {ex.Message}");
             }
         }
 
+        private async void OnTranscriptReceived(object? sender, ChatMessage message)
+        {
+            Debug.WriteLine($"Transcript: {message.User} - {message.Message}");
+            _messages.Add(message);
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private void OnRecognizingTranscriptReceived(object? sender, ChatMessage message)
+        {
+            Debug.WriteLine($"Recognizing: {message.Message}...");
+        }
         private async Task BufferAndSendAsync(byte[] newData)
         {
-            await _trancriptionService.ProcessChunkAsync(newData);
+            await _transcriptionService.ProcessChunkAsync(newData);
             //_buffer.Write(newData, 0, newData.Length);
 
             //if (_buffer.Length >= 10000) // e.g., 100ms of 32kHz mono 8-bit audio
             //{
             //    var chunk = _buffer.ToArray();
-                
+
             //    _buffer.SetLength(0); // clear buffer
             //}
         }

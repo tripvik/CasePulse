@@ -44,7 +44,15 @@ namespace SmartPendant.MAUIHybrid
                 }
             }
             builder.Services.AddSingleton<IStorageService,BlobStorageService>();
-            builder.Services.AddSingleton<BLEService>();
+            bool useBLE = builder.Configuration.GetValue<bool>("UseBLE");
+            if (useBLE)
+            {
+                builder.Services.AddSingleton<IConnectionService, BLEService>();
+            }
+            else
+            {
+                builder.Services.AddSingleton<IConnectionService, BluetoothService>();
+            }
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

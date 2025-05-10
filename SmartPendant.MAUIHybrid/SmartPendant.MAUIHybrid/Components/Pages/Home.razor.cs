@@ -87,14 +87,15 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
         private async Task BufferAndSendAsync(byte[] newData)
         {
-            _buffer.Write(newData, 0, newData.Length);
+            await _trancriptionService.ProcessChunkAsync(newData);
+            //_buffer.Write(newData, 0, newData.Length);
 
-            if (_buffer.Length >= 10000) // e.g., 100ms of 32kHz mono 8-bit audio
-            {
-                var chunk = _buffer.ToArray();
-                await _trancriptionService.ProcessChunkAsync(chunk);
-                _buffer.SetLength(0); // clear buffer
-            }
+            //if (_buffer.Length >= 10000) // e.g., 100ms of 32kHz mono 8-bit audio
+            //{
+            //    var chunk = _buffer.ToArray();
+                
+            //    _buffer.SetLength(0); // clear buffer
+            //}
         }
     }
 }

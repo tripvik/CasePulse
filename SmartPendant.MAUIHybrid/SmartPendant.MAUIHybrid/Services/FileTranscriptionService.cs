@@ -1,6 +1,7 @@
 ﻿using NAudio.Wave;
 using Microsoft.Maui.Storage;
 using SmartPendant.MAUIHybrid.Models;
+using SmartPendant.MAUIHybrid.Helpers;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
@@ -13,8 +14,8 @@ namespace SmartPendant.MAUIHybrid.Services
         private readonly MemoryStream _memoryStream = new();
 
         private static bool IsDesktop =>
-            //DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.macOS;
-            false;
+            DeviceInfo.Platform == DevicePlatform.WinUI || DeviceInfo.Platform == DevicePlatform.macOS;
+            //false;
 
         public FileTranscriptionService(IStorageService storageService)
         {
@@ -31,6 +32,9 @@ namespace SmartPendant.MAUIHybrid.Services
 
             try
             {
+                //convert audio data to Signed 16-bit PCM
+                //var signedAudioData = AudioHelper.ConvertUnsigned8BitToSigned16Bit(audioData);
+
                 await _memoryStream.WriteAsync(audioData.AsMemory());
             }
             catch (Exception ex)

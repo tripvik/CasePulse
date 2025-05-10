@@ -5,6 +5,7 @@ using System.Diagnostics;
 using Microsoft.CognitiveServices.Speech.Transcription;
 using SmartPendant.MAUIHybrid.Models;
 using Microsoft.Extensions.Configuration;
+using SmartPendant.MAUIHybrid.Helpers;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
@@ -91,7 +92,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 try 
                 {
 
-                    var signedData = SpeechTranscriptionService.ConvertUnsignedToSigned(audioData);
+                    var signedData = AudioHelper.ConvertUnsignedToSigned(audioData);
                     _pushStream.Write(signedData); 
                 }
                 catch (Exception ex) { Console.WriteLine($"Error writing Mic chunk: {ex.Message}"); }
@@ -118,15 +119,7 @@ namespace SmartPendant.MAUIHybrid.Services
             Debug.WriteLine("Azure Transcription Service disposed.");
         }
 
-        private static byte[] ConvertUnsignedToSigned(byte[] unsignedData)
-        {
-            byte[] signedData = new byte[unsignedData.Length];
-            for (int i = 0; i < unsignedData.Length; i++)
-            {
-                signedData[i] = (byte)(unsignedData[i] - 128);
-            }
-            return signedData;
-        }
+        
 
     }
 }

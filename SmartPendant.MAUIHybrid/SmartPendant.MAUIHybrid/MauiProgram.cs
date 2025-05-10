@@ -26,13 +26,22 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             bool useFileService = builder.Configuration.GetValue<bool>("UseFileRecording");
+            bool useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
             if (useFileService)
             {
                 builder.Services.AddSingleton<ITranscriptionService, FileTranscriptionService>();
             }
             else
             {
-                builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
+                if (useOpenAI)
+                {
+                    builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
+                }
+                else
+                {
+                    // Default to Azure Speech Service
+                    builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
+                }
             }
             builder.Services.AddSingleton<IStorageService,BlobStorageService>();
             builder.Services.AddSingleton<BLEService>();

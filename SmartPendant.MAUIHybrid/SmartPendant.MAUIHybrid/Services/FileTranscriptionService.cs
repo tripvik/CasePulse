@@ -85,6 +85,8 @@ namespace SmartPendant.MAUIHybrid.Services
                         Initials = "FTS"
                     });
                 }
+                // Reset the memory stream for the next recording
+                _memoryStream.SetLength(0);
             }
             catch (Exception ex)
             {

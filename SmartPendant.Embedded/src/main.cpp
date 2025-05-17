@@ -11,7 +11,7 @@
 #define SAMPLE_BITS      16
 #define CHANNELS         false
 #define MTU_SIZE         512
-#define BUFFER_SIZE      15
+#define BUFFER_SIZE      5
 static constexpr size_t CHUNK_SAMPLES = 2500;
 static constexpr size_t BYTES_PER_SAMPLE = sizeof(int16_t);
 static constexpr size_t CHUNK_SIZE_BYTES = CHUNK_SAMPLES * BYTES_PER_SAMPLE;
@@ -167,7 +167,7 @@ void sendTask(void* pv) {
         pAudioChar->notify();
         
         // Small yield to let BLE stack work
-        M5.delay(10);
+        M5.delay(4);
       }
     } else {
       vTaskDelay(pdMS_TO_TICKS(100));
@@ -205,10 +205,30 @@ void setup() {
   
   BLEService* svc = srv->createService(SERVICE_UUID);
   pAudioChar = svc->createCharacteristic(CHARACTERISTIC_UUID, BLECharacteristic::PROPERTY_NOTIFY);
-  pAudioChar->addDescriptor(new BLE2902());
-  svc->start();
-  BLEDevice::startAdvertising();
-  BLEDevice::setMTU(MTU_SIZE);
+  // Add descriptor for CCCD (Client Characteristic Configuration Descriptor)
+// This is required for notifications to work properly on Android
+BLE2902* p2902 = new BLE2902();
+p2902->setNotifications(true);
+pAudioChar->addDescriptor(p2902);
+
+// Add user-friendly description (helps with debugging in BLE scanner apps)
+BLEDescriptor* pDesc = new BLEDescriptor(BLEUUID((uint16_t)0x2901));
+pDesc->setValue("Audio Stream");
+pAudioChar->addDescriptor(pDesc);
+
+// Start the service
+svc->start();
+
+// Set up advertising with parameters optimized for Android
+BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+pAdvertising->addServiceUUID(SERVICE_UUID);
+pAdvertising->setScanResponse(false);  // Disable scan response for Android
+//pAdvertising->setMinPreferred(0x06);  // Helps with iPhone connection issues
+//pAdvertising->setMaxPreferred(0x12);  // Recommended for Android
+
+// Start advertising
+BLEDevice::startAdvertising();
+//BLEDevice::setMTU(MTU_SIZE);
 
   Serial.println("BLE audio device ready - waiting for connection...");
 

@@ -77,8 +77,8 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
     public async Task ProcessChunkAsync(byte[] audioData)
     {
         if (_ws?.State != WebSocketState.Open) return;
-        var signedaudioData = AudioHelper.ConvertUnsigned8BitToSigned16Bit(audioData);
-        var b64 = Convert.ToBase64String(signedaudioData);
+        //var signedaudioData = AudioHelper.ConvertUnsigned8BitToSigned16Bit(audioData);
+        var b64 = Convert.ToBase64String(audioData);
         var msg = JsonSerializer.Serialize(new { type = "input_audio_buffer.append", audio = b64 });
 
         try

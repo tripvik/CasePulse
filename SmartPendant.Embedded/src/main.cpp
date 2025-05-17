@@ -198,6 +198,8 @@ void setup() {
 
   // set up BLE
   BLEDevice::init("ESP32_Audio");
+  BLEDevice::setMTU(MTU_SIZE);
+
   BLEServer* srv = BLEDevice::createServer();
   
   // Add connection callback handler
@@ -210,6 +212,7 @@ void setup() {
 BLE2902* p2902 = new BLE2902();
 p2902->setNotifications(true);
 pAudioChar->addDescriptor(p2902);
+
 
 // Add user-friendly description (helps with debugging in BLE scanner apps)
 BLEDescriptor* pDesc = new BLEDescriptor(BLEUUID((uint16_t)0x2901));

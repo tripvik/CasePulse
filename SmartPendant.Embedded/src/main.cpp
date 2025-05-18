@@ -5,9 +5,10 @@
 #include <BLE2902.h>
 #include <freertos/stream_buffer.h>
 #include <freertos/task.h>
+#include "Startup/startup.h"
 
 // audio parameters
-#define SAMPLE_RATE      24000
+#define SAMPLE_RATE      16000
 #define SAMPLE_BITS      16
 #define CHANNELS         false
 #define MTU_SIZE         512
@@ -47,7 +48,7 @@ class ServerCallbacks: public BLEServerCallbacks {
         readyToReceive = false;  // Not ready to receive immediately
         connectionTime = millis(); // Record the connection time
         
-        Serial.println("Client connected - preparing audio stream...");
+        M5.Log(ESP_LOG_INFO ,"Client connected - preparing audio stream...");
         // Clear the stream buffer when a new client connects
         xStreamBufferReset(audioStreamBuffer);
         // Reset stats on new connection
@@ -59,7 +60,7 @@ class ServerCallbacks: public BLEServerCallbacks {
     void onDisconnect(BLEServer* pServer) {
         clientConnected = false;
         readyToReceive = false;
-        Serial.println("Client disconnected - stopping audio streaming");
+        M5.Log(ESP_LOG_INFO,"Client disconnected - stopping audio streaming");
         // Restart advertising so new clients can connect
         BLEDevice::startAdvertising();
     }
@@ -76,7 +77,7 @@ void recordTask(void* pv) {
   // Single recording buffer - no need for multiple buffers now
   int16_t* recordBuffer = (int16_t*)malloc(CHUNK_SIZE_BYTES);
   if (recordBuffer == nullptr) {
-    Serial.println("Failed to allocate record buffer");
+    M5.Log(ESP_LOG_ERROR ,"Failed to allocate record buffer");
     return;
   }
   
@@ -86,7 +87,7 @@ void recordTask(void* pv) {
       // Check if delay period has elapsed
       if (millis() - connectionTime >= RECORDING_DELAY_MS) {
         readyToReceive = true;
-        Serial.println("Starting audio recording now");
+        M5.Log(ESP_LOG_VERBOSE ,"Starting audio recording now");
       } else {
         // Still in delay period, sleep briefly and check again
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -120,7 +121,7 @@ void recordTask(void* pv) {
           
           if (bytesWritten < chunkSize) {
             droppedBytes += (chunkSize - bytesWritten);
-            Serial.printf("Stream buffer full! Dropped %u bytes\n", 
+            M5.Log(ESP_LOG_VERBOSE ,"Stream buffer full! Dropped %u bytes\n", 
                          (chunkSize - bytesWritten));
             
             // If we couldn't write the whole chunk, no point trying more
@@ -132,7 +133,7 @@ void recordTask(void* pv) {
         size_t bytesAvailable = xStreamBufferBytesAvailable(audioStreamBuffer);
         if (bytesAvailable > bufferHighWatermark) {
           bufferHighWatermark = bytesAvailable;
-          Serial.printf("New buffer high watermark: %u/%u bytes\n", 
+          M5.Log(ESP_LOG_VERBOSE ,"New buffer high watermark: %u/%u bytes\n", 
                        bufferHighWatermark, STREAM_BUFFER_SIZE);
         }
       }
@@ -148,7 +149,7 @@ void sendTask(void* pv) {
   // Buffer to hold data received from the stream buffer
   uint8_t* txBuffer = (uint8_t*)malloc(TRIGGER_LEVEL);
   if (txBuffer == nullptr) {
-    Serial.println("Failed to allocate TX buffer");
+    M5.Log(ESP_LOG_ERROR ,"Failed to allocate TX buffer");
     return;
   }
   
@@ -179,6 +180,7 @@ void setup() {
   Serial.begin(115200);
   M5.begin();
   M5.Speaker.end();
+  setupLogging();
 
   // Create stream buffer for audio data
   audioStreamBuffer = xStreamBufferCreate(
@@ -186,13 +188,13 @@ void setup() {
                        TRIGGER_LEVEL+TRIGGER_LEVEL);       // Minimum bytes before receiver is unblocked
   
   if (audioStreamBuffer == NULL) {
-    Serial.println("Failed to create stream buffer");
+    M5.Log(ESP_LOG_ERROR ,"Failed to create stream buffer");
     while (1) delay(100);
   }
 
   // init Mic
   if (!M5.Mic.begin()) {
-    Serial.println("Mic init failed");
+    M5.Log(ESP_LOG_ERROR ,"Mic init failed");
     while (1) delay(100);
   }
 
@@ -233,7 +235,7 @@ pAdvertising->setScanResponse(false);  // Disable scan response for Android
 BLEDevice::startAdvertising();
 //BLEDevice::setMTU(MTU_SIZE);
 
-  Serial.println("BLE audio device ready - waiting for connection...");
+  M5.Log(ESP_LOG_INFO ,"BLE audio device ready - waiting for connection...");
 
   // create and pin tasks to different cores with larger stack sizes
   xTaskCreatePinnedToCore(recordTask, "recordTask", 4096, nullptr, 5, nullptr, 0);
@@ -254,17 +256,17 @@ void loop() {
         float dropPercentage = (totalChunks > 0) ? 
                               ((float)droppedBytes*100.0f/((float)totalChunks*CHUNK_SIZE_BYTES)) : 0;
         
-        Serial.printf("Audio stats: %u chunks, %.1f%% data dropped, buffer high: %u/%u bytes\n", 
+        M5.Log(ESP_LOG_VERBOSE ,"Audio stats: %u chunks, %.1f%% data dropped, buffer high: %u/%u bytes\n", 
                      totalChunks, dropPercentage, bufferHighWatermark, STREAM_BUFFER_SIZE);
       } else {
         unsigned long remaining = RECORDING_DELAY_MS - (millis() - connectionTime);
-        Serial.printf("Client connected, waiting %u ms before starting audio...\n", remaining);
+        M5.Log(ESP_LOG_VERBOSE ,"Client connected, waiting %u ms before starting audio...\n", remaining);
       }
     } else {
-      Serial.println("Waiting for BLE client connection...");
+      M5.Log(ESP_LOG_VERBOSE ,"Waiting for BLE client connection...");
     }
     
-    Serial.printf("Free heap: %u bytes\n", ESP.getFreeHeap());
+    M5.Log(ESP_LOG_VERBOSE ,"Free heap: %u bytes\n", ESP.getFreeHeap());
   }
   
   M5.delay(100);

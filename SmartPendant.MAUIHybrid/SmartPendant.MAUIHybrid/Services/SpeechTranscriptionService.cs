@@ -92,8 +92,8 @@ namespace SmartPendant.MAUIHybrid.Services
                 try 
                 {
 
-                    var signedData = AudioHelper.ConvertUnsignedToSigned(audioData);
-                    _pushStream.Write(signedData); 
+                    //var signedData = AudioHelper.ConvertUnsignedToSigned(audioData);
+                    _pushStream.Write(audioData); 
                 }
                 catch (Exception ex) { Console.WriteLine($"Error writing Mic chunk: {ex.Message}"); }
             }

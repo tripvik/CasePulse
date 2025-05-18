@@ -53,7 +53,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             _transcriptionService.TranscriptReceived += OnTranscriptReceived;
             _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
 
-            await _transcriptionService.InitializeAsync(new WaveFormat(24000, 8, 1));
+            await _transcriptionService.InitializeAsync(new WaveFormat(24000, 16, 1));
             _connected = true;
             await InvokeAsync(StateHasChanged);
         }
@@ -62,7 +62,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         {
             try
             {
-                await BufferAndSendAsync(data);
+                //purposefully fire and forget to allow the event to return
+                BufferAndSendAsync(data);
             }
             catch (Exception ex)
             {

@@ -246,14 +246,6 @@ void loop() {
   // Update display based on connection state
   M5.update();
   
-  // Check and update readyToReceive status if needed
-  if (clientConnected && !readyToReceive) {
-    if (millis() - connectionTime >= RECORDING_DELAY_MS) {
-      readyToReceive = true;
-      Serial.println("Ready to transmit audio data");
-    }
-  }
-  
   if (millis() - lastReport > 5000) { // Report every 5 seconds
     lastReport = millis();
     

@@ -28,13 +28,13 @@ namespace SmartPendant.MAUIHybrid.Services
             _adapter.DeviceConnectionLost += (s, e) =>
             {
                 if (_connectedDevice?.Id == e.Device.Id)
-                    ConnectionLost?.Invoke(this, e.Device.Name ?? "Unknown");
+                    ConnectionLost?.Invoke(this, e.ErrorMessage ?? "Unknown");
             };
 
             _adapter.DeviceDisconnected += (s, e) =>
             {
                 if (_connectedDevice?.Id == e.Device.Id)
-                    Disconnected?.Invoke(this, e.Device.Name ?? "Unknown");
+                    Disconnected?.Invoke(this, "Disconnected");
             };
         }
 

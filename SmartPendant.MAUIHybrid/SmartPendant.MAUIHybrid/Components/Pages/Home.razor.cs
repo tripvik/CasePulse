@@ -1,4 +1,6 @@
-﻿using NAudio.Wave;
+﻿using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using NAudio.Wave;
 using SmartPendant.MAUIHybrid.Models;
 using SmartPendant.MAUIHybrid.Services;
 using System.Diagnostics;
@@ -7,10 +9,22 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 {
     public partial class Home(IConnectionService bluetoothService, ITranscriptionService transcriptionService)
     {
+        [Inject]
+        private ISnackbar Snackbar { get; set; } = default!;
         private readonly IConnectionService _bluetoothService = bluetoothService;
         private readonly ITranscriptionService _transcriptionService = transcriptionService;
         private List<ChatMessage> _messages = [];
         private bool _connected = false;
+        private static readonly int _boundedCapacity = 100; // Adjust 
+        private readonly System.Threading.Channels.Channel<byte[]> _audioDataChannel = System.Threading.Channels.Channel.CreateBounded<byte[]>(
+        new System.Threading.Channels.BoundedChannelOptions(_boundedCapacity)
+        {
+            SingleReader = true,
+            SingleWriter = false,
+            FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
+        });
+        private CancellationTokenSource? _processingCts;
+
 
         private bool _stopRecording => !_connected;
 
@@ -22,12 +36,17 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             }
         }
 
-        public async void StopRecording()
+        public async Task StopRecordingAsync()
         {
+            // Cancel the processing loop
+            _processingCts?.Cancel();
+            _processingCts = null;
             await _transcriptionService.StopAsync();
             _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
             _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
             _bluetoothService.DataReceived -= OnDataReceived;
+            _bluetoothService.ConnectionLost -= OnDisconnected;
+            _bluetoothService.Disconnected -= OnDisconnected;
             await _bluetoothService.DisconnectAsync();
             _connected = false;
             await InvokeAsync(StateHasChanged);
@@ -49,7 +68,12 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                 return;
             }
 
+            _processingCts = new CancellationTokenSource();
+            _ = ProcessAudioDataAsync(_processingCts.Token);
+
             _bluetoothService.DataReceived += OnDataReceived;
+            _bluetoothService.ConnectionLost += OnDisconnected;
+            _bluetoothService.Disconnected += OnDisconnected;
             _transcriptionService.TranscriptReceived += OnTranscriptReceived;
             _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
 
@@ -58,16 +82,51 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             await InvokeAsync(StateHasChanged);
         }
 
+        private async void OnDisconnected(object? sender, string e)
+        {
+            var message = $"Connection Error: {e}";
+            Debug.WriteLine(message);
+            Notify(message, Severity.Error);
+            await InvokeAsync(StopRecordingAsync);
+        }
+
         private async void OnDataReceived(object? sender, byte[] data)
         {
             try
             {
-                //purposefully fire and forget to allow the event to return
-                BufferAndSendAsync(data);
+                // Copy the data to avoid potential issues with reused buffers?
+                await _audioDataChannel.Writer.WriteAsync(data);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"Error processing Bluetooth data: {ex.Message}");
+            }
+        }
+
+        // Background processing loop
+        private async Task ProcessAudioDataAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await foreach (var audioData in _audioDataChannel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    try
+                    {
+                        await BufferAndSendAsync(audioData);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"Error processing audio data: {ex.Message}");
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Normal cancellation
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error in audio processing loop: {ex.Message}");
             }
         }
 
@@ -93,6 +152,11 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
             //    _buffer.SetLength(0); // clear buffer
             //}
+        }
+
+        private void Notify(string message, Severity severity)
+        {
+            Snackbar.Add(message, severity);
         }
     }
 }

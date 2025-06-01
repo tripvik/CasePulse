@@ -7,7 +7,7 @@
         </MudText>
         <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" >
             <MudIconButton OnClick="StartRecordingAsync" Disabled="@_connected" Icon="@Icons.Material.Filled.Mic" Color="Color.Success" Size="Size.Small" />
-            <MudIconButton OnClick="StopRecording" Disabled="@_stopRecording" Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small" />
+            <MudIconButton OnClick="StopRecordingAsync" Disabled="@_stopRecording" Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small" />
         </MudButtonGroup>
     </MudStack>
     <Conversation Messages="_messages" />

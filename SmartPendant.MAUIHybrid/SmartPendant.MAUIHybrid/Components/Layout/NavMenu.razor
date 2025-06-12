@@ -1,5 +1,22 @@
-﻿<MudNavMenu Color="Color.Primary">
-    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Welcome</MudNavLink>
-    <MudNavLink Href="/history" Icon="@Icons.Material.Filled.History">History</MudNavLink>
-    <MudNavLink Href="/weather" Icon="@Icons.Material.Filled.Settings">Weather</MudNavLink>
-</MudNavMenu>
+﻿@if (IsMobile)
+{
+    <MudStack Row Justify="Justify.SpaceAround" Style="width:100%" >
+        <MudIconButton Href="/" Icon="@Icons.Material.Filled.Home" />
+        <MudIconButton Href="/history" Icon="@Icons.Material.Filled.History" />
+        <MudIconButton Href="/tasks" Icon="@Icons.Material.Filled.TaskAlt" />
+        <MudIconButton Href="/today" Icon="@Icons.Material.Filled.LightMode" />
+    </MudStack>
+}
+else
+{
+    <MudNavMenu Color="Color.Primary" Margin="Margin.Normal">
+        <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Home</MudNavLink>
+        <MudNavLink Href="/history" Icon="@Icons.Material.Filled.History">History</MudNavLink>
+        <MudNavLink Href="/tasks" Icon="@Icons.Material.Filled.TaskAlt">Tasks</MudNavLink>
+        <MudNavLink Href="/today" Icon="@Icons.Material.Filled.LightMode">Today</MudNavLink>
+    </MudNavMenu>
+}
+
+@code {
+    [Parameter] public bool IsMobile { get; set; } = false;
+}

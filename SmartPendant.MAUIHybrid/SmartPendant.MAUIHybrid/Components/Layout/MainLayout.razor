@@ -8,11 +8,14 @@
 <MudLayout Style="display: flex; flex-direction: column; height: 100vh;">
     <MudAppBar Elevation="0" Gutters="false">
         <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width:100%">
-            @if(_isDesktop)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@ToggleDrawer" />
-            }
-            <MudChip T="string" Icon="@Icons.Material.Filled.CrisisAlert" Color="Color.Primary" Size="Size.Large" Href="/">SmartPendant</MudChip>
+            <MudStack AlignItems=AlignItems.Center Row="true">
+                @if (_isDesktop)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@ToggleDrawer" />
+                }
+                <MudIcon Icon="@Icons.Material.Filled.CrisisAlert" Color="Color.Inherit" Size="Size.Medium" />
+                <MudText Typo="Typo.h6">Smart Pendant</MudText>
+            </MudStack>
             <MudTooltip Duration="1000" Text="@(LayoutService.DarkModeToggle == DarkLightMode.System ? "Switch to Light Theme" : LayoutService.DarkModeToggle == DarkLightMode.Dark ? "Switch to system" : "Switch to Dark Theme")">
                 <MudIconButton Icon="@(LayoutService.DarkModeToggle == DarkLightMode.System ? @Icons.Material.Filled.AutoMode : LayoutService.DarkModeToggle == DarkLightMode.Dark ? @Icons.Material.Rounded.LightMode : @Icons.Material.Outlined.DarkMode)" Color="Color.Inherit" OnClick="@LayoutService.ToggleDarkMode" />
             </MudTooltip>
@@ -28,9 +31,10 @@
     {
         <MudAppBar Bottom="true">
             <MudStack Row="true" Justify="Justify.SpaceAround" Style="width:100%">
-                <MudIconButton Href="/" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" />
-                <MudIconButton Href="/counter" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" />
-                <MudIconButton Href="/weather" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit"/>
+                <MudIconButton Href="/" Icon="@Icons.Material.Filled.Mic" Color="Color.Inherit" />
+                <MudIconButton Href="/history" Icon="@Icons.Material.Filled.History" Color="Color.Inherit" />
+                <MudIconButton Href="/tasks" Icon="@Icons.Material.Filled.TaskAlt" Color="Color.Inherit" />
+                <MudIconButton Href="/day" Icon="@Icons.Material.Filled.LightMode" Color="Color.Inherit" />
             </MudStack>
         </MudAppBar>
     }

@@ -16,8 +16,8 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
     private CancellationTokenSource? _cts;
     private readonly byte[] _recvBuffer = new byte[8192];
 
-    public event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
-    public event EventHandler<ChatMessage>? TranscriptReceived;
+    public event EventHandler<TranscriptEntry>? RecognizingTranscriptReceived;
+    public event EventHandler<TranscriptEntry>? TranscriptReceived;
 
     public OpenAITranscriptionService(IConfiguration config)
     {
@@ -133,11 +133,11 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
                     var text = root.GetProperty("delta").GetString();
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        RecognizingTranscriptReceived?.Invoke(this, new ChatMessage
+                        RecognizingTranscriptReceived?.Invoke(this, new TranscriptEntry
                         {
-                            Message = text,
+                            Text = text,
                             Timestamp = DateTime.Now,
-                            User = "You",
+                            SpeakerLabel = "You",
                             Initials = "Y"
                         });
                     }
@@ -147,11 +147,11 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
                     var text = root.GetProperty("transcript").GetString();
                     if (!string.IsNullOrWhiteSpace(text))
                     {
-                        TranscriptReceived?.Invoke(this, new ChatMessage
+                        TranscriptReceived?.Invoke(this, new TranscriptEntry
                         {
-                            Message = text,
+                            Text = text,
                             Timestamp = DateTime.Now,
-                            User = "You",
+                            SpeakerLabel = "You",
                             Initials = "Y"
                         });
                     }

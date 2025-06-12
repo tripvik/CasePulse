@@ -46,7 +46,7 @@ namespace SmartPendant.MAUIHybrid
                 }
             }
             builder.Services.AddSingleton<IStorageService,BlobStorageService>();
-
+            builder.Services.AddSingleton<ConversationService>();
             //Switch between BLE and Bluetooth Classic
             bool useBLE = builder.Configuration.GetValue<bool>("UseBLE");
             if (useBLE)

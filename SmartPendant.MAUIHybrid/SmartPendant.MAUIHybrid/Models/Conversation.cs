@@ -19,7 +19,7 @@
         public string? Location { get; set; }
 
         public string? Summary { get; set; }
-        public List<TranscriptEntry>? FullTranscript { get; set; } = [];
+        public List<TranscriptEntry> Transcript { get; set; } = [];
         public AiInsights? AiInsights { get; set; }
         public List<TimelineEvent>? Timeline { get; set; }
     }
@@ -29,7 +29,8 @@
     /// </summary>
     public class TranscriptEntry
     {
-        public string? Speaker { get; set; }
+        public string SpeakerId { get; set; } = string.Empty;
+        public string? SpeakerLabel { get; set; }
         public string? Text { get; set; }
         public string? Initials { get; set; } = "AB";
         public DateTime Timestamp { get; set; }

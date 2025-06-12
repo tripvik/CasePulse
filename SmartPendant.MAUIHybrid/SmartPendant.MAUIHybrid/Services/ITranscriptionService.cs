@@ -10,10 +10,10 @@ namespace SmartPendant.MAUIHybrid.Services
     public interface ITranscriptionService : IAsyncDisposable
     {
         // *** NEW: Events for INTERIM recognition results ***
-        event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
+        event EventHandler<TranscriptEntry>? RecognizingTranscriptReceived;
 
         // *** MODIFIED: Events for FINAL recognized segments ***
-        event EventHandler<ChatMessage>? TranscriptReceived; // Changed from string
+        event EventHandler<TranscriptEntry>? TranscriptReceived; // Changed from string
 
         Task InitializeAsync(WaveFormat micFormat);
         Task ProcessChunkAsync(byte[] audioData);

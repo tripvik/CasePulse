@@ -1,24 +1,26 @@
 ﻿@page "/tasks"
+@inject ConversationService ConversationService
 
-<MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Style="height: 100%;">
-    <MudText Typo="Typo.h2" Align="Align.Center">
-        Tasks
-    </MudText>
+<div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
+    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Title="Favorite" Size="Size.Large" />
+    <MudText Typo="Typo.h5">Action Items</MudText>
+</div>
 
-    <MudText Typo="Typo.h5" Align="Align.Center">
-        Current count: <b>@currentCount</b>
-    </MudText>
-
-    <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" OnClick="IncrementCount" Class="rounded-pill">
-        Click Me
-    </MudButton>
+<MudStack Class="mx-2 my-4"
+          AlignItems="AlignItems.Center"
+          Justify="Justify.FlexStart"
+          Style="height: calc(100vh - 100px);">
+    @foreach (var item in MyActionItems)
+    {
+        <TaskCard Task="@item" />
+    }
 </MudStack>
 
 @code {
-    private int currentCount = 0;
+    private List<ActionItem> MyActionItems = new();
 
-    private void IncrementCount()
+    protected override async Task OnInitializedAsync()
     {
-        currentCount++;
+        MyActionItems = await ConversationService.GetAllTasksAsync();
     }
 }

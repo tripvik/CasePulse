@@ -1,14 +1,189 @@
 ﻿@page "/"
+@using System.Diagnostics
+@using NAudio.Wave
+@using System.Timers
+@inject ITranscriptionService transcriptionService
+@inject IConnectionService bluetoothService
+@inject ConversationService conversationService
+@implements IDisposable
 
-<MudStack AlignItems="AlignItems.Center"  Justify="Justify.SpaceEvenly" Style="height: 100%;">
-    <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center">
-        <MudText Typo="Typo.h5" Align="Align.Center">
-            Device Connected: <b>@_connected</b>
-        </MudText>
-        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" >
-            <MudIconButton OnClick="StartRecordingAsync" Disabled="@_connected" Icon="@Icons.Material.Filled.Mic" Color="Color.Success" Size="Size.Small" />
-            <MudIconButton OnClick="StopRecording" Disabled="@_stopRecording" Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small" />
-        </MudButtonGroup>
+<MudStack Justify="Justify.SpaceBetween" Class="mx-2" Style="height: calc(100vh - 100px);">
+    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4">
+
+        <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center">
+            <MudToggleIconButton @bind-Toggled="isDeviceConnected"
+                                 Icon="@Icons.Material.Filled.Bluetooth"
+                                 Color="@Color.Error"
+                                 ToggledIcon="@Icons.Material.Filled.BluetoothConnected"
+                                 ToggledColor="@Color.Success" />
+            <MudText Typo="Typo.body1" Color="@(isDeviceConnected? Color.Success: Color.Error)">@(isDeviceConnected ? "Connected" : "Disconnected")</MudText>
+        </MudStack>
+
+        <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mr-3">
+            <span class="recording-indicator"></span>
+            <MudText Typo="Typo.body1" Color="Color.Error">Recording</MudText>
+        </MudStack>
     </MudStack>
-    <Conversation Messages="_messages" />
+
+    <div style="flex: 1; min-height: 0;">
+        <TranscriptContainer Messages="@transcriptEntries" />
+    </div>
+    <div class="mb-4">
+        <MudButton Variant="Variant.Filled"
+                   StartIcon="@(isRecording ? @Icons.Material.Filled.Stop : @Icons.Material.Filled.Mic)"
+                   Color="@(isRecording ? Color.Error : Color.Primary)"
+                   Class="rounded-xl py-3"
+                   FullWidth="true"
+                   @onclick="ToggleRecording">
+            @(isRecording ? "Stop" : "Start") Recording
+        </MudButton>
+    </div>  
 </MudStack>
+
+@code {
+    #region State
+    private bool useMockData = true; // Set to false to use real Bluetooth/Transcription services
+    private bool isRecording = false;
+    private bool isDeviceConnected = false;
+    private List<TranscriptEntry> transcriptEntries = new();
+    private TranscriptEntry? recognizingEntry;
+    #endregion
+
+    #region Mock Data & Simulation
+    private Timer? simulationTimer;
+    private List<TranscriptEntry> mockTranscriptSource = new();
+    #endregion
+
+    #region Lifecycle
+    protected override async Task OnInitializedAsync()
+    {
+        if (useMockData)
+        {
+            isDeviceConnected = true;
+            isRecording = true;
+            var conversation = await conversationService.GetSampleConversationAsync();
+            mockTranscriptSource = conversation.Transcript.ToList();
+            simulationTimer = new Timer(1500);
+            simulationTimer.Elapsed += OnTimerElapsed;
+            simulationTimer.AutoReset = true;
+            simulationTimer.Enabled = true;
+        }
+        else
+        {
+            await StartConnectionAsync();
+        }
+    }
+    #endregion
+
+    #region UI Actions
+    private async Task ToggleRecording()
+    {
+        isRecording = !isRecording;
+        if (isRecording)
+        {
+            recognizingEntry = null;
+            if (useMockData)
+            {
+                simulationTimer?.Start();
+            }
+            else
+            {
+                await transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
+            }
+        }
+        else
+        {
+            if (useMockData)
+            {
+                simulationTimer?.Stop();
+            }
+            else
+            {
+                await transcriptionService.StopAsync();
+            }
+        }
+        StateHasChanged();
+    }
+    #endregion
+
+    #region Real Service Logic
+    public async Task StartConnectionAsync()
+    {
+        var (connected, ex) = await bluetoothService.ConnectAsync();
+        if (!connected)
+        {
+            Debug.WriteLine($"Failed to connect: {ex?.Message}");
+            return;
+        }
+
+        var initialized = await bluetoothService.InitializeAsync();
+        if (!initialized)
+        {
+            Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
+            return;
+        }
+
+        bluetoothService.DataReceived += OnDataReceived;
+        transcriptionService.TranscriptReceived += OnTranscriptReceived;
+        transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
+        isDeviceConnected = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task StopServicesAndDisconnect()
+    {
+        await transcriptionService.StopAsync();
+        transcriptionService.TranscriptReceived -= OnTranscriptReceived;
+        transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
+        bluetoothService.DataReceived -= OnDataReceived;
+        await bluetoothService.DisconnectAsync();
+        isDeviceConnected = false;
+        isRecording = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnDataReceived(object? sender, byte[] data)
+    {
+        _ = transcriptionService.ProcessChunkAsync(data);
+    }
+
+    private void OnTranscriptReceived(object? sender, TranscriptEntry message)
+    {
+        InvokeAsync(() =>
+        {
+            recognizingEntry = null;
+            transcriptEntries.Add(message);
+            StateHasChanged();
+        });
+    }
+
+    private void OnRecognizingTranscriptReceived(object? sender, TranscriptEntry message)
+    {
+        InvokeAsync(() =>
+        {
+            recognizingEntry = message;
+            StateHasChanged();
+        });
+    }
+    #endregion
+
+    #region Simulation Logic
+    private void OnTimerElapsed(object? sender, ElapsedEventArgs e)
+    {
+        var nextEntry = mockTranscriptSource[Random.Shared.Next(mockTranscriptSource.Count)];
+        transcriptEntries.Add(nextEntry);
+        InvokeAsync(StateHasChanged);
+    }
+    #endregion
+
+    #region Disposal
+    public async void Dispose()
+    {
+        simulationTimer?.Dispose();
+        if (isDeviceConnected)
+        {
+            await StopServicesAndDisconnect();
+        }
+    }
+    #endregion
+}

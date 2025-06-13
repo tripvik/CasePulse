@@ -15,7 +15,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         private readonly ITranscriptionService _transcriptionService = transcriptionService;
         private List<ChatMessage> _messages = [];
         private bool _connected = false;
-        private static readonly int _boundedCapacity = 100; // Adjust 
+        private static readonly int _boundedCapacity = 500; // Adjust 
         private readonly System.Threading.Channels.Channel<byte[]> _audioDataChannel = System.Threading.Channels.Channel.CreateBounded<byte[]>(
         new System.Threading.Channels.BoundedChannelOptions(_boundedCapacity)
         {
@@ -25,6 +25,13 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         });
         private CancellationTokenSource? _processingCts;
 
+        protected override void OnInitialized()
+        {
+            // By this point, Snackbar has been injected and is available
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
+
+            base.OnInitialized();
+        }
 
         private bool _stopRecording => !_connected;
 
@@ -57,7 +64,9 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             var (connected, ex) = await _bluetoothService.ConnectAsync();
             if (!connected)
             {
-                Debug.WriteLine($"Failed to connect: {ex?.Message}");
+                var message = $"Failed to connect: {ex?.Message}";
+                Debug.WriteLine(message);
+                Notify(message, Severity.Error);
                 return;
             }
 
@@ -65,6 +74,7 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             if (!initialized)
             {
                 Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
+                Notify("Failed to initialize Bluetooth service.", Severity.Error);
                 return;
             }
 

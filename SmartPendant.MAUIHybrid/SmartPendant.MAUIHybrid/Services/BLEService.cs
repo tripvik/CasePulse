@@ -28,13 +28,13 @@ namespace SmartPendant.MAUIHybrid.Services
             _adapter.DeviceConnectionLost += (s, e) =>
             {
                 if (_connectedDevice?.Id == e.Device.Id)
-                    ConnectionLost?.Invoke(this, e.Device.Name ?? "Unknown");
+                    ConnectionLost?.Invoke(this, e.ErrorMessage ?? "Unknown");
             };
 
             _adapter.DeviceDisconnected += (s, e) =>
             {
                 if (_connectedDevice?.Id == e.Device.Id)
-                    Disconnected?.Invoke(this, e.Device.Name ?? "Unknown");
+                    Disconnected?.Invoke(this, "Disconnected");
             };
         }
 
@@ -60,28 +60,38 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
+        //Implement the ValueTuple logic like ConnectAsync
         public async Task<bool> InitializeAsync()
         {
-            if (_connectedDevice == null)
+            try
             {
-                Debug.WriteLine("Error: No connected device.");
-                return (false);
+                if (_connectedDevice == null)
+                {
+                    Debug.WriteLine("Error: No connected device.");
+                    return (false);
+                }
+
+                var service = await _connectedDevice.GetServiceAsync(_serviceId);
+                if (service == null) return false;
+
+                _characteristic = await service.GetCharacteristicAsync(_characteristicId);
+                if (_characteristic == null) return false;
+
+                _characteristic.ValueUpdated += (s, e) =>
+                {
+                    var data = e.Characteristic.Value;
+                    DataReceived?.Invoke(this, data);
+                };
+
+                await _characteristic.StartUpdatesAsync();
+                return true;
             }
-
-            var service = await _connectedDevice.GetServiceAsync(_serviceId);
-            if (service == null) return false;
-
-            _characteristic = await service.GetCharacteristicAsync(_characteristicId);
-            if (_characteristic == null) return false;
-
-            _characteristic.ValueUpdated += (s, e) =>
+            catch (Exception ex)
             {
-                var data = e.Characteristic.Value;
-                DataReceived?.Invoke(this, data);
-            };
-
-            await _characteristic.StartUpdatesAsync();
-            return true;
+                Debug.WriteLine(ex.ToString());
+                return false;
+            }
+            
         }
 
         public async Task DisconnectAsync()

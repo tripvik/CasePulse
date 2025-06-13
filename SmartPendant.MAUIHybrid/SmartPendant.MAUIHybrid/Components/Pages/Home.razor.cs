@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using NAudio.Wave;
 using SmartPendant.MAUIHybrid.Models;
@@ -11,10 +11,11 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
     {
         [Inject]
         private ISnackbar Snackbar { get; set; } = default!;
+        // Suppress unused parameter warnings
         private readonly IConnectionService _bluetoothService = bluetoothService;
         private readonly ITranscriptionService _transcriptionService = transcriptionService;
-        private List<ChatMessage> _messages = [];
-        private bool _connected = false;
+
+
         private static readonly int _boundedCapacity = 500; // Adjust 
         private readonly System.Threading.Channels.Channel<byte[]> _audioDataChannel = System.Threading.Channels.Channel.CreateBounded<byte[]>(
         new System.Threading.Channels.BoundedChannelOptions(_boundedCapacity)
@@ -25,6 +26,15 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         });
         private CancellationTokenSource? _processingCts;
 
+        #region State
+        private bool isRecording = false;
+        private bool stateChanging = false;
+        private bool isDeviceConnected = false;
+        private List<TranscriptEntry> transcriptEntries = new();
+        private TranscriptEntry? recognizingEntry;
+        #endregion
+
+        #region Lifecycle
         protected override void OnInitialized()
         {
             // By this point, Snackbar has been injected and is available
@@ -32,8 +42,6 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
 
             base.OnInitialized();
         }
-
-        private bool _stopRecording => !_connected;
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -43,30 +51,39 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             }
         }
 
-        public async Task StopRecordingAsync()
-        {
-            // Cancel the processing loop
-            _processingCts?.Cancel();
-            _processingCts = null;
-            await _transcriptionService.StopAsync();
-            _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
-            _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
-            _bluetoothService.DataReceived -= OnDataReceived;
-            _bluetoothService.ConnectionLost -= OnDisconnected;
-            _bluetoothService.Disconnected -= OnDisconnected;
-            await _bluetoothService.DisconnectAsync();
-            _connected = false;
-            await InvokeAsync(StateHasChanged);
-        }
+        #endregion
 
+        #region UI Actions
+        private async Task ToggleRecording()
+        {
+            isRecording = !isRecording;
+            if (isRecording)
+            {
+                await StartRecordingAsync();
+            }
+            else
+            {
+                await StopServicesAndDisconnect();
+            }
+            StateHasChanged();
+        }
+        #endregion
+
+        #region Real Service Logic
+
+        // Currently, the device will start sending data as soon as the connection is established.
         public async Task StartRecordingAsync()
         {
+            stateChanging = true;
+            await InvokeAsync(StateHasChanged);
             var (connected, ex) = await _bluetoothService.ConnectAsync();
             if (!connected)
             {
                 var message = $"Failed to connect: {ex?.Message}";
                 Debug.WriteLine(message);
                 Notify(message, Severity.Error);
+                stateChanging = false;
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
@@ -75,6 +92,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             {
                 Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
                 Notify("Failed to initialize Bluetooth service.", Severity.Error);
+                stateChanging = false;
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
@@ -82,22 +101,34 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             _ = ProcessAudioDataAsync(_processingCts.Token);
 
             _bluetoothService.DataReceived += OnDataReceived;
+            _transcriptionService.TranscriptReceived += OnTranscriptReceived;
             _bluetoothService.ConnectionLost += OnDisconnected;
             _bluetoothService.Disconnected += OnDisconnected;
-            _transcriptionService.TranscriptReceived += OnTranscriptReceived;
             _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
-
             await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
-            _connected = true;
+            isDeviceConnected = true;
+            isRecording = true;
+            stateChanging = false;
             await InvokeAsync(StateHasChanged);
         }
 
-        private async void OnDisconnected(object? sender, string e)
+        public async Task StopServicesAndDisconnect()
         {
-            var message = $"Connection Error: {e}";
-            Debug.WriteLine(message);
-            Notify(message, Severity.Error);
-            await InvokeAsync(StopRecordingAsync);
+            stateChanging = true;
+            await InvokeAsync(StateHasChanged);
+            _processingCts?.Cancel();
+            _processingCts = null;
+            await _transcriptionService.StopAsync();
+            _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
+            _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
+            _bluetoothService.ConnectionLost -= OnDisconnected;
+            _bluetoothService.Disconnected -= OnDisconnected;
+            _bluetoothService.DataReceived -= OnDataReceived;
+            await _bluetoothService.DisconnectAsync();
+            isDeviceConnected = false;
+            isRecording = false;
+            stateChanging = false;
+            await InvokeAsync(StateHasChanged);
         }
 
         private async void OnDataReceived(object? sender, byte[] data)
@@ -109,11 +140,50 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error processing Bluetooth data: {ex.Message}");
+                Debug.WriteLine($"Error processing data: {ex.Message}");
             }
         }
 
-        // Background processing loop
+        private void OnTranscriptReceived(object? sender, TranscriptEntry message)
+        {
+            InvokeAsync(() =>
+            {
+                recognizingEntry = null;
+                transcriptEntries.Add(message);
+                StateHasChanged();
+            });
+        }
+
+        private async void OnDisconnected(object? sender, string e)
+        {
+            var message = $"Connection Error: {e}";
+            Debug.WriteLine(message);
+            Notify(message, Severity.Error);
+            await InvokeAsync(StopServicesAndDisconnect);
+            isDeviceConnected = false;
+            isRecording = false;
+        }
+
+        private void OnRecognizingTranscriptReceived(object? sender, TranscriptEntry message)
+        {
+            InvokeAsync(() =>
+            {
+                recognizingEntry = message;
+                StateHasChanged();
+            });
+        }
+        #endregion
+
+        #region Disposal
+        public async void Dispose()
+        {
+            if (isDeviceConnected)
+            {
+                await StopServicesAndDisconnect();
+            }
+        }
+        #endregion
+
         private async Task ProcessAudioDataAsync(CancellationToken cancellationToken)
         {
             try
@@ -140,17 +210,6 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             }
         }
 
-        private async void OnTranscriptReceived(object? sender, ChatMessage message)
-        {
-            Debug.WriteLine($"Transcript: {message.User} - {message.Message}");
-            _messages.Add(message);
-            await InvokeAsync(StateHasChanged);
-        }
-
-        private void OnRecognizingTranscriptReceived(object? sender, ChatMessage message)
-        {
-            Debug.WriteLine($"Recognizing: {message.Message}...");
-        }
         private async Task BufferAndSendAsync(byte[] newData)
         {
             await _transcriptionService.ProcessChunkAsync(newData);

@@ -46,17 +46,27 @@ namespace SmartPendant.MAUIHybrid
                 }
             }
             builder.Services.AddSingleton<IStorageService,BlobStorageService>();
-
+            builder.Services.AddSingleton<ConversationService>();
             //Switch between BLE and Bluetooth Classic
+            bool useMockData = builder.Configuration.GetValue<bool>("UseMockData");
             bool useBLE = builder.Configuration.GetValue<bool>("UseBLE");
-            if (useBLE)
+            if(useMockData)
             {
-                builder.Services.AddSingleton<IConnectionService, BLEService>();
+                builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
+                builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
             }
             else
             {
-                builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
+                if (useBLE)
+                {
+                    builder.Services.AddSingleton<IConnectionService, BLEService>();
+                }
+                else
+                {
+                    builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
+                }
             }
+            
 
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();

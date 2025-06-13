@@ -1,42 +1,149 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@inject LayoutService LayoutService
+@inject IBrowserViewportService BrowserViewportService
+@implements IBrowserViewportObserver
+@implements IAsyncDisposable
 
 <MudDialogProvider />
 <MudSnackbarProvider />
 <MudPopoverProvider />
-<MudThemeProvider @ref="@_mudThemeProvider" Theme="@LayoutService.CurrentTheme" IsDarkMode="@LayoutService.IsDarkMode" IsDarkModeChanged="LayoutService.SetDarkMode" />
+
+<MudThemeProvider @ref="_mudThemeProvider"
+                  Theme="@LayoutService.CurrentTheme"
+                  IsDarkMode="@LayoutService.IsDarkMode"
+                  IsDarkModeChanged="LayoutService.SetDarkMode" />
 
 <MudLayout Style="display: flex; flex-direction: column; height: 100vh;">
+    <!-- AppBar -->
     <MudAppBar Elevation="0" Gutters="false">
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Style="width:100%">
-            @if(_isDesktop)
-            {
-                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@ToggleDrawer" />
-            }
-            <MudChip T="string" Icon="@Icons.Material.Filled.CrisisAlert" Color="Color.Primary" Size="Size.Large" Href="/">SmartPendant</MudChip>
-            <MudTooltip Duration="1000" Text="@(LayoutService.DarkModeToggle == DarkLightMode.System ? "Switch to Light Theme" : LayoutService.DarkModeToggle == DarkLightMode.Dark ? "Switch to system" : "Switch to Dark Theme")">
-                <MudIconButton Icon="@(LayoutService.DarkModeToggle == DarkLightMode.System ? @Icons.Material.Filled.AutoMode : LayoutService.DarkModeToggle == DarkLightMode.Dark ? @Icons.Material.Rounded.LightMode : @Icons.Material.Outlined.DarkMode)" Color="Color.Inherit" OnClick="@LayoutService.ToggleDarkMode" />
-            </MudTooltip>
+        <MudStack Row Justify="Justify.SpaceBetween" Style="width:100%">
+            <MudStack Row AlignItems="AlignItems.Center" Spacing="0">
+                @if (!_isMobile)
+                {
+                    <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                                   Color="Color.Inherit"
+                                   OnClick="@ToggleDrawer" />
+                }
+
+                <MudIconButton Icon="@Icons.Material.Filled.CrisisAlert"
+                               Color="Color.Inherit"
+                               Size="Size.Medium"
+                               OnClick="@(() => Nav.NavigateTo("/"))" />
+                <MudText Typo="Typo.h6">Smart Pendant</MudText>
+            </MudStack>
+
+            <MudIconButton Class="mx-4"
+                           Icon="@DarkModeIcon"
+                           Color="Color.Inherit"
+                           OnClick="@LayoutService.ToggleDarkMode" />
         </MudStack>
     </MudAppBar>
-    @if (_isDesktop)
+
+    <!-- Side Drawer -->
+    @if (!_isMobile)
     {
-        <MudDrawer @bind-Open="@_drawerOpen" ClipMode="DrawerClipMode.Always" Anchor="Anchor.Start" Elevation="1" Variant="@DrawerVariant.Mini">
-            <NavMenu />
+        <MudDrawer @bind-Open="_drawerOpen"
+                   Anchor="Anchor.Start"
+                   ClipMode="DrawerClipMode.Always"
+                   Elevation="1"
+                   Variant="DrawerVariant.Mini">
+            <NavMenu IsMobile="@_isMobile" />
         </MudDrawer>
     }
-    else
+
+    <!-- Bottom Navigation (Mobile) -->
+    @if (_isMobile)
     {
         <MudAppBar Bottom="true">
-            <MudStack Row="true" Justify="Justify.SpaceAround" Style="width:100%">
-                <MudIconButton Href="/" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" />
-                <MudIconButton Href="/counter" Icon="@Icons.Material.Filled.Assistant" Color="Color.Inherit" />
-                <MudIconButton Href="/weather" Icon="@Icons.Material.Filled.Settings" Color="Color.Inherit"/>
-            </MudStack>
+            <NavMenu IsMobile="@_isMobile" />
         </MudAppBar>
     }
+
+    <!-- Main Content -->
     <MudMainContent Style="flex-grow: 1; overflow-y: auto;">
         <MudContainer MaxWidth="MaxWidth.Large" Gutters="false" Style="height: 100%;">
             @Body
         </MudContainer>
     </MudMainContent>
 </MudLayout>
+
+@code {
+    #region Fields
+
+    private MudThemeProvider _mudThemeProvider = default!;
+    private bool _drawerOpen = false;
+    private bool _isMobile;
+
+    #endregion
+
+    #region Properties
+
+    public Guid Id { get; } = Guid.NewGuid();
+
+    private string DarkModeIcon =>
+        LayoutService.DarkModeToggle switch
+        {
+            DarkLightMode.System => Icons.Material.Filled.AutoMode,
+            DarkLightMode.Dark => Icons.Material.Rounded.LightMode,
+            _ => Icons.Material.Outlined.DarkMode
+        };
+
+    #endregion
+
+    #region Lifecycle
+
+    protected override void OnInitialized()
+    {
+        LayoutService.SetBaseTheme(Theme.AdminPanelTheme());
+        LayoutService.MajorUpdateOccured += LayoutServiceOnMajorUpdateOccured;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ApplyUserPreferences();
+            await _mudThemeProvider.WatchSystemDarkModeAsync(OnSystemPreferenceChanged);
+            await BrowserViewportService.SubscribeAsync(this, fireImmediately: true);
+            StateHasChanged();
+        }
+    }
+
+    #endregion
+
+    #region Event Handlers
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private void LayoutServiceOnMajorUpdateOccured(object? sender, EventArgs? e)
+        => StateHasChanged();
+
+    private Task OnSystemPreferenceChanged(bool newValue)
+        => LayoutService.OnSystemPreferenceChanged(newValue);
+
+    public Task NotifyBrowserViewportChangeAsync(BrowserViewportEventArgs args)
+    {
+        _isMobile = args.Breakpoint == Breakpoint.Xs;
+        return InvokeAsync(StateHasChanged);
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private async Task ApplyUserPreferences()
+    {
+        var defaultDarkMode = await _mudThemeProvider.GetSystemDarkModeAsync();
+        await LayoutService.ApplyUserPreferences(defaultDarkMode);
+    }
+
+    #endregion
+
+    #region IDisposable
+
+    public async ValueTask DisposeAsync() =>
+        await BrowserViewportService.UnsubscribeAsync(this);
+
+    #endregion
+}

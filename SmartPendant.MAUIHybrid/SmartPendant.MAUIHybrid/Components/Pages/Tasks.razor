@@ -1,0 +1,26 @@
+﻿@page "/tasks"
+@inject ConversationService ConversationService
+
+<div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
+    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Title="Favorite" Size="Size.Large" />
+    <MudText Typo="Typo.h5">Action Items</MudText>
+</div>
+
+<MudStack Class="mx-2 my-4"
+          AlignItems="AlignItems.Center"
+          Justify="Justify.FlexStart"
+          Style="height: calc(100vh - 100px);">
+    @foreach (var item in MyActionItems)
+    {
+        <TaskCard Task="@item" />
+    }
+</MudStack>
+
+@code {
+    private List<ActionItem> MyActionItems = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        MyActionItems = await ConversationService.GetAllTasksAsync();
+    }
+}

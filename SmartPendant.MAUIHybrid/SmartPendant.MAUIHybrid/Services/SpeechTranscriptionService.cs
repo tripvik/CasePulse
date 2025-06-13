@@ -16,10 +16,10 @@ namespace SmartPendant.MAUIHybrid.Services
         private PushAudioInputStream? _pushStream;
 
         // *** NEW: Events for INTERIM recognition results ***
-        public event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
+        public event EventHandler<TranscriptEntry>? RecognizingTranscriptReceived;
 
         // *** MODIFIED: Events for FINAL recognized segments ***
-        public event EventHandler<ChatMessage>? TranscriptReceived; // Changed from string
+        public event EventHandler<TranscriptEntry>? TranscriptReceived; // Changed from string
 
         public SpeechTranscriptionService(IConfiguration configuration)
         {
@@ -48,11 +48,11 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    var message = new ChatMessage
+                    var message = new TranscriptEntry
                     {
-                        Message = e.Result.Text,
+                        Text = e.Result.Text,
                         Timestamp = DateTime.Now,
-                        User = e.Result.SpeakerId,
+                        SpeakerLabel = e.Result.SpeakerId,
                         Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
                     };
                     RecognizingTranscriptReceived?.Invoke(this, message); // Raise new interim event
@@ -64,11 +64,11 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 if (!string.IsNullOrEmpty(e.Result.Text))
                 {
-                    var message = new ChatMessage
+                    var message = new TranscriptEntry
                     {
-                        Message = e.Result.Text,
+                        Text = e.Result.Text,
                         Timestamp = DateTime.Now,
-                        User = e.Result.SpeakerId,
+                        SpeakerLabel = e.Result.SpeakerId,
                         Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
                     };
                     TranscriptReceived?.Invoke(this, message);

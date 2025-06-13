@@ -1,0 +1,202 @@
+﻿@page "/history"
+@inject ConversationService ConversationService
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
+    <div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
+        <MudIcon Icon="@Icons.Material.Filled.History" Title="Favorite" Size="Size.Large" />
+        <MudText Typo="Typo.h5"> Conversation History</MudText>
+    </div>
+    <MudTabs Rounded Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary" >
+        <MudTabPanel Text="By Date" Icon="@Icons.Material.Filled.DateRange">
+             <div class="d-flex align-center flex-grow-1 gap-4 pt-4 mb-4">
+                    <MudTextField 
+                            @bind-Value="searchQuery"
+                            AdornmentIcon="@Icons.Material.Outlined.Search" 
+                            Adornment="Adornment.End" 
+                            Label="Search" 
+                            DebounceInterval="300" 
+                            Variant="Variant.Outlined" 
+                            Clearable
+                            FullWidth
+                            Immediate="false"
+                            OnDebounceIntervalElapsed="OnSearchChanged" />
+                    <MudDateRangePicker 
+                            DateRange="dateRange"
+                            DateRangeChanged="OnDateRangeChanged"
+                            Label="Date Range"
+                            Placeholder="Select dates..." 
+                            PickerVariant="PickerVariant.Dialog" 
+                            Variant="Variant.Outlined"    
+                            Clearable/>
+                </div>
+            @if (isLoading)
+            {
+                <MudProgressCircular Class="mx-auto d-block" Indeterminate />
+            }
+            else if (!filteredConversations.Any())
+            {
+                <MudPaper Elevation="1" Class="pa-8 text-center">
+                    <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
+                    <MudText Typo="Typo.h6" Color="Color.Secondary">No conversations found</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Try adjusting your search criteria or date range
+                    </MudText>
+                </MudPaper>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Info" Class="mb-3">
+                    Showing @filteredConversations.Count of @Conversations.Count conversations
+                </MudText>
+                
+                <MudGrid Spacing="3">
+                    @foreach (var conversationGroup in GetGroupedConversations())
+                    {
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.h6" Class="mb-2 mt-4" Color="Color.Primary">
+                                @conversationGroup.Key.ToString("MMMM dd, yyyy")
+                            </MudText>
+                            <MudDivider Class="mb-3" />
+                            
+                            <MudGrid Spacing="2">
+                                @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
+                                {
+                                    <MudItem xs="12" sm="6" md="4" lg="3">
+                                        <ConversationCard 
+                                            Conversation="@conversation" 
+                                            OnConversationSelected="@OnConversationSelected" />
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudItem>
+                    }
+                </MudGrid>
+            }
+        </MudTabPanel>
+        <MudTabPanel Text="By Location" Icon="@Icons.Material.Filled.MyLocation">
+           
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private List<Conversation> Conversations = new();
+    private List<Conversation> filteredConversations = new();
+
+    private string searchQuery = string.Empty;
+    private DateRange? dateRange;
+    private string? selectedTopic;
+    private HashSet<string> selectedTags = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            Conversations = await ConversationService.GetAllConversationsAsync();
+            filteredConversations = Conversations.ToList();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task OnSearchChanged()
+    {
+        await FilterConversations();
+    }
+
+    private async Task OnDateRangeCleared()
+    {
+        dateRange = null;
+        await FilterConversations();
+    }
+
+    private async Task OnDateRangeChanged(DateRange range)
+    {
+        dateRange = range;
+        await FilterConversations();
+    }
+
+    private async Task FilterConversations()
+    {
+        await Task.Delay(1); // Ensure UI updates
+
+        var filtered = Conversations.AsEnumerable();
+
+        // Apply search filter
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filtered = filtered.Where(c => 
+                c.Title?.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) == true ||
+                c.Summary?.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) == true);
+        }
+
+        // Apply date range filter
+        if (dateRange != null && dateRange.Start != null && dateRange.End != null)
+        {
+            filtered = filtered.Where(c => 
+                c.CreatedAt.Date >= dateRange.Start.Value.Date && 
+                c.CreatedAt.Date <= dateRange.End.Value.Date);
+        }
+
+        filteredConversations = filtered.ToList();
+        StateHasChanged();
+    }
+
+    private IEnumerable<IGrouping<DateTime, Conversation>> GetGroupedConversations()
+    {
+        return filteredConversations
+            .GroupBy(c => c.CreatedAt.Date)
+            .OrderByDescending(g => g.Key);
+    }
+
+    private IEnumerable<string> GetAvailableTopics()
+    {
+        return Conversations.SelectMany(c => c.AiInsights?.Topics!);
+    }
+
+    private IEnumerable<string> GetAvailableTags()
+    {
+        return Conversations
+            .SelectMany(c => c.Tags ?? Enumerable.Empty<string>())
+            .Distinct()
+            .OrderBy(t => t);
+    }
+
+    private void ToggleTag(string tag, bool selected)
+    {
+        if (selected)
+            selectedTags.Add(tag);
+        else
+            selectedTags.Remove(tag);
+        
+        StateHasChanged();
+    }
+
+    private IEnumerable<Conversation> GetTopicFilteredConversations()
+    {
+        var filtered = Conversations.AsEnumerable();
+
+        if (!string.IsNullOrEmpty(selectedTopic))
+        {
+            filtered = filtered.Where(c => c.AiInsights?.Topics?.Contains(selectedTopic) ?? false);
+        }
+
+        if (selectedTags.Any())
+        {
+            filtered = filtered.Where(c => 
+                c.Tags != null && selectedTags.Any(tag => c.Tags.Contains(tag)));
+        }
+
+        return filtered.OrderByDescending(c => c.CreatedAt);
+    }
+
+    private void OnConversationSelected(Conversation conversation)
+    {
+        // Handle conversation selection - navigate to conversation or show details
+        // Example: NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
+    }
+}

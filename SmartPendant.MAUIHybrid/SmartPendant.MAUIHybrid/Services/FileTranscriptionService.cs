@@ -7,8 +7,8 @@ namespace SmartPendant.MAUIHybrid.Services
 {
     internal class FileTranscriptionService : ITranscriptionService
     {
-        public event EventHandler<ChatMessage>? RecognizingTranscriptReceived;
-        public event EventHandler<ChatMessage>? TranscriptReceived;
+        public event EventHandler<TranscriptEntry>? RecognizingTranscriptReceived;
+        public event EventHandler<TranscriptEntry>? TranscriptReceived;
 
         private readonly IStorageService _storageService;
         private readonly MemoryStream _memoryStream = new();
@@ -64,11 +64,11 @@ namespace SmartPendant.MAUIHybrid.Services
                     var filePath = Path.Combine(directoryPath, fileName);
                     await File.WriteAllBytesAsync(filePath, audioBytes);
 
-                    TranscriptReceived?.Invoke(this, new ChatMessage
+                    TranscriptReceived?.Invoke(this, new TranscriptEntry
                     {
-                        Message = $"File saved locally: {filePath}",
+                        Text = $"File saved locally: {filePath}",
                         Timestamp = DateTime.Now,
-                        User = nameof(FileTranscriptionService),
+                        SpeakerLabel = nameof(FileTranscriptionService),
                         Initials = "FTS"
                     });
                 }
@@ -77,11 +77,11 @@ namespace SmartPendant.MAUIHybrid.Services
                     using var stream = new MemoryStream(audioBytes);
                     var uri = await _storageService.UploadAudioAsync(stream, fileName);
 
-                    TranscriptReceived?.Invoke(this, new ChatMessage
+                    TranscriptReceived?.Invoke(this, new TranscriptEntry
                     {
-                        Message = $"File uploaded to Azure Blob Storage: {uri}",
+                        Text = $"File uploaded to Azure Blob Storage: {uri}",
                         Timestamp = DateTime.Now,
-                        User = nameof(FileTranscriptionService),
+                        SpeakerLabel = nameof(FileTranscriptionService),
                         Initials = "FTS"
                     });
                 }

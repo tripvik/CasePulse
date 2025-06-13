@@ -1,0 +1,16 @@
+<MudCard>
+    <MudCardContent>
+        <MudText>@Conversation.Title</MudText>
+        <MudText Typo="Typo.body2">@Conversation.Summary</MudText>
+    </MudCardContent>
+    <MudCardActions>
+        <MudText Color="Color.Primary">@Conversation.CreatedAt.ToShortTimeString() • @Conversation.DurationMinutes </MudText>
+    </MudCardActions>
+</MudCard>
+
+@code {
+    [Parameter]
+    public Conversation Conversation { get; set; } = new();
+
+    [Parameter] public EventCallback<Conversation> OnConversationSelected { get; set; }
+}

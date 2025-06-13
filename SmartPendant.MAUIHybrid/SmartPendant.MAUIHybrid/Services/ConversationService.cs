@@ -98,7 +98,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 UserId = "user_123",
                 Title = "Team Sync: Project Atlas Launch",
                 CreatedAt = DateTime.Now.AddDays(-2),
-                DurationSeconds = 1800,
+                DurationMinutes = 1800,
                 Location = "Conference Room A",
                 Summary = "The team discussed the upcoming launch of Project Atlas...",
                 Transcript = new List<TranscriptEntry>

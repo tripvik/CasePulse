@@ -10,7 +10,7 @@
         public string? UserId { get; set; }
         public string? Title { get; set; }
         public DateTime CreatedAt { get; set; }
-        public int DurationSeconds { get; set; }
+        public int DurationMinutes { get; set; }
 
         /// <summary>
         /// The location where the conversation was recorded.
@@ -19,6 +19,7 @@
         public string? Location { get; set; }
 
         public string? Summary { get; set; }
+        public List<string> Tags { get; set; } = [];
         public List<TranscriptEntry> Transcript { get; set; } = [];
         public AiInsights? AiInsights { get; set; }
         public List<TimelineEvent>? Timeline { get; set; }

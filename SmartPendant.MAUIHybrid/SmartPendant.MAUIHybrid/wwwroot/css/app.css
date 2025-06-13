@@ -171,3 +171,12 @@ h1:focus {
         opacity: 0;
     }
 }
+
+
+.history .mud-tabs-tabbar-wrapper {
+    width: auto !important;
+}
+
+    .history .mud-tabs-tabbar-wrapper .mud-tooltip-inline {
+        width: 50% !important;
+    }

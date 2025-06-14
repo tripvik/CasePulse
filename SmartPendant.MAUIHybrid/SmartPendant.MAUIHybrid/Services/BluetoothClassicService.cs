@@ -3,6 +3,7 @@ using InTheHand.Net.Sockets;
 using InTheHand.Bluetooth.Permissions;
 using System.Threading;
 using System.Diagnostics;
+using SmartPendant.MAUIHybrid.Abstractions;
 
 namespace SmartPendant.MAUIHybrid.Services
 {

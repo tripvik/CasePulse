@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using NAudio.Wave;
+using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Models;
-using SmartPendant.MAUIHybrid.Services;
 using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Components.Pages

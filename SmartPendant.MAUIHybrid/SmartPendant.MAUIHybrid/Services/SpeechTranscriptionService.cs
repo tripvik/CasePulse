@@ -6,6 +6,7 @@ using Microsoft.CognitiveServices.Speech.Transcription;
 using SmartPendant.MAUIHybrid.Models;
 using Microsoft.Extensions.Configuration;
 using SmartPendant.MAUIHybrid.Helpers;
+using SmartPendant.MAUIHybrid.Abstractions;
 
 namespace SmartPendant.MAUIHybrid.Services
 {

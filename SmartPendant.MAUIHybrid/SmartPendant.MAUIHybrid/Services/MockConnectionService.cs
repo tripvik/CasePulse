@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartPendant.MAUIHybrid.Abstractions;
+using System;
 using System.Threading.Tasks;
 
 namespace SmartPendant.MAUIHybrid.Services

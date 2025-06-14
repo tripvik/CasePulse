@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
+using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
-using System;
 using System.Reflection;
 
 namespace SmartPendant.MAUIHybrid
@@ -13,88 +13,124 @@ namespace SmartPendant.MAUIHybrid
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-            builder
-                .UseMauiApp<App>()
-                .ConfigureFonts(fonts =>
-                {
-                    fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                });
+
+            ConfigureApp(builder);
+            ConfigureServices(builder);
+            ConfigureDevelopmentServices(builder);
+
+            return builder.Build();
+        }
+
+        #region App Configuration
+
+        private static void ConfigureApp(MauiAppBuilder builder)
+        {
+            builder.UseMauiApp<App>()
+                   .ConfigureFonts(fonts => fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"));
+
             builder.ConfigureAppSettings();
+        }
+
+        private static void ConfigureAppSettings(this MauiAppBuilder builder)
+        {
+            var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+            var baseConfigFileName = $"{assemblyName}.appsettings.json";
+            var devConfigFileName = $"{assemblyName}.appsettings.development.json";
+            var assembly = Assembly.GetExecutingAssembly();
+
+            using var baseStream = assembly.GetManifestResourceStream(baseConfigFileName);
+            if (baseStream != null) builder.Configuration.AddJsonStream(baseStream);
+
+            using var devStream = assembly.GetManifestResourceStream(devConfigFileName);
+            if (devStream != null) builder.Configuration.AddJsonStream(devStream);
+        }
+
+        #endregion
+
+        #region Service Registration
+
+        private static void ConfigureServices(MauiAppBuilder builder)
+        {
+            RegisterCoreServices(builder);
+            RegisterTranscriptionServices(builder);
+            RegisterConnectionServices(builder);
+            RegisterStorageServices(builder);
+        }
+
+        private static void RegisterCoreServices(MauiAppBuilder builder)
+        {
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddMudServices();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
+            builder.Services.AddSingleton<ConversationService>();
+        }
 
-            //Switch between different Transcription Services
-            bool useFileService = builder.Configuration.GetValue<bool>("UseFileRecording");
-            bool useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
+        private static void RegisterTranscriptionServices(MauiAppBuilder builder)
+        {
+            var config = builder.Configuration;
+            var useMockData = config.GetValue<bool>("UseMockData");
+            var useFileService = config.GetValue<bool>("UseFileRecording");
+            var useOpenAI = config.GetValue<bool>("UseOpenAI");
+
+            if (useMockData)
+            {
+                builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
+                return;
+            }
+
             if (useFileService)
             {
                 builder.Services.AddSingleton<ITranscriptionService, FileTranscriptionService>();
             }
+            else if (useOpenAI)
+            {
+                builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
+            }
             else
             {
-                if (useOpenAI)
-                {
-                    builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
-                }
-                else
-                {
-                    // Default to Azure Speech Service
-                    builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
-                }
+                builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
             }
-            builder.Services.AddSingleton<IStorageService,BlobStorageService>();
-            builder.Services.AddSingleton<ConversationService>();
-            //Switch between BLE and Bluetooth Classic
-            bool useMockData = builder.Configuration.GetValue<bool>("UseMockData");
-            bool useBLE = builder.Configuration.GetValue<bool>("UseBLE");
-            if(useMockData)
+        }
+
+        private static void RegisterConnectionServices(MauiAppBuilder builder)
+        {
+            var config = builder.Configuration;
+            var useMockData = config.GetValue<bool>("UseMockData");
+            var useBLE = config.GetValue<bool>("UseBLE");
+
+            if (useMockData)
             {
                 builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
-                builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
+            }
+            else if (useBLE)
+            {
+                builder.Services.AddSingleton<IConnectionService, BLEService>();
             }
             else
             {
-                if (useBLE)
-                {
-                    builder.Services.AddSingleton<IConnectionService, BLEService>();
-                }
-                else
-                {
-                    builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
-                }
+                builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
             }
-            
+        }
 
+        private static void RegisterStorageServices(MauiAppBuilder builder)
+        {
+            builder.Services.AddSingleton<IStorageService, BlobStorageService>();
+        }
+
+        #endregion
+
+        #region Development Configuration
+
+        private static void ConfigureDevelopmentServices(MauiAppBuilder builder)
+        {
 #if DEBUG
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Logging.AddDebug();
 #endif
-
-            return builder.Build();
         }
 
-    private static void ConfigureAppSettings(this MauiAppBuilder builder)
-        {
-            string baseConfigFileName = $"{Assembly.GetExecutingAssembly().GetName().Name}.appsettings.json";
-            string devConfigFileName = $"{Assembly.GetExecutingAssembly().GetName().Name}.appsettings.development.json";
-            var assembly = Assembly.GetExecutingAssembly();
-
-            // Load the base appsettings.json
-            using var baseStream = assembly.GetManifestResourceStream(baseConfigFileName);
-            if (baseStream != null)
-            {
-                builder.Configuration.AddJsonStream(baseStream);
-            }
-
-            // Check if appsettings.development.json exists and load it
-            using var devStream = assembly.GetManifestResourceStream(devConfigFileName);
-            if (devStream != null)
-            {
-                builder.Configuration.AddJsonStream(devStream);
-            }
-        }
+        #endregion
     }
 }

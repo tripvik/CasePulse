@@ -4,6 +4,7 @@ using System.Timers;
 using System.Threading.Tasks;
 using NAudio.Wave;
 using SmartPendant.MAUIHybrid.Models;
+using SmartPendant.MAUIHybrid.Abstractions;
 
 namespace SmartPendant.MAUIHybrid.Services
 {

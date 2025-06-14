@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using NAudio.Wave;
+using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Helpers;
 using SmartPendant.MAUIHybrid.Models;
 

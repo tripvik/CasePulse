@@ -55,6 +55,10 @@ namespace SmartPendant.MAUIHybrid.Services
                 Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
                 return (true, null);
             }
+            catch (OperationCanceledException)
+            {
+                return (false, new Exception("Connection Timed out"));
+            }
             catch (Exception ex)
             {
                 return (false, ex);

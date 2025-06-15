@@ -83,6 +83,8 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                 Debug.WriteLine(message);
                 Notify(message, Severity.Error);
                 stateChanging = false;
+                isDeviceConnected = false;
+                isRecording = false;
                 await InvokeAsync(StateHasChanged);
                 return;
             }
@@ -93,6 +95,9 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
                 Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
                 Notify("Failed to initialize Bluetooth service.", Severity.Error);
                 stateChanging = false;
+                stateChanging = false;
+                isDeviceConnected = false;
+                isRecording = false;
                 await InvokeAsync(StateHasChanged);
                 return;
             }

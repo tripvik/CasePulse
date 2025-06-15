@@ -12,9 +12,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
     {
         public static IConnectionService? BluetoothService { get; set; }
         public static ITranscriptionService? TranscriptionService { get; set; }
-        public static Action<string>? OnDisconnected { get; set; }
-        public static Action<TranscriptEntry>? OnFinalTranscript;
-        public static Action<TranscriptEntry>? OnRecognizingTranscript;
+        public static AndroidOrchestratorService? OrchestrationService { get; set; }
 
     }
 }

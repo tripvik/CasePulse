@@ -4,25 +4,53 @@ using Android.Content.PM;
 using Android.Media;
 using Android.OS;
 using Android.Util;
+using MudBlazor;
 using NAudio.Wave;
 using SmartPendant.MAUIHybrid.Abstractions;
+using SmartPendant.MAUIHybrid.Models;
 using System;
 using System.Threading.Channels;
 using AM = Android.Manifest;
+using SD = System.Diagnostics;
+
 
 namespace SmartPendant.MAUIHybrid.Platforms.Android
 {
     [Service(
-  ForegroundServiceType = ForegroundService.TypeDataSync
-)]
+        ForegroundServiceType = ForegroundService.TypeDataSync
+    )]
     public class BackGroundService : Service
     {
-        private IConnectionService _bluetoothService;
-        private ITranscriptionService _transcriptionService;
-        private Channel<byte[]> _audioDataChannel;
-        private CancellationTokenSource _cts;
-        private Handler _handler;
-        private Action _runnable;
+        private IConnectionService _bluetoothService = AndroidServiceBridge.BluetoothService!;
+        private ITranscriptionService _transcriptionService = AndroidServiceBridge.TranscriptionService!;
+        private AndroidOrchestratorService _orchestrationService = AndroidServiceBridge.OrchestrationService!;
+        private Channel<byte[]> _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(500)
+        {
+            SingleReader = true,
+            SingleWriter = false
+        });
+        private CancellationTokenSource? _processingCts = new CancellationTokenSource();
+
+        private bool IsRecording
+        {
+            get => _orchestrationService.IsRecording;
+            set => _orchestrationService.IsRecording = value;
+        }
+        private bool IsDeviceConnected
+        {
+            get => _orchestrationService.IsDeviceConnected;
+            set => _orchestrationService.IsDeviceConnected = value;
+        }
+        private bool StateChanging
+        {
+            get => _orchestrationService.StateChanging;
+            set => _orchestrationService.StateChanging = value;
+        }
+        private Conversation CurrentConversation
+        {
+            get => _orchestrationService.CurrentConversation;
+            set => _orchestrationService.CurrentConversation = value;
+        }
 
         public override void OnCreate()
         {
@@ -33,34 +61,39 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
                 var manager = (NotificationManager)GetSystemService(NotificationService)!;
                 manager.CreateNotificationChannel(channel);
             }
-            _bluetoothService = AndroidServiceBridge.BluetoothService!;
-            _transcriptionService = AndroidServiceBridge.TranscriptionService!;
-            _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(500)
-            {
-                SingleReader = true,
-                SingleWriter = false
-            });
-            _handler = new Handler(Looper.MainLooper);
-            _runnable = RunAudioPipelineAsync;
-            _bluetoothService.ConnectionLost += OnDisconnected;
-            _bluetoothService.Disconnected += OnDisconnected;
         }
 
         public override StartCommandResult OnStartCommand(Intent? intent, StartCommandFlags flags, int startId)
         {
             StartForegroundWithNotification();
-            _cts = new CancellationTokenSource();
-            _handler.Post(_runnable);
+            _processingCts = new CancellationTokenSource();
+            RunAudioPipelineAsync();
             return StartCommandResult.Sticky;
         }
 
         public override async void OnDestroy()
         {
+            StateChanging = true;
+            _orchestrationService.RaiseStateHasChanged();
+
+            _processingCts?.Cancel();
+            _processingCts = null;
+
+            await _transcriptionService.StopAsync();
+            _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
+            _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
+
             _bluetoothService.ConnectionLost -= OnDisconnected;
             _bluetoothService.Disconnected -= OnDisconnected;
+            _bluetoothService.DataReceived -= OnDataReceived;
+
             await _bluetoothService.DisconnectAsync();
-            await _transcriptionService.StopAsync();
-            _cts?.Cancel();
+
+            IsDeviceConnected = false;
+            IsRecording = false;
+            StateChanging = false;
+            _orchestrationService.RaiseStateHasChanged();
+
             base.OnDestroy();
         }
 
@@ -68,47 +101,58 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
 
         private async void RunAudioPipelineAsync()
         {
-            var (connected, _) = await _bluetoothService.ConnectAsync();
-            if (!connected) return;
+            StateChanging = true;
+            _orchestrationService.RaiseStateHasChanged();
+            var (connected, ex) = await _bluetoothService.ConnectAsync();
+            if (!connected)
+            {
+                var message = $"Failed to connect: {ex?.Message}";
+                SD.Debug.WriteLine(message);
+                _orchestrationService.RaiseNotify(message, Severity.Error);
+                StateChanging = false;
+                IsDeviceConnected = false;
+                IsRecording = false;
+                _orchestrationService.RaiseStateHasChanged();
+                StopSelf(); // Stop service if connection fails
+                return;
+            }
 
             var initialized = await _bluetoothService.InitializeAsync();
-            if (!initialized) return;
+            if (!initialized)
+            {
+                SD.Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
+                _orchestrationService.RaiseNotify("Failed to initialize Bluetooth service.", Severity.Error);
+                StateChanging = false;
+                IsDeviceConnected = false;
+                IsRecording = false;
+                _orchestrationService.RaiseStateHasChanged();
+                StopSelf(); // Stop service if initialization fails
+                return;
+            }
 
-            _bluetoothService.DataReceived += async (_, data) =>
-            {
-                await _audioDataChannel.Writer.WriteAsync(data);
-            };
-            _transcriptionService.TranscriptReceived += (_, entry) =>
-            {
-                AndroidServiceBridge.OnFinalTranscript?.Invoke(entry);
-            };
-            _transcriptionService.RecognizingTranscriptReceived += (_, entry) =>
-            {
-                AndroidServiceBridge.OnRecognizingTranscript?.Invoke(entry);
-            };
+            _processingCts = new CancellationTokenSource();
+            _ = ProcessAudioDataAsync(_processingCts.Token);
+
+            _bluetoothService.DataReceived += OnDataReceived;
+            _transcriptionService.TranscriptReceived += OnTranscriptReceived;
+            _bluetoothService.ConnectionLost += OnDisconnected;
+            _bluetoothService.Disconnected += OnDisconnected;
+            _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
             await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
-
-            try
-            {
-                await foreach (var data in _audioDataChannel.Reader.ReadAllAsync(_cts.Token))
-                {
-                    await _transcriptionService.ProcessChunkAsync(data);
-                }
-            }
-            catch (System.OperationCanceledException ex)
-            {
-            }
-            catch (System.Exception ex)
-            {
-                Log.Error("BackGroundService", $"Error processing audio chunk: {ex.Message}");
-            }
+            IsDeviceConnected = true;
+            IsRecording = true;
+            StateChanging = false;
+            _orchestrationService.RaiseStateHasChanged();
         }
 
-        private void OnDisconnected(object? sender, string message)
+        private void OnDisconnected(object? sender, string disconnectMessage)
         {
-            Log.Warn("BackGroundService", $"Disconnected: {message}");
-            AndroidServiceBridge.OnDisconnected?.Invoke(message);
-            _ = StopSelfResult(0);
+            var logMessage = $"Connection Error: {disconnectMessage}";
+            SD.Debug.WriteLine(logMessage);
+            _orchestrationService.RaiseNotify(logMessage, Severity.Error);
+
+            // Stop the service when connection is lost
+            StopSelf();
         }
 
         private async void StartForegroundWithNotification()
@@ -143,7 +187,63 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
             {
                 StartForeground(7777, notification);
             }
+        }
 
+        private void OnRecognizingTranscriptReceived(object? sender, TranscriptEntry message)
+        {
+            /*
+             * Not needed for now
+            */
+        }
+
+        private async Task ProcessAudioDataAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await foreach (var audioData in _audioDataChannel.Reader.ReadAllAsync(cancellationToken))
+                {
+                    try
+                    {
+                        await BufferAndSendAsync(audioData);
+                    }
+                    catch (Exception ex)
+                    {
+                        SD.Debug.WriteLine($"Error processing audio data: {ex.Message}");
+                    }
+                }
+            }
+            catch (System.OperationCanceledException)
+            {
+                // Normal cancellation
+            }
+            catch (Exception ex)
+            {
+                SD.Debug.WriteLine($"Error in audio processing loop: {ex.Message}");
+            }
+        }
+
+        private async void OnDataReceived(object? sender, byte[] data)
+        {
+            try
+            {
+                // Copy the data to avoid potential issues with reused buffers
+                await _audioDataChannel.Writer.WriteAsync(data);
+            }
+            catch (Exception ex)
+            {
+                SD.Debug.WriteLine($"Error processing data: {ex.Message}");
+            }
+        }
+
+        private void OnTranscriptReceived(object? sender, TranscriptEntry message)
+        {
+            CurrentConversation.Transcript.Add(message);
+            _orchestrationService.RaiseStateHasChanged();
+        }
+
+        private async Task BufferAndSendAsync(byte[] newData)
+        {
+            await _transcriptionService.ProcessChunkAsync(newData);
         }
     }
 }

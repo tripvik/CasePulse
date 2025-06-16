@@ -167,12 +167,14 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
                     permissionResult = await Permissions.RequestAsync<Permissions.PostNotifications>();
                 }
             }
-
+            // To Do : Should we make the notification non-dismissible?
             var notification = new Notification.Builder(this, "foreground_channel")
                 .SetContentTitle("Smart Pendant")
                 .SetContentText("Recording in progress…")
                 .SetSmallIcon(Resource.Drawable.abc_btn_radio_material)
                 .SetContentIntent(pendingIntent)
+                .SetCategory(Notification.CategoryService) // Recommended
+                .SetOngoing(true)
                 .Build();
             if (Build.VERSION.SdkInt >= BuildVersionCodes.Q)
             {

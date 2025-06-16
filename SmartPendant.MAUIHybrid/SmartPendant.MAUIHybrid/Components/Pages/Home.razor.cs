@@ -7,14 +7,13 @@ using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Components.Pages
 {
-    public partial class Home()
+    public partial class Home
     {
         [Inject]
         private ISnackbar Snackbar { get; set; } = default!;
         [Inject]
         private IOrchestrationService OrchestrationService { get; set; } = default!;
 
-        #region State
         #region State
         public bool isRecording
         {
@@ -49,24 +48,16 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
             }
         }
         #endregion
-        #endregion
+
 
         #region Lifecycle
         protected override void OnInitialized()
         {
             // By this point, Snackbar has been injected and is available
             Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
+            OrchestrationService.StateHasChanged += StateHasChangedWrapper;
+            OrchestrationService.Notify += NotifyWrapper;
             base.OnInitialized();
-        }
-
-        protected override async Task OnAfterRenderAsync(bool firstRender)
-        {
-            if (firstRender)
-            {
-                OrchestrationService.StateHasChanged += StateHasChangedWrapper;
-                OrchestrationService.Notify += NotifyWrapper;
-                await OrchestrationService.StartAsync();
-            }
         }
 
         private void StateHasChangedWrapper(object? sender, EventArgs e)
@@ -98,8 +89,6 @@ namespace SmartPendant.MAUIHybrid.Components.Pages
         #endregion
 
         #region Real Service Logic
-
-        // Currently, the device will start sending data as soon as the connection is established.
       
         #endregion
 

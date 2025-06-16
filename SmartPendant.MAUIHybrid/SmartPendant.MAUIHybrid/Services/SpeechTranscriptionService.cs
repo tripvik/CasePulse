@@ -1,126 +1,156 @@
-﻿using Microsoft.CognitiveServices.Speech.Audio;
-using Microsoft.CognitiveServices.Speech;
-using NAudio.Wave;
-using System.Diagnostics;
+﻿using Microsoft.CognitiveServices.Speech;
+using Microsoft.CognitiveServices.Speech.Audio;
 using Microsoft.CognitiveServices.Speech.Transcription;
-using SmartPendant.MAUIHybrid.Models;
 using Microsoft.Extensions.Configuration;
-using SmartPendant.MAUIHybrid.Helpers;
+using NAudio.Wave;
 using SmartPendant.MAUIHybrid.Abstractions;
+using SmartPendant.MAUIHybrid.Models;
+using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
     public class SpeechTranscriptionService : ITranscriptionService
     {
+        #region Fields
         private readonly SpeechConfig _speechConfig;
         private ConversationTranscriber? _transcriber;
         private PushAudioInputStream? _pushStream;
+        #endregion
 
-        // *** NEW: Events for INTERIM recognition results ***
+        #region Events
         public event EventHandler<TranscriptEntry>? RecognizingTranscriptReceived;
+        public event EventHandler<TranscriptEntry>? TranscriptReceived;
+        #endregion
 
-        // *** MODIFIED: Events for FINAL recognized segments ***
-        public event EventHandler<TranscriptEntry>? TranscriptReceived; // Changed from string
-
+        #region Constructor
         public SpeechTranscriptionService(IConfiguration configuration)
         {
             var endpoint = configuration["Azure:Speech:Endpoint"] ?? throw new InvalidOperationException("Azure Speech Endpoint is not configured. Please check your appsettings.json or environment variables.");
-            var subscriptionKey = configuration["Azure:Speech:Key"] ?? throw new InvalidOperationException("Azure Speech Subscription Key is not configured. Please check your appsettings.json or environment variables."); ;
-            var uri = new Uri(endpoint);
-            _speechConfig = SpeechConfig.FromEndpoint(uri, subscriptionKey);
+            var subscriptionKey = configuration["Azure:Speech:Key"] ?? throw new InvalidOperationException("Azure Speech Subscription Key is not configured. Please check your appsettings.json or environment variables.");
+            _speechConfig = SpeechConfig.FromEndpoint(new Uri(endpoint), subscriptionKey);
             _speechConfig.SpeechRecognitionLanguage = "en-IN";
             _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
         }
+        #endregion
 
+        #region Public Methods
         public async Task InitializeAsync(WaveFormat micFormat)
         {
-            var micAudioFormat = AudioStreamFormat.GetWaveFormatPCM(
+            var audioFormat = AudioStreamFormat.GetWaveFormatPCM(
                 (uint)micFormat.SampleRate,
                 (byte)micFormat.BitsPerSample,
                 (byte)micFormat.Channels);
 
-            _pushStream = AudioInputStream.CreatePushStream(micAudioFormat);
-            _transcriber = new ConversationTranscriber(_speechConfig, AudioConfig.FromStreamInput(_pushStream));
+            _pushStream = AudioInputStream.CreatePushStream(audioFormat);
+            var audioConfig = AudioConfig.FromStreamInput(_pushStream);
+            _transcriber = new ConversationTranscriber(_speechConfig, audioConfig);
 
-            // Handle INTERIM Mic Results
-            _transcriber.Transcribing += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Result.Text))
-                {
-                    var message = new TranscriptEntry
-                    {
-                        Text = e.Result.Text,
-                        Timestamp = DateTime.Now,
-                        SpeakerLabel = e.Result.SpeakerId,
-                        Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
-                    };
-                    RecognizingTranscriptReceived?.Invoke(this, message); // Raise new interim event
-                }
-            };
-
-            // Handle FINAL Mic Results
-            _transcriber.Transcribed += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Result.Text))
-                {
-                    var message = new TranscriptEntry
-                    {
-                        Text = e.Result.Text,
-                        Timestamp = DateTime.Now,
-                        SpeakerLabel = e.Result.SpeakerId,
-                        Initials = e.Result.SpeakerId[0..1] // Provide a default value for the 'Initials' property
-                    };
-                    TranscriptReceived?.Invoke(this, message);
-                }
-                else if (e.Result.Reason == ResultReason.NoMatch)
-                {
-                    Debug.WriteLine("MIC NOMATCH: Speech could not be recognized.");
-                }
-            };
-            _transcriber.Canceled += (s, e) => Debug.WriteLine($"CANCELED: Reason={e.Reason}, Details={e.ErrorDetails}");
-            _transcriber.SessionStopped += (s, e) => Debug.WriteLine("Session stopped.");
+            SubscribeToTranscriberEvents();
 
             await _transcriber.StartTranscribingAsync();
-            Debug.WriteLine("Recognizer session started.");
+            Debug.WriteLine("Conversation transcriber session started.");
         }
 
         public Task ProcessChunkAsync(byte[] audioData)
         {
-            if (_pushStream != null)
+            if (_pushStream != null && audioData.Length > 0)
             {
-                try 
-                {
-
-                    //var signedData = AudioHelper.ConvertUnsignedToSigned(audioData);
-                    _pushStream.Write(audioData); 
-                }
-                catch (Exception ex) { Console.WriteLine($"Error writing Mic chunk: {ex.Message}"); }
+                _pushStream.Write(audioData);
             }
             return Task.CompletedTask;
         }
 
-
         public async Task StopAsync()
         {
-            Debug.WriteLine("Azure Recognizers stopping...");
-            if (_transcriber != null) await _transcriber.StopTranscribingAsync();
+            Debug.WriteLine("Stopping conversation transcriber...");
+            if (_transcriber != null)
+            {
+                await _transcriber.StopTranscribingAsync();
+                UnsubscribeFromTranscriberEvents();
+            }
             _pushStream?.Close();
         }
+        #endregion
 
+        #region Private Methods & Event Handlers
+        private void SubscribeToTranscriberEvents()
+        {
+            if (_transcriber is null) return;
+            _transcriber.Transcribing += OnTranscribing;
+            _transcriber.Transcribed += OnTranscribed;
+            _transcriber.Canceled += OnCanceled;
+            _transcriber.SessionStopped += OnSessionStopped;
+        }
+
+        private void UnsubscribeFromTranscriberEvents()
+        {
+            if (_transcriber is null) return;
+            _transcriber.Transcribing -= OnTranscribing;
+            _transcriber.Transcribed -= OnTranscribed;
+            _transcriber.Canceled -= OnCanceled;
+            _transcriber.SessionStopped -= OnSessionStopped;
+        }
+
+        private void OnTranscribing(object? sender, ConversationTranscriptionEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.Result.Text))
+            {
+                var entry = new TranscriptEntry
+                {
+                    Timestamp = DateTime.UtcNow,
+                    SpeakerLabel = e.Result.SpeakerId,
+                    Text = e.Result.Text,
+                };
+                RecognizingTranscriptReceived?.Invoke(this, entry);
+            }
+        }
+
+        private void OnTranscribed(object? sender, ConversationTranscriptionEventArgs e)
+        {
+            if (e.Result.Reason == ResultReason.RecognizedSpeech && !string.IsNullOrEmpty(e.Result.Text))
+            {
+                var entry = new TranscriptEntry
+                {
+                    Timestamp = DateTime.UtcNow,
+                    SpeakerLabel = e.Result.SpeakerId,
+                    Text = e.Result.Text,
+                };
+                TranscriptReceived?.Invoke(this, entry);
+            }
+            else if (e.Result.Reason == ResultReason.NoMatch)
+            {
+                Debug.WriteLine("NOMATCH: Speech could not be recognized.");
+            }
+        }
+
+        private void OnSessionStopped(object? sender, SessionEventArgs e)
+        {
+            Debug.WriteLine($"Session stopped. SessionId: {e.SessionId}");
+        }
+
+        private void OnCanceled(object? sender, ConversationTranscriptionCanceledEventArgs e)
+        {
+            Debug.WriteLine($"CANCELED: Reason={e.Reason}");
+            if (e.Reason == CancellationReason.Error)
+            {
+                Debug.WriteLine($"CANCELED: ErrorCode={e.ErrorCode}, ErrorDetails={e.ErrorDetails}");
+            }
+        }
+        #endregion
+
+        #region IAsyncDisposable
         public async ValueTask DisposeAsync()
         {
             await StopAsync();
             _transcriber?.Dispose();
             _pushStream?.Dispose();
-            // Unsubscribe for safety (though instance disposal usually handles this)
-            RecognizingTranscriptReceived = null;
-            TranscriptReceived = null;
-            Debug.WriteLine("Azure Transcription Service disposed.");
+            _transcriber = null;
+            _pushStream = null;
+            GC.SuppressFinalize(this);
+            Debug.WriteLine("SpeechTranscriptionService disposed.");
         }
-
-        
-
+        #endregion
     }
 }

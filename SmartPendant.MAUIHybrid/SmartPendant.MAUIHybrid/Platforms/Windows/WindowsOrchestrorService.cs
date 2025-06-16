@@ -1,185 +1,80 @@
-﻿using InTheHand.Net.Bluetooth;
-using MudBlazor;
-using NAudio.Wave;
+﻿using MudBlazor;
 using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Models;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SmartPendant.MAUIHybrid.Services;
 
 namespace SmartPendant.MAUIHybrid.Platforms.Windows
 {
-    public class WindowsOrchestrorService(IConnectionService bluetoothService, ITranscriptionService transcriptionService) : IOrchestrationService
+    public class WindowsOrchestrationService : IOrchestrationService
     {
-        #region Implementation Details
-        public bool IsRecording { get; set; } = false;
+        #region Fields
+        private readonly AudioPipelineManager _pipelineManager;
+        #endregion
 
-        public bool IsDeviceConnected { get; set; } = false;
+        #region Properties
+        public bool IsRecording { get; private set; }
+        public bool IsDeviceConnected { get; private set; }
+        public bool IsStateChanging { get; private set; }
+        public Conversation CurrentConversation => _pipelineManager.CurrentConversation;
+        #endregion
 
-        public bool StateChanging { get; private set; } = false;
-
-        public Conversation CurrentConversation { get; private set; } = new();
-
+        #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
-
         #endregion
 
-        #region Privates
-        private readonly IConnectionService _bluetoothService = bluetoothService;
-        private readonly ITranscriptionService _transcriptionService = transcriptionService;
-        private static readonly int _boundedCapacity = 500; // Adjust 
-        private readonly System.Threading.Channels.Channel<byte[]> _audioDataChannel = System.Threading.Channels.Channel.CreateBounded<byte[]>(
-        new System.Threading.Channels.BoundedChannelOptions(_boundedCapacity)
+        #region Constructor
+        public WindowsOrchestrationService(AudioPipelineManager pipelineManager)
         {
-            SingleReader = true,
-            SingleWriter = false,
-            FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
-        });
-        private CancellationTokenSource? _processingCts;
-
+            _pipelineManager = pipelineManager;
+            _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
+            _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
+        }
         #endregion
 
+        #region Public Methods
         public async Task StartAsync()
         {
-            StateChanging = true;
-            StateHasChanged?.Invoke(this,EventArgs.Empty);
-            var (connected, ex) = await _bluetoothService.ConnectAsync();
-            if (!connected)
+            if (IsRecording) return;
+            SetState(isStateChanging: true);
+
+            var (success, errorMessage) = await _pipelineManager.StartPipelineAsync();
+            if (success)
             {
-                var message = $"Failed to connect: {ex?.Message}";
-                Debug.WriteLine(message);
-                Notify?.Invoke(this,(message, Severity.Error));
-                StateChanging = false;
-                IsDeviceConnected = false;
-                IsRecording = false;
-                StateHasChanged?.Invoke(this, EventArgs.Empty);
-                return;
+                SetState(isRecording: true, isDeviceConnected: true, isStateChanging: false);
             }
-
-            var initialized = await _bluetoothService.InitializeAsync();
-            if (!initialized)
+            else
             {
-                Debug.WriteLine("Failed to initialize Bluetooth characteristic or service.");
-                Notify?.Invoke(this, ("Failed to initialize Bluetooth service.", Severity.Error));
-                StateChanging = false;
-                IsDeviceConnected = false;
-                IsRecording = false;
-                StateHasChanged?.Invoke(this, EventArgs.Empty);
-                return;
+                Notify?.Invoke(this, (errorMessage ?? "An unknown error occurred.", Severity.Error));
+                SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
             }
-
-            _processingCts = new CancellationTokenSource();
-            _ = ProcessAudioDataAsync(_processingCts.Token);
-
-            _bluetoothService.DataReceived += OnDataReceived;
-            _transcriptionService.TranscriptReceived += OnTranscriptReceived;
-            _bluetoothService.ConnectionLost += OnDisconnected;
-            _bluetoothService.Disconnected += OnDisconnected;
-            _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
-            await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
-            IsDeviceConnected = true;
-            IsRecording = true;
-            StateChanging = false;
-            StateHasChanged?.Invoke(this, EventArgs.Empty);
         }
 
         public async Task StopAsync()
         {
-            StateChanging = true;
-            StateHasChanged?.Invoke(this, EventArgs.Empty);
-            _processingCts?.Cancel();
-            _processingCts = null;
-            await _transcriptionService.StopAsync();
-            _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
-            _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
-            _bluetoothService.ConnectionLost -= OnDisconnected;
-            _bluetoothService.Disconnected -= OnDisconnected;
-            _bluetoothService.DataReceived -= OnDataReceived;
-            await _bluetoothService.DisconnectAsync();
-            IsDeviceConnected = false;
-            IsRecording = false;
-            StateChanging = false;
-            StateHasChanged?.Invoke(this, EventArgs.Empty);
+            if (!IsRecording && !IsStateChanging) return;
+            SetState(isStateChanging: true);
+            await _pipelineManager.StopPipelineAsync();
+            SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
         }
+        #endregion
 
-        private void OnRecognizingTranscriptReceived(object? sender, TranscriptEntry message)
+        #region Private Methods
+        private void SetState(bool? isRecording = null, bool? isDeviceConnected = null, bool? isStateChanging = null)
         {
-             /*
-              * Not needed for now
-             */
-        }
-
-        private async Task ProcessAudioDataAsync(CancellationToken cancellationToken)
-        {
-            try
-            {
-                await foreach (var audioData in _audioDataChannel.Reader.ReadAllAsync(cancellationToken))
-                {
-                    try
-                    {
-                        await BufferAndSendAsync(audioData);
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine($"Error processing audio data: {ex.Message}");
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Normal cancellation
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error in audio processing loop: {ex.Message}");
-            }
-        }
-
-        private async void OnDataReceived(object? sender, byte[] data)
-        {
-            try
-            {
-                // Copy the data to avoid potential issues with reused buffers?
-                await _audioDataChannel.Writer.WriteAsync(data);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error processing data: {ex.Message}");
-            }
-        }
-
-        private void OnTranscriptReceived(object? sender, TranscriptEntry message)
-        {
-            //recognizingEntry = null;
-            CurrentConversation.Transcript.Add(message);
+            IsRecording = isRecording ?? IsRecording;
+            IsDeviceConnected = isDeviceConnected ?? IsDeviceConnected;
+            IsStateChanging = isStateChanging ?? IsStateChanging;
             StateHasChanged?.Invoke(this, EventArgs.Empty);
         }
+        #endregion
 
-        private async void OnDisconnected(object? sender, string e)
+        #region IAsyncDisposable
+        public async ValueTask DisposeAsync()
         {
-            var message = $"Connection Error: {e}";
-            Debug.WriteLine(message);
-            Notify?.Invoke(this, (message, Severity.Error));
-            await StopAsync(); // Stop the transcription service and disconnect
-            IsDeviceConnected = false;
-            IsRecording = false;
+            await _pipelineManager.DisposeAsync();
+            GC.SuppressFinalize(this);
         }
-
-        private async Task BufferAndSendAsync(byte[] newData)
-        {
-            await _transcriptionService.ProcessChunkAsync(newData);
-            //_buffer.Write(newData, 0, newData.Length);
-
-            //if (_buffer.Length >= 10000) // e.g., 100ms of 32kHz mono 8-bit audio
-            //{
-            //    var chunk = _buffer.ToArray();
-
-            //    _buffer.SetLength(0); // clear buffer
-            //}
-        }
+        #endregion
     }
 }

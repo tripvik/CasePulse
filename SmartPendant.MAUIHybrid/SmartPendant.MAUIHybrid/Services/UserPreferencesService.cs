@@ -3,7 +3,7 @@ using SmartPendant.MAUIHybrid.Models;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
-    internal class UserPreferencesService
+    public class UserPreferencesService
     {
         private readonly ILocalStorageService _localStorage;
         private const string Key = "userPreferences";
@@ -20,7 +20,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
         public async Task<UserPreferences> LoadUserPreferences()
         {
-            return await _localStorage.GetItemAsync<UserPreferences>(Key);
+            return await _localStorage.GetItemAsync<UserPreferences>(Key) ?? new();
         }
     }
 }

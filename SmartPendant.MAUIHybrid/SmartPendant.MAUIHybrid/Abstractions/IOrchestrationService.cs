@@ -1,21 +1,22 @@
 ﻿using MudBlazor;
 using SmartPendant.MAUIHybrid.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartPendant.MAUIHybrid.Abstractions
 {
-    public interface IOrchestrationService
+    /// <summary>
+    /// Orchestrates the high-level operations of the application, coordinating
+    /// the connection, transcription, and UI state.
+    /// </summary>
+    public interface IOrchestrationService : IAsyncDisposable
     {
-        bool IsRecording { get; set; }
-        bool IsDeviceConnected { get; set; }
-        bool StateChanging { get; }
+        bool IsRecording { get; }
+        bool IsDeviceConnected { get; }
+        bool IsStateChanging { get; }
+        Conversation CurrentConversation { get; }
+
         event EventHandler StateHasChanged;
         event EventHandler<(string message, Severity severity)>? Notify;
-        Conversation CurrentConversation { get;  }
+
         Task StartAsync();
         Task StopAsync();
     }

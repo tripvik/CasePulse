@@ -1,17 +1,17 @@
 @page "/"
+@implements IDisposable
+@inject ISnackbar Snackbar
+@inject IOrchestrationService OrchestrationService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
-    @* Header Section - Fixed Height *@
+    @* Header Section *@
     <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4 flex-shrink-0">
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center">
-            <MudToggleIconButton @bind-Toggled="isDeviceConnected"
-                                 Icon="@Icons.Material.Filled.Bluetooth"
-                                 Color="@Color.Error"
-                                 ToggledIcon="@Icons.Material.Filled.BluetoothConnected"
-                                 ToggledColor="@Color.Success" />
-            <MudText Typo="Typo.body1" Color="@(isDeviceConnected? Color.Success: Color.Error)">@(isDeviceConnected ? "Connected" : "Disconnected")</MudText>
+            <MudIcon Icon="@(OrchestrationService.IsDeviceConnected? Icons.Material.Filled.BluetoothConnected : Icons.Material.Filled.Bluetooth)"
+                     Color="@(OrchestrationService.IsDeviceConnected ? Color.Success : Color.Error)" />
+            <MudText Typo="Typo.body1" Color="@(OrchestrationService.IsDeviceConnected? Color.Success: Color.Error)">@(OrchestrationService.IsDeviceConnected ? "Connected" : "Disconnected")</MudText>
         </MudStack>
-        @if (isRecording)
+        @if (OrchestrationService.IsRecording)
         {
             <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mr-3">
                 <span class="recording-indicator"></span>
@@ -20,24 +20,79 @@
         }
     </MudStack>
 
-    @* Conversation Container - Flexible Height *@
+    @* Conversation Container *@
     <div class="conversation-wrapper">
-        <ConversationContainer Messages="@transcriptEntries" />
+        <ConversationContainer Messages="@OrchestrationService.CurrentConversation.Transcript" />
     </div>
 
-    @* Footer Section - Fixed Height *@
+    @* Footer Section *@
     <MudStack Justify="Justify.Center"
               AlignItems="AlignItems.Center"
               Style="max-width: 400px; width: 100%; margin: 0 auto;"
               Class="pa-4 flex-shrink-0">
-        <MudLoadingButton Variant="Variant.Filled"
-                          StartIcon="@(isRecording ? @Icons.Material.Filled.Stop : @Icons.Material.Filled.Mic)"
-                          Color="@(isRecording ? Color.Error : Color.Primary)"
-                          Class="rounded-xl py-3"
-                          FullWidth="true"
-                          Loading="@stateChanging"
-                          @onclick="ToggleRecording">
-            @(isRecording ? "Stop" : "Start") Recording
-        </MudLoadingButton>
+        <MudButton @onclick="ToggleRecording"
+                   Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Filled"
+                   StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Stop : Icons.Material.Filled.Mic)"
+                   Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
+                   Class="rounded-xl py-3"
+                   FullWidth="true">
+            @if (OrchestrationService.IsStateChanging)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Start") Recording</MudText>
+            }
+        </MudButton>
     </MudStack>
 </MudStack>
+
+
+@code {
+    #region Lifecycle Methods
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
+
+        // Subscribe to state changes from the orchestration service.
+        OrchestrationService.StateHasChanged += OnStateHasChanged;
+        OrchestrationService.Notify += OnNotify;
+    }
+
+    private async Task ToggleRecording()
+    {
+        if (OrchestrationService.IsRecording)
+        {
+            await OrchestrationService.StopAsync();
+        }
+        else
+        {
+            await OrchestrationService.StartAsync();
+        }
+    }
+    #endregion
+
+    #region Event Handlers
+    private void OnStateHasChanged(object? sender, EventArgs e)
+    {
+        // The UI needs to be re-rendered when the state changes.
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnNotify(object? sender, (string message, Severity severity) args)
+    {
+        Snackbar.Add(args.message, args.severity);
+    }
+    #endregion
+
+    #region Disposal
+    public void Dispose()
+    {
+        OrchestrationService.StateHasChanged -= OnStateHasChanged;
+        OrchestrationService.Notify -= OnNotify;
+    }
+    #endregion
+}

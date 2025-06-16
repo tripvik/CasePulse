@@ -1,69 +1,104 @@
 ﻿using Android.Content;
-using Microsoft.Maui.ApplicationModel;
 using MudBlazor;
 using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Models;
+using SmartPendant.MAUIHybrid.Services;
+using System.Diagnostics;
 
 namespace SmartPendant.MAUIHybrid.Platforms.Android
 {
-    public class AndroidOrchestratorService : IOrchestrationService
+    public class AndroidOrchestrationService : IOrchestrationService
     {
-        public bool IsRecording { get; set; } = false;
-        public bool IsDeviceConnected { get; set; } = false;
-        public bool StateChanging { get; set; } = false;
+        #region Fields
+        private readonly AudioPipelineManager _pipelineManager;
+        private readonly Intent _serviceIntent;
+        #endregion
 
+        #region Properties
+        public bool IsRecording { get; private set; }
+        public bool IsDeviceConnected { get; private set; }
+        public bool IsStateChanging { get; private set; }
+        public Conversation CurrentConversation => _pipelineManager.CurrentConversation;
+        #endregion
+
+        #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
+        #endregion
 
-        public Conversation CurrentConversation { get; set; } = new();
-
-        public AndroidOrchestratorService(IConnectionService bluetoothService, ITranscriptionService transcriptionService)
+        #region Constructor
+        public AndroidOrchestrationService(AudioPipelineManager pipelineManager)
         {
-            AndroidServiceBridge.BluetoothService = bluetoothService;
-            AndroidServiceBridge.TranscriptionService = transcriptionService;
-            AndroidServiceBridge.OrchestrationService = this;
-
+            _pipelineManager = pipelineManager;
+            _serviceIntent = new Intent(Platform.CurrentActivity ?? throw new InvalidOperationException("CurrentActivity is null"), typeof(AudioProcessingService));
+            // Forward events from the pipeline manager to the UI
+            _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
+            _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
         }
+        #endregion
 
+        #region Public Methods
         public Task StartAsync()
         {
+            if (IsRecording) return Task.CompletedTask;
+
+            SetState(isStateChanging: true);
             try
             {
-                var intent = new Intent(Platform.CurrentActivity, typeof(BackGroundService));
-                Platform.CurrentActivity.StartForegroundService(intent);
+                // The actual logic is now inside the Android Service,
+                // which will be started here. The service will then start the pipeline.
+                Platform.CurrentActivity?.StartForegroundService(_serviceIntent);
+
+                SetState(isRecording: true, isDeviceConnected: true, isStateChanging: false);
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Failed to start foreground service: {ex.Message}");
                 Notify?.Invoke(this, ($"Start failed: {ex.Message}", Severity.Error));
+                SetState(isStateChanging: false);
             }
-
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
+            if (!IsRecording && !IsStateChanging) return Task.CompletedTask;
+
+            SetState(isStateChanging: true);
             try
             {
-                var intent = new Intent(Platform.CurrentActivity, typeof(BackGroundService));
-                Platform.CurrentActivity.StopService(intent);
+                // This will trigger the OnDestroy method in the service,
+                // which in turn calls StopPipelineAsync.
+                Platform.CurrentActivity?.StopService(_serviceIntent);
+
+                SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"Failed to stop foreground service: {ex.Message}");
                 Notify?.Invoke(this, ($"Stop failed: {ex.Message}", Severity.Error));
+                SetState(isStateChanging: false); // Reset state even on failure
             }
-
             return Task.CompletedTask;
         }
+        #endregion
 
-        public void RaiseStateHasChanged()
+        #region Private Methods
+        private void SetState(bool? isRecording = null, bool? isDeviceConnected = null, bool? isStateChanging = null)
         {
+            IsRecording = isRecording ?? IsRecording;
+            IsDeviceConnected = isDeviceConnected ?? IsDeviceConnected;
+            IsStateChanging = isStateChanging ?? IsStateChanging;
             StateHasChanged?.Invoke(this, EventArgs.Empty);
         }
+        #endregion
 
-        public void RaiseNotify(string message, Severity severity)
+        #region IAsyncDisposable
+        public async ValueTask DisposeAsync()
         {
-            Notify?.Invoke(this,(message, severity));
+            await StopAsync();
+            GC.SuppressFinalize(this);
         }
-
+        #endregion
     }
 }

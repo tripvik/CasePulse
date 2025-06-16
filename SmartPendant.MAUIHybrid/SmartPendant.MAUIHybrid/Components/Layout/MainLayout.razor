@@ -26,7 +26,7 @@
                                    OnClick="@ToggleDrawer" />
                 }
 
-                <MudIconButton Icon="@Icons.Material.Filled.CrisisAlert"
+                <MudIconButton Icon="@Statics.Logo"
                                Color="Color.Inherit"
                                Size="Size.Medium"
                                OnClick="@(() => Nav.NavigateTo("/"))" />
@@ -69,11 +69,12 @@
 </MudLayout>
 
 @code {
-    #region Fields
+        #region Fields
 
     private MudThemeProvider _mudThemeProvider = default!;
     private bool _drawerOpen = false;
     private bool _isMobile;
+
 
     #endregion
 

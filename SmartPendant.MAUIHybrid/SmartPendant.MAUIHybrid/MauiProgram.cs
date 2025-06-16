@@ -8,7 +8,7 @@ using System.Reflection;
 
 namespace SmartPendant.MAUIHybrid
 {
-    public static class MauiProgram
+    public static partial class MauiProgram
     {
         public static MauiApp CreateMauiApp()
         {
@@ -49,12 +49,16 @@ namespace SmartPendant.MAUIHybrid
 
         #region Service Registration
 
+        //implemetation in respective platfoms.
+        static partial void RegisterPlatformServices(IServiceCollection services);
+
         private static void ConfigureServices(MauiAppBuilder builder)
         {
             RegisterCoreServices(builder);
             RegisterTranscriptionServices(builder);
             RegisterConnectionServices(builder);
             RegisterStorageServices(builder);
+            RegisterPlatformServices(builder.Services);
         }
 
         private static void RegisterCoreServices(MauiAppBuilder builder)
@@ -113,6 +117,7 @@ namespace SmartPendant.MAUIHybrid
                 builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
             }
         }
+
 
         private static void RegisterStorageServices(MauiAppBuilder builder)
         {

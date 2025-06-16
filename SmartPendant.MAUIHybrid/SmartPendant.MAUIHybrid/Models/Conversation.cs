@@ -21,6 +21,7 @@
         public string? Summary { get; set; }
         public List<string> Tags { get; set; } = [];
         public List<TranscriptEntry> Transcript { get; set; } = [];
+        public TranscriptEntry? RecognizingEntry { get; set; }
         public AiInsights? AiInsights { get; set; }
         public List<TimelineEvent>? Timeline { get; set; }
     }

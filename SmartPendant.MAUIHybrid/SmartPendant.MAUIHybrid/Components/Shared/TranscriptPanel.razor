@@ -1,0 +1,25 @@
+﻿<div style="height: 100%; overflow-y: auto;" id="chatContainer">
+    @for (int i = 0; i < Messages.Count; i++)
+    {
+        var message = Messages[i];
+        var position = i > 0 && Messages[i - 1].SpeakerLabel != message.SpeakerLabel
+        ? ChatBubblePosition.Start
+        : ChatBubblePosition.End;
+        var time = message.Timestamp.ToString("g");
+        <MudChat ChatPosition="@position" Elevation="0" Style="background: var(--mud-palette-background);">
+            <MudAvatar Size="Size.Medium">@message.Initials</MudAvatar>
+            <MudChatHeader Name="@message.SpeakerLabel" Time="@time" />
+            <MudChatBubble>@message.Text</MudChatBubble>
+        </MudChat>
+    }
+</div>
+@code {
+    [Parameter] public List<TranscriptEntry> Messages { get; set; } = [];
+    [Inject]
+    IJSRuntime? JS { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JS.InvokeVoidAsync("scrollToBottom", "chatContainer");
+    }
+}

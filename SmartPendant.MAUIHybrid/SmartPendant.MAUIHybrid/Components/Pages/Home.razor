@@ -1,13 +1,8 @@
 @page "/"
-@using System.Diagnostics
-@using System.Timers
-@using NAudio.Wave
-@using SmartPendant.MAUIHybrid.Abstractions
-@implements IDisposable
 
-<MudStack Justify="Justify.SpaceBetween" Class="mx-2" Style="height: calc(100vh - 100px);">
-    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4">
-
+<MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
+    @* Header Section - Fixed Height *@
+    <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4 flex-shrink-0">
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center">
             <MudToggleIconButton @bind-Toggled="isDeviceConnected"
                                  Icon="@Icons.Material.Filled.Bluetooth"
@@ -23,26 +18,26 @@
                 <MudText Typo="Typo.body1" Color="Color.Error">Recording</MudText>
             </MudStack>
         }
-
     </MudStack>
 
-    <div style="flex: 1; min-height: 0;">
+    @* Conversation Container - Flexible Height *@
+    <div class="conversation-wrapper">
         <ConversationContainer Messages="@transcriptEntries" />
     </div>
+
+    @* Footer Section - Fixed Height *@
     <MudStack Justify="Justify.Center"
               AlignItems="AlignItems.Center"
               Style="max-width: 400px; width: 100%; margin: 0 auto;"
-              Class="pa-4">
-            <MudLoadingButton Variant="Variant.Filled"
-                              StartIcon="@(isRecording ? @Icons.Material.Filled.Stop : @Icons.Material.Filled.Mic)"
-                              Color="@(isRecording ? Color.Error : Color.Primary)"
-                              Class="rounded-xl py-3"
-                              FullWidth="true"
-                              Loading="@stateChanging"
-                              @onclick="ToggleRecording">
-                @(isRecording ? "Stop" : "Start") Recording
-            </MudLoadingButton>
+              Class="pa-4 flex-shrink-0">
+        <MudLoadingButton Variant="Variant.Filled"
+                          StartIcon="@(isRecording ? @Icons.Material.Filled.Stop : @Icons.Material.Filled.Mic)"
+                          Color="@(isRecording ? Color.Error : Color.Primary)"
+                          Class="rounded-xl py-3"
+                          FullWidth="true"
+                          Loading="@stateChanging"
+                          @onclick="ToggleRecording">
+            @(isRecording ? "Stop" : "Start") Recording
+        </MudLoadingButton>
     </MudStack>
 </MudStack>
-
-

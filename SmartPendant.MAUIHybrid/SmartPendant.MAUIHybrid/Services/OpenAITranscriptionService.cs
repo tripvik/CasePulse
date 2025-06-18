@@ -1,12 +1,11 @@
-﻿using System.Diagnostics;
+﻿using Microsoft.Extensions.Configuration;
+using NAudio.Wave;
+using SmartPendant.MAUIHybrid.Abstractions;
+using SmartPendant.MAUIHybrid.Models;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
-using Microsoft.Extensions.Configuration;
-using NAudio.Wave;
-using SmartPendant.MAUIHybrid.Abstractions;
-using SmartPendant.MAUIHybrid.Helpers;
-using SmartPendant.MAUIHybrid.Models;
 
 namespace SmartPendant.MAUIHybrid.Services;
 
@@ -30,8 +29,9 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
         _cts = new CancellationTokenSource();
         _ws = new ClientWebSocket();
 
-        string? endpoint = _config["Azure:4o-Speech:Endpoint"];
-        string? apiKey = _config["Azure:4o-Speech:Key"];
+        string? endpoint = _config["Azure:OpenAI:Endpoint"];
+        string? apiKey = _config["Azure:OpenAI:ApiKey"];
+        string? transcriptionModel = _config["Azure:OpenAI:TranscriptionModel"];
 
         if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("Azure OpenAI endpoint or key not configured.");
@@ -52,7 +52,7 @@ public class OpenAITranscriptionService : ITranscriptionService, IAsyncDisposabl
                 input_audio_format = "pcm16",
                 input_audio_transcription = new
                 {
-                    model = "gpt-4o-mini-transcribe",
+                    model = transcriptionModel,
                     prompt = "Respond in English."
                 },
                 input_audio_noise_reduction = new { type = "near_field" },

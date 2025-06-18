@@ -3,6 +3,7 @@
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
 @inject IConversationService ConversationService
+@inject InsightService InsightService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -59,7 +60,7 @@
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
 
         // Subscribe to state changes from the orchestration service.
-        OrchestrationService.ConversationCompleted += SaveConversationAsync;
+        OrchestrationService.ConversationCompleted += OnConversationCompletionAsync;
         OrchestrationService.StateHasChanged += OnStateHasChanged;
         OrchestrationService.Notify += OnNotify;
     }
@@ -89,7 +90,26 @@
         Snackbar.Add(args.message, args.severity);
     }
 
-    private async void SaveConversationAsync(object? sender, Conversation conversation)
+    private async void OnConversationCompletionAsync(object? sender, Conversation conversation)
+    {
+        try
+        {
+            var insights = await GenerateInsightAsync(conversation);
+            conversation.AiInsights.ActionItems = insights.ActionItems;
+            conversation.AiInsights.Topics = insights.Topics;
+            conversation.Summary = insights.Summary;
+            conversation.Title = insights.Title;
+            conversation.Timeline = insights.Timeline;
+
+            await SaveConversationAsync(conversation);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveConversationAsync(Conversation conversation)
     {
         try
         {
@@ -100,6 +120,26 @@
             Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
         }
     }
+
+    private async Task<InsightResult> GenerateInsightAsync(Conversation conversation)
+    {
+        if (conversation.Transcript.Count > 1)
+        {
+            conversation.DurationMinutes = (conversation.Transcript[^1].Timestamp - conversation.Transcript[0].Timestamp).TotalMinutes;
+        }
+
+        var input = new InsightInput()
+        {
+            Transcript = conversation.Transcript,
+            Location = conversation.Location,
+            CreatedAt = conversation.CreatedAt,
+            DurationMinutes = conversation.DurationMinutes
+        };
+
+        var result = await InsightService.GetInsightAsync(input);
+        return result;
+    }
+
     #endregion
 
     #region Disposal
@@ -107,7 +147,7 @@
     {
         OrchestrationService.StateHasChanged -= OnStateHasChanged;
         OrchestrationService.Notify -= OnNotify;
-        OrchestrationService.ConversationCompleted -= SaveConversationAsync;
+        OrchestrationService.ConversationCompleted -= OnConversationCompletionAsync;
     }
     #endregion
 }

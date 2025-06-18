@@ -1,10 +1,14 @@
-﻿using Blazored.LocalStorage;
+﻿using Azure.AI.OpenAI;
+using Microsoft.Extensions.AI;
+using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
 using System.Reflection;
+using System.ClientModel;
+
 
 // Platform-specific using directives to resolve service implementations
 #if ANDROID
@@ -67,10 +71,24 @@ namespace SmartPendant.MAUIHybrid
             // Register application-specific singleton services
             builder.Services.AddScoped<IConversationService, LocalStorageConversationService>();
             builder.Services.AddSingleton<AudioPipelineManager>();
+            builder.Services.AddSingleton<InsightService>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
 
+            var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
+            var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];
+            var openAIDeployment = builder.Configuration["Azure:OpenAI:DeploymentName"];
+
+            if (string.IsNullOrEmpty(openAIDeployment) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(openAIEndpoint))
+            {
+                throw new InvalidOperationException("Azure OpenAI configuration (DeploymentName, ApiKey, or Endpoint) is missing.");
+            }
+
+            var azureOpenAi = new AzureOpenAIClient(new Uri(openAIEndpoint), new ApiKeyCredential(openAIKey));
+            var chatClient = azureOpenAi.GetChatClient(openAIDeployment).AsIChatClient();
+            builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
+            
             // Register services that have different implementations per platform
             RegisterPlatformDependentServices(builder);
         }

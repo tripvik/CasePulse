@@ -14,7 +14,8 @@ namespace SmartPendant.MAUIHybrid.Abstractions
         bool IsStateChanging { get; }
         Conversation CurrentConversation { get; }
 
-        event EventHandler StateHasChanged;
+        event EventHandler? StateHasChanged;
+        event EventHandler<Conversation>? ConversationCompleted;
         event EventHandler<(string message, Severity severity)>? Notify;
 
         Task StartAsync();

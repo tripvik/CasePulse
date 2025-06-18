@@ -20,7 +20,6 @@ namespace SmartPendant.MAUIHybrid.Services
 
         private readonly IConnectionService _connectionService;
         private readonly ITranscriptionService _transcriptionService;
-        private readonly IConversationService _conversationService;
 
         private readonly Channel<byte[]> _audioDataChannel;
         private CancellationTokenSource? _pipelineCts;
@@ -32,15 +31,14 @@ namespace SmartPendant.MAUIHybrid.Services
         #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
-        public event EventHandler? ConversationSavedAndReset;
+        public event EventHandler<Conversation>? ConversationCompleted;
         #endregion
 
         #region Constructor
-        public AudioPipelineManager(IConnectionService connectionService, ITranscriptionService transcriptionService, IConversationService conversationService)
+        public AudioPipelineManager(IConnectionService connectionService, ITranscriptionService transcriptionService)
         {
             _connectionService = connectionService;
             _transcriptionService = transcriptionService;
-            _conversationService = conversationService;
 
             // Using a channel to decouple the bluetooth data receiver from the transcription processor.
             _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(500)
@@ -102,11 +100,10 @@ namespace SmartPendant.MAUIHybrid.Services
             if (CurrentConversation != null && CurrentConversation.Transcript.Any())
             {
                 Debug.WriteLine("StopPipelineAsync called. Saving final conversation...");
-                await MainThread.InvokeOnMainThreadAsync(async () =>
+                if (CurrentConversation.Transcript.Any())
                 {
-                    await _conversationService.SaveConversationAsync(CurrentConversation);
-                });
-                Notify?.Invoke(this, ("Conversation saved.", Severity.Info));
+                    ConversationCompleted?.Invoke(this, CurrentConversation);
+                }
             }
 
             // Cancel the processing loop
@@ -189,25 +186,21 @@ namespace SmartPendant.MAUIHybrid.Services
             StateHasChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        private async void OnInactivityTimerElapsed(object? sender, ElapsedEventArgs e)
+        private void OnInactivityTimerElapsed(object? sender, ElapsedEventArgs e)
         {
             Debug.WriteLine("Inactivity timer elapsed. Checking for conversation to save.");
 
             // 1. Save the conversation if it has content
             if (CurrentConversation.Transcript.Any())
             {
-                await MainThread.InvokeOnMainThreadAsync(async () =>
-                {
-                    await _conversationService.SaveConversationAsync(CurrentConversation);
-                });
-                Notify?.Invoke(this, ("Conversation saved due to inactivity.", Severity.Info));
+                ConversationCompleted?.Invoke(this, CurrentConversation);
             }
 
             // 2. Reset for a new conversation
             CurrentConversation = new Conversation { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
 
             // 3. Notify the UI to update/clear the old transcript
-            ConversationSavedAndReset?.Invoke(this, EventArgs.Empty);
+            ConversationCompleted?.Invoke(this, null!);
 
             // 4. Restart the timer to monitor the new conversation for inactivity
             _inactivityTimer?.Start();

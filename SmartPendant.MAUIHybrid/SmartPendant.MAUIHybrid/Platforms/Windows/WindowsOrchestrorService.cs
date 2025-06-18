@@ -20,6 +20,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
 
         #region Events
         public event EventHandler? StateHasChanged;
+        public event EventHandler<Conversation>? ConversationCompleted;
         public event EventHandler<(string message, Severity severity)>? Notify;
         #endregion
 
@@ -28,6 +29,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
         {
             _pipelineManager = pipelineManager;
             _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
+            _pipelineManager.ConversationCompleted += (s, e) => ConversationCompleted?.Invoke(s, e);
             _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
         }
         #endregion

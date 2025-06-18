@@ -67,6 +67,7 @@
         <PackageReference Include="InTheHand.Bluetooth.Permissions" Version="8.0.2" />
         <PackageReference Include="InTheHand.Net.Bluetooth" Version="4.2.1" />
         <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.44.0" />
+        <PackageReference Include="Microsoft.Extensions.AI" Version="9.6.0" />
         <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.6" />
         <PackageReference Include="Microsoft.Maui.Controls" Version="9.0.71" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="9.0.71" />

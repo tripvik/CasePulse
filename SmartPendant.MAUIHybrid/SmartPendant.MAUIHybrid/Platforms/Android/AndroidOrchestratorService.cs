@@ -24,6 +24,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
         #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
+        public event EventHandler<Conversation>? ConversationCompleted;
         #endregion
 
         #region Constructor
@@ -33,6 +34,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
             _serviceIntent = new Intent(Platform.CurrentActivity ?? throw new InvalidOperationException("CurrentActivity is null"), typeof(AudioProcessingService));
             // Forward events from the pipeline manager to the UI
             _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
+            _pipelineManager.ConversationCompleted += (s, e) => ConversationCompleted?.Invoke(s, e);
             _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
         }
         #endregion

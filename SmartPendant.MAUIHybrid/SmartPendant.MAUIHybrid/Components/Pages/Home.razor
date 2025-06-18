@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
+@inject IConversationService ConversationService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -58,6 +59,7 @@
         Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
 
         // Subscribe to state changes from the orchestration service.
+        OrchestrationService.ConversationCompleted += SaveConversationAsync;
         OrchestrationService.StateHasChanged += OnStateHasChanged;
         OrchestrationService.Notify += OnNotify;
     }
@@ -86,6 +88,18 @@
     {
         Snackbar.Add(args.message, args.severity);
     }
+
+    private async void SaveConversationAsync(object? sender, Conversation conversation)
+    {
+        try
+        {
+            await ConversationService.SaveConversationAsync(conversation);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
+        }
+    }
     #endregion
 
     #region Disposal
@@ -93,6 +107,7 @@
     {
         OrchestrationService.StateHasChanged -= OnStateHasChanged;
         OrchestrationService.Notify -= OnNotify;
+        OrchestrationService.ConversationCompleted -= SaveConversationAsync;
     }
     #endregion
 }

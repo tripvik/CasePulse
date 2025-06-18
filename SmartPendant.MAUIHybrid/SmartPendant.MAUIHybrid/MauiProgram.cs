@@ -65,8 +65,8 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddBlazoredLocalStorage();
 
             // Register application-specific singleton services
-            builder.Services.AddSingleton<ConversationService>();
-            builder.Services.AddSingleton<AudioPipelineManager>();
+            builder.Services.AddScoped<IConversationService, LocalStorageConversationService>();
+            builder.Services.AddScoped<AudioPipelineManager>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();

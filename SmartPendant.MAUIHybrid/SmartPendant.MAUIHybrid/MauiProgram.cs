@@ -43,25 +43,16 @@ namespace SmartPendant.MAUIHybrid
 
         private static void ConfigureAppSettings(this MauiAppBuilder builder)
         {
+            var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+            var baseConfigFileName = $"{assemblyName}.appsettings.json";
+            var devConfigFileName = $"{assemblyName}.appsettings.development.json";
             var assembly = Assembly.GetExecutingAssembly();
-            var appSettingsResourceName = $"{assembly.GetName().Name}.appsettings.json";
 
-            // Always load the base configuration file.
-            using var stream = assembly.GetManifestResourceStream(appSettingsResourceName);
-            if (stream != null)
-            {
-                builder.Configuration.AddJsonStream(stream);
-            }
+            using var baseStream = assembly.GetManifestResourceStream(baseConfigFileName);
+            if (baseStream != null) builder.Configuration.AddJsonStream(baseStream);
 
-            // In DEBUG mode, load the development-specific settings, which will override the base settings.
-#if DEBUG
-            var devAppSettingsResourceName = $"{assembly.GetName().Name}.appsettings.Development.json";
-            using var devStream = assembly.GetManifestResourceStream(devAppSettingsResourceName);
-            if (devStream != null)
-            {
-                builder.Configuration.AddJsonStream(devStream);
-            }
-#endif
+            using var devStream = assembly.GetManifestResourceStream(devConfigFileName);
+            if (devStream != null) builder.Configuration.AddJsonStream(devStream);
         }
         #endregion
 
@@ -92,15 +83,12 @@ namespace SmartPendant.MAUIHybrid
             var useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
 
 #if WINDOWS
-            // On Windows, register the specific orchestrator and mock services.
-            builder.Services.AddSingleton<IOrchestrationService, WindowsOrchestrationService>();
-            builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
-            builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
 
+            builder.Services.AddSingleton<IOrchestrationService, WindowsOrchestrationService>();
 #elif ANDROID
             // On Android, register the real orchestrator and other services.
             builder.Services.AddSingleton<IOrchestrationService, AndroidOrchestrationService>();
-
+#endif
             if (useMockData)
             {
                 builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
@@ -122,7 +110,6 @@ namespace SmartPendant.MAUIHybrid
                 else
                     builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
             }
-#endif
         }
         #endregion
 

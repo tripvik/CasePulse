@@ -1,0 +1,91 @@
+<MudContainer MaxWidth="MaxWidth.Large" Class="pa-4">
+    <MudGrid>
+        <!-- Summary Section -->
+        <MudItem xs="12" md="8">
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h5" Color="Color.Primary" GutterBottom="true">
+                    <MudIcon Icon="Icons.Material.Filled.Summarize" Class="mr-2" />
+                    Conversation Summary
+                </MudText>
+                <MudDivider Class="mb-3" />
+                
+                @if (string.IsNullOrWhiteSpace(Summary))
+                {
+                    <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
+                        No summary available for this conversation.
+                    </MudAlert>
+                }
+                else
+                {
+                    <div class="summary-content">
+                        <MarkdownRenderer Content="@Summary" />
+                    </div>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <!-- Topics Section -->
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-4 mb-4" Elevation="2">
+                <MudText Typo="Typo.h5" Color="Color.Secondary" GutterBottom="true">
+                    <MudIcon Icon="Icons.Material.Filled.Topic" Class="mr-2" />
+                    Key Topics
+                </MudText>
+                <MudDivider Class="mb-3" />
+                
+                @if (Topics is null || !Topics.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-2">
+                        No topics identified in this conversation.
+                    </MudAlert>
+                }
+                else
+                {
+                    <MudStack Spacing="2">
+                        @foreach (var topic in Topics)
+                        {
+                            <MudChip T="string"
+                                Color="Color.Primary" 
+                                     Size="Size.Medium" 
+                                     Icon="Icons.Material.Filled.Label"
+                                     Class="topic-chip">
+                                @topic
+                            </MudChip>
+                        }
+                    </MudStack>
+                    
+                    <MudDivider Class="mt-3 mb-2" />
+                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
+                        @Topics.Count topic@(Topics.Count == 1 ? "" : "s") identified
+                    </MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+<style>
+    .summary-content {
+        line-height: 1.6;
+        color: var(--mud-palette-text-primary);
+    }
+    
+    .topic-chip {
+        margin: 2px;
+        border-radius: 16px;
+    }
+    
+    .topic-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+        transition: all 0.2s ease-in-out;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? Summary { get; set; }
+    
+    [Parameter]
+    public List<string>? Topics { get; set; } = new();
+}

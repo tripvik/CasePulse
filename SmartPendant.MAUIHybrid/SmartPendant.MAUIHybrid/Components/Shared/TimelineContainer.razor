@@ -1,0 +1,40 @@
+@if (TimelineEvents is null || !TimelineEvents.Any())
+{
+    <MudText Typo="Typo.h6" Color="Color.Primary">No timeline events available.</MudText>
+}
+else
+{
+    <MudTimeline>
+        @foreach (var timelineEvent in TimelineEvents)
+        {
+            <MudTimelineItem Color="@GetEventColor(timelineEvent)" Size="Size.Small">
+                <ItemOpposite>
+                    <MudText Color="@GetEventColor(timelineEvent)" Typo="Typo.h5">@timelineEvent.Timestamp</MudText>
+                </ItemOpposite>
+                <ItemContent>
+                    <MudText Color="@GetEventColor(timelineEvent)" Typo="Typo.h6" GutterBottom="true">@timelineEvent.Title</MudText>
+                    <MudText>@timelineEvent.Description</MudText>
+                </ItemContent>
+            </MudTimelineItem>
+        }
+    </MudTimeline>
+}
+@code {
+    [Parameter]
+    public List<TimelineEvent> TimelineEvents { get; set; } = new();
+    /// <summary>
+    /// Determines the color for each timeline event based on its position or content.
+    /// You can customize this logic based on your specific requirements.
+    /// </summary>
+    private Color GetEventColor(TimelineEvent timelineEvent)
+    {
+        var index = TimelineEvents.IndexOf(timelineEvent);
+        return (index % 3) switch
+        {
+            0 => Color.Info,
+            1 => Color.Success,
+            2 => Color.Error,
+            _ => Color.Primary
+        };
+    }
+}

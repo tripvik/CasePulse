@@ -1,10 +1,14 @@
-﻿using Blazored.LocalStorage;
+﻿using Azure.AI.OpenAI;
+using Microsoft.Extensions.AI;
+using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
 using System.Reflection;
+using System.ClientModel;
+
 
 // Platform-specific using directives to resolve service implementations
 #if ANDROID
@@ -43,25 +47,16 @@ namespace SmartPendant.MAUIHybrid
 
         private static void ConfigureAppSettings(this MauiAppBuilder builder)
         {
+            var assemblyName = Assembly.GetExecutingAssembly().GetName().Name;
+            var baseConfigFileName = $"{assemblyName}.appsettings.json";
+            var devConfigFileName = $"{assemblyName}.appsettings.development.json";
             var assembly = Assembly.GetExecutingAssembly();
-            var appSettingsResourceName = $"{assembly.GetName().Name}.appsettings.json";
 
-            // Always load the base configuration file.
-            using var stream = assembly.GetManifestResourceStream(appSettingsResourceName);
-            if (stream != null)
-            {
-                builder.Configuration.AddJsonStream(stream);
-            }
+            using var baseStream = assembly.GetManifestResourceStream(baseConfigFileName);
+            if (baseStream != null) builder.Configuration.AddJsonStream(baseStream);
 
-            // In DEBUG mode, load the development-specific settings, which will override the base settings.
-#if DEBUG
-            var devAppSettingsResourceName = $"{assembly.GetName().Name}.appsettings.Development.json";
-            using var devStream = assembly.GetManifestResourceStream(devAppSettingsResourceName);
-            if (devStream != null)
-            {
-                builder.Configuration.AddJsonStream(devStream);
-            }
-#endif
+            using var devStream = assembly.GetManifestResourceStream(devConfigFileName);
+            if (devStream != null) builder.Configuration.AddJsonStream(devStream);
         }
         #endregion
 
@@ -74,12 +69,26 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddBlazoredLocalStorage();
 
             // Register application-specific singleton services
-            builder.Services.AddSingleton<ConversationService>();
+            builder.Services.AddScoped<IConversationService, LocalStorageConversationService>();
             builder.Services.AddSingleton<AudioPipelineManager>();
+            builder.Services.AddSingleton<InsightService>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
 
+            var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
+            var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];
+            var openAIDeployment = builder.Configuration["Azure:OpenAI:DeploymentName"];
+
+            if (string.IsNullOrEmpty(openAIDeployment) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(openAIEndpoint))
+            {
+                throw new InvalidOperationException("Azure OpenAI configuration (DeploymentName, ApiKey, or Endpoint) is missing.");
+            }
+
+            var azureOpenAi = new AzureOpenAIClient(new Uri(openAIEndpoint), new ApiKeyCredential(openAIKey));
+            var chatClient = azureOpenAi.GetChatClient(openAIDeployment).AsIChatClient();
+            builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
+            
             // Register services that have different implementations per platform
             RegisterPlatformDependentServices(builder);
         }
@@ -92,15 +101,12 @@ namespace SmartPendant.MAUIHybrid
             var useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
 
 #if WINDOWS
-            // On Windows, register the specific orchestrator and mock services.
-            builder.Services.AddSingleton<IOrchestrationService, WindowsOrchestrationService>();
-            builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
-            builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
 
+            builder.Services.AddSingleton<IOrchestrationService, WindowsOrchestrationService>();
 #elif ANDROID
             // On Android, register the real orchestrator and other services.
             builder.Services.AddSingleton<IOrchestrationService, AndroidOrchestrationService>();
-
+#endif
             if (useMockData)
             {
                 builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
@@ -122,7 +128,6 @@ namespace SmartPendant.MAUIHybrid
                 else
                     builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
             }
-#endif
         }
         #endregion
 

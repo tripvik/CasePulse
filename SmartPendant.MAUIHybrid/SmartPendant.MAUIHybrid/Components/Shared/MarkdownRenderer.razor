@@ -1,0 +1,34 @@
+﻿@using Markdig
+@using System.Diagnostics
+@inject IJSRuntime JS
+
+<div class="markdown-container">
+    @if (!string.IsNullOrEmpty(htmlContent))
+    {
+        <div class="isolated">
+            @((MarkupString)htmlContent)
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? Content { get; set; }
+    private string? htmlContent;
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(Content))
+        {
+            try
+            {
+                var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+                htmlContent = Markdown.ToHtml(Content ?? string.Empty, pipeline);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.Message);
+            }
+        }
+    }
+}

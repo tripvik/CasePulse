@@ -4,20 +4,26 @@ using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Models;
 using System.Diagnostics;
 using System.Threading.Channels;
+using System.Timers;
+using Timer = System.Timers.Timer;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
     /// <summary>
     /// Manages the audio data pipeline from connection to transcription,
-    /// removing duplicate logic from platform-specific orchestrators.
+    /// and includes an inactivity timer to automatically save and reset conversations.
     /// </summary>
     public class AudioPipelineManager : IAsyncDisposable
     {
         #region Fields
+        private const double INACTIVITY_TIMEOUT_SECONDS = 300;
+
         private readonly IConnectionService _connectionService;
         private readonly ITranscriptionService _transcriptionService;
+
         private readonly Channel<byte[]> _audioDataChannel;
         private CancellationTokenSource? _pipelineCts;
+        private Timer? _inactivityTimer;
 
         public Conversation CurrentConversation { get; private set; } = new();
         #endregion
@@ -25,6 +31,7 @@ namespace SmartPendant.MAUIHybrid.Services
         #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
+        public event EventHandler? ConversationCompleted;
         #endregion
 
         #region Constructor
@@ -64,7 +71,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 return (false, message);
             }
 
-            CurrentConversation = new Conversation(); // Start a new conversation.
+            CurrentConversation = new Conversation { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
 
             // 3. Initialize Transcription Service
             await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
@@ -76,11 +83,29 @@ namespace SmartPendant.MAUIHybrid.Services
             _pipelineCts = new CancellationTokenSource();
             _ = ProcessAudioDataFromChannelAsync(_pipelineCts.Token);
 
+            // 6. Start the inactivity timer
+            StartInactivityTimer();
+
             return (true, null);
         }
 
         public async Task StopPipelineAsync()
         {
+            // Stop the timer first to prevent race conditions.
+            _inactivityTimer?.Stop();
+            _inactivityTimer?.Dispose();
+            _inactivityTimer = null;
+
+            // Save the current conversation if it has content before stopping.
+            if (CurrentConversation != null && CurrentConversation.Transcript.Any())
+            {
+                Debug.WriteLine("StopPipelineAsync called. Saving final conversation...");
+                if (CurrentConversation.Transcript.Any())
+                {
+                    ConversationCompleted?.Invoke(this, EventArgs.Empty);
+                }
+            }
+
             // Cancel the processing loop
             if (_pipelineCts is not null)
             {
@@ -89,7 +114,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 _pipelineCts = null;
             }
 
-            // Unsubscribe from events to prevent memory leaks and stray calls
+            // Unsubscribe from events
             UnsubscribeFromEvents();
 
             // Stop services in reverse order of start
@@ -143,20 +168,65 @@ namespace SmartPendant.MAUIHybrid.Services
         private void OnDisconnected(object? sender, string reason)
         {
             Debug.WriteLine($"Disconnected: {reason}");
-            // Let the orchestrator decide if a notification is needed.
         }
 
         private void OnTranscriptReceived(object? sender, TranscriptEntry entry)
         {
-            CurrentConversation.RecognizingEntry = null; // Clear the interim message
+            CurrentConversation.RecognizingEntry = null;
             CurrentConversation.Transcript.Add(entry);
             StateHasChanged?.Invoke(this, EventArgs.Empty);
+
+            // Any new transcript resets the inactivity timer.
+            ResetInactivityTimer();
         }
 
         private void OnRecognizingTranscriptReceived(object? sender, TranscriptEntry entry)
         {
             CurrentConversation.RecognizingEntry = entry;
             StateHasChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnInactivityTimerElapsed(object? sender, ElapsedEventArgs e)
+        {
+            Debug.WriteLine("Inactivity timer elapsed. Checking for conversation to save.");
+
+            // 1. Save the conversation if it has content
+            if (CurrentConversation.Transcript.Any())
+            {
+                ConversationCompleted?.Invoke(this, EventArgs.Empty);
+            }
+
+            // 2. Reset for a new conversation
+            CurrentConversation = new Conversation { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
+
+            // 3. Notify the UI to update/clear the old transcript
+            ConversationCompleted?.Invoke(this, EventArgs.Empty);
+
+            // 4. Restart the timer to monitor the new conversation for inactivity
+            _inactivityTimer?.Start();
+            Debug.WriteLine("Conversation reset. Inactivity timer restarted.");
+        }
+        #endregion
+
+        #region Timer Management
+        private void StartInactivityTimer()
+        {
+            _inactivityTimer = new Timer(INACTIVITY_TIMEOUT_SECONDS * 1000)
+            {
+                AutoReset = false // We only want it to fire once per period of inactivity.
+            };
+            _inactivityTimer.Elapsed += OnInactivityTimerElapsed;
+            _inactivityTimer.Start();
+            Debug.WriteLine("Inactivity timer started.");
+        }
+
+        private void ResetInactivityTimer()
+        {
+            if (_inactivityTimer != null)
+            {
+                _inactivityTimer.Stop();
+                _inactivityTimer.Start();
+            }
         }
         #endregion
 

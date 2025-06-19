@@ -10,7 +10,7 @@ namespace SmartPendant.MAUIHybrid.Models
         /// <summary>
         /// A concise summary of the conversation's main points and outcomes.
         /// </summary>
-        [Description("A brief summary of the conversation highlighting key points, decisions, and outcomes")]
+        [Description("A brief summary of the conversation highlighting key points, decisions, and outcomes in markdown format")]
         public string? Summary { get; set; }
 
         /// <summary>

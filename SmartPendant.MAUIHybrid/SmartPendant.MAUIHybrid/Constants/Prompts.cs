@@ -20,7 +20,7 @@
 
         1. **Title**: Create a concise, descriptive title (max 60 characters) that captures the main purpose or topic of the conversation.
 
-        2. **Summary**: Write a comprehensive summary (150-300 words) that covers:
+        2. **Summary**: Write a comprehensive summary in markdown format that covers the following points and make sure to not include any headings such as "Summary" or "Title".
            - Main topics discussed
            - Key decisions made
            - Important outcomes or conclusions

@@ -24,11 +24,11 @@
 
     @* Conversation Container *@
     <div class="conversation-wrapper">
-        <ConversationContainer Messages="@OrchestrationService.CurrentConversation.Transcript" />
+        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" />
     </div>
 
     @* Footer Section *@
-    <MudStack Justify="Justify.Center"
+    <MudStack Justify="Justify.SpaceEvenly" Row
               AlignItems="AlignItems.Center"
               Style="max-width: 400px; width: 100%; margin: 0 auto;"
               Class="pa-4 flex-shrink-0">
@@ -37,7 +37,7 @@
                    StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Stop : Icons.Material.Filled.Mic)"
                    Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
                    Class="rounded-xl py-3"
-                   FullWidth="true">
+                   FullWidth>
             @if (OrchestrationService.IsStateChanging)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -48,11 +48,30 @@
                 <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Start") Recording</MudText>
             }
         </MudButton>
+        <MudButton @onclick="GenerateInsightAsync"
+                   Disabled="@isGeneratingInsight" Variant="Variant.Filled"
+                   StartIcon="@Icons.Material.Filled.AutoAwesome"
+                   Color="@Color.Secondary"
+                   Class="rounded-xl py-3" FullWidth>
+            @if (isGeneratingInsight)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Generating</MudText>
+            }
+            else
+            {
+                <MudText>Generate Insight</MudText>
+            }
+        </MudButton>
     </MudStack>
 </MudStack>
 
 
 @code {
+    #region Fields
+    private bool isGeneratingInsight;
+    #endregion
+
     #region Lifecycle Methods
     protected override void OnInitialized()
     {
@@ -90,18 +109,29 @@
         Snackbar.Add(args.message, args.severity);
     }
 
-    private async void OnConversationCompletionAsync(object? sender, Conversation conversation)
+    private async void OnConversationCompletionAsync(object? sender, EventArgs e)
     {
         try
         {
-            var insights = await GenerateInsightAsync(conversation);
-            conversation.AiInsights.ActionItems = insights.ActionItems;
-            conversation.AiInsights.Topics = insights.Topics;
-            conversation.Summary = insights.Summary;
-            conversation.Title = insights.Title;
-            conversation.Timeline = insights.Timeline;
+            await GenerateInsightAsync();
+            await SaveConversationAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
-            await SaveConversationAsync(conversation);
+    private async Task SaveConversationAsync()
+    {
+        try
+        {
+            await ConversationService.SaveConversationAsync(OrchestrationService.CurrentConversation);
         }
         catch (Exception ex)
         {
@@ -109,35 +139,44 @@
         }
     }
 
-    private async Task SaveConversationAsync(Conversation conversation)
+    private async Task GenerateInsightAsync()
     {
         try
         {
-            await ConversationService.SaveConversationAsync(conversation);
+            isGeneratingInsight = true;
+            await InvokeAsync(StateHasChanged);
+
+            var conversation = OrchestrationService.CurrentConversation;
+
+            if (conversation.Transcript.Count > 1)
+            {
+                conversation.DurationMinutes = (conversation.Transcript[^1].Timestamp - conversation.Transcript[0].Timestamp).TotalMinutes;
+            }
+
+            var input = new InsightInput()
+            {
+                Transcript = conversation.Transcript,
+                Location = conversation.Location,
+                CreatedAt = conversation.CreatedAt,
+                DurationMinutes = conversation.DurationMinutes
+            };
+
+            var result = await InsightService.GetInsightAsync(input);
+            conversation.AiInsights!.ActionItems = result.ActionItems;
+            conversation.AiInsights.Topics = result.Topics;
+            conversation.Summary = result.Summary;
+            conversation.Title = result.Title;
+            conversation.Timeline = result.Timeline;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Failed to generate insight: {ex.Message}", Severity.Error);
         }
-    }
-
-    private async Task<InsightResult> GenerateInsightAsync(Conversation conversation)
-    {
-        if (conversation.Transcript.Count > 1)
+        finally
         {
-            conversation.DurationMinutes = (conversation.Transcript[^1].Timestamp - conversation.Transcript[0].Timestamp).TotalMinutes;
+            isGeneratingInsight = false;
+            await InvokeAsync(StateHasChanged);
         }
-
-        var input = new InsightInput()
-        {
-            Transcript = conversation.Transcript,
-            Location = conversation.Location,
-            CreatedAt = conversation.CreatedAt,
-            DurationMinutes = conversation.DurationMinutes
-        };
-
-        var result = await InsightService.GetInsightAsync(input);
-        return result;
     }
 
     #endregion

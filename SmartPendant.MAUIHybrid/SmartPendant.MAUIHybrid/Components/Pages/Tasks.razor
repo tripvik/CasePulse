@@ -6,15 +6,7 @@
     <MudText Typo="Typo.h5">Action Items</MudText>
 </div>
 
-<MudStack Class="mx-2 my-4"
-          AlignItems="AlignItems.Center"
-          Justify="Justify.FlexStart"
-          Style="height: calc(100vh - 100px);">
-    @foreach (var item in MyActionItems)
-    {
-        <TaskCard Task="@item" />
-    }
-</MudStack>
+<TaskCard Tasks="@MyActionItems" />
 
 @code {
     private List<ActionItem> MyActionItems = new();

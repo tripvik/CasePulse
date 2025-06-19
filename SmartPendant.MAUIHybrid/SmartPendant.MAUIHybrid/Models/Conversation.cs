@@ -25,7 +25,7 @@ namespace SmartPendant.MAUIHybrid.Models
         public List<string> Tags { get; set; } = [];
         public List<TranscriptEntry> Transcript { get; set; } = [];
         public TranscriptEntry? RecognizingEntry { get; set; }
-        public AiInsights? AiInsights { get; set; }
+        public AiInsights? AiInsights { get; set; } = new();
         public List<TimelineEvent>? Timeline { get; set; }
     }
 
@@ -118,6 +118,13 @@ namespace SmartPendant.MAUIHybrid.Models
         [Description("Timestamp in MM:SS format indicating when this event occurred in the conversation")]
         [JsonPropertyName("timestamp")]
         public string? Timestamp { get; set; }
+
+        /// <summary>
+        /// Title of the event (e.g., "Budget Approved", "Decision Made").
+        /// </summary>
+        [Description("Title of this event")]
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
 
         /// <summary>
         /// A brief description of the event (e.g., "Budget Approved", "Decision Made").

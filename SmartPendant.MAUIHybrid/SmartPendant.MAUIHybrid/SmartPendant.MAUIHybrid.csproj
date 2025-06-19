@@ -67,6 +67,7 @@
         <PackageReference Include="Blazored.LocalStorage" Version="4.5.0" />
         <PackageReference Include="InTheHand.Bluetooth.Permissions" Version="8.0.2" />
         <PackageReference Include="InTheHand.Net.Bluetooth" Version="4.2.1" />
+        <PackageReference Include="Markdig" Version="0.41.2" />
         <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.44.0" />
         <PackageReference Include="Microsoft.Extensions.AI" Version="9.6.0" />
 		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.4.3-preview.1.25230.7" />

@@ -24,7 +24,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
         #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
-        public event EventHandler<Conversation>? ConversationCompleted;
+        public event EventHandler? ConversationCompleted;
         #endregion
 
         #region Constructor

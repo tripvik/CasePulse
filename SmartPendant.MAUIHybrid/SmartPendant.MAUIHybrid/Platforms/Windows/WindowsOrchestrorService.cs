@@ -20,7 +20,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
 
         #region Events
         public event EventHandler? StateHasChanged;
-        public event EventHandler<Conversation>? ConversationCompleted;
+        public event EventHandler? ConversationCompleted;
         public event EventHandler<(string message, Severity severity)>? Notify;
         #endregion
 

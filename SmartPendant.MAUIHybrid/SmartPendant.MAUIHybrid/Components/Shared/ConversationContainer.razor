@@ -8,22 +8,22 @@
              MinimumTabWidth="80px">
         <MudTabPanel Icon="@Icons.Material.Filled.Mic">
             <div class="transcript-panel-wrapper">
-                <TranscriptPanel Messages="@Messages" />
+                <TranscriptContainer Messages="@Conversation?.Transcript" />
             </div>
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.AutoAwesome">
             <div class="tab-content-wrapper">
-                <MudText>Summary</MudText>
+                <SummaryContainer Summary="@Conversation?.Summary" Topics="@Conversation?.AiInsights?.Topics" />
             </div>
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.TaskAlt">
             <div class="tab-content-wrapper">
-                <MudText>Tasks</MudText>
+                <TaskContainer Tasks="@Conversation?.AiInsights?.ActionItems" />
             </div>
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.Timeline">
             <div class="tab-content-wrapper">
-                <MudText>TimeLine</MudText>
+                <TimelineContainer TimelineEvents="@Conversation?.Timeline" />
             </div>
         </MudTabPanel>
     </MudTabs>
@@ -31,5 +31,5 @@
 
 @code {
     [Parameter]
-    public List<TranscriptEntry> Messages { get; set; } = [];
+    public Conversation Conversation { get; set; } = new();
 }

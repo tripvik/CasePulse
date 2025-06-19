@@ -31,7 +31,7 @@ namespace SmartPendant.MAUIHybrid.Services
         #region Events
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
-        public event EventHandler<Conversation>? ConversationCompleted;
+        public event EventHandler? ConversationCompleted;
         #endregion
 
         #region Constructor
@@ -102,7 +102,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 Debug.WriteLine("StopPipelineAsync called. Saving final conversation...");
                 if (CurrentConversation.Transcript.Any())
                 {
-                    ConversationCompleted?.Invoke(this, CurrentConversation);
+                    ConversationCompleted?.Invoke(this, EventArgs.Empty);
                 }
             }
 
@@ -193,14 +193,14 @@ namespace SmartPendant.MAUIHybrid.Services
             // 1. Save the conversation if it has content
             if (CurrentConversation.Transcript.Any())
             {
-                ConversationCompleted?.Invoke(this, CurrentConversation);
+                ConversationCompleted?.Invoke(this, EventArgs.Empty);
             }
 
             // 2. Reset for a new conversation
             CurrentConversation = new Conversation { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow };
 
             // 3. Notify the UI to update/clear the old transcript
-            ConversationCompleted?.Invoke(this, null!);
+            ConversationCompleted?.Invoke(this, EventArgs.Empty);
 
             // 4. Restart the timer to monitor the new conversation for inactivity
             _inactivityTimer?.Start();

@@ -99,7 +99,7 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 var entry = new TranscriptEntry
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     SpeakerLabel = e.Result.SpeakerId,
                     Text = e.Result.Text,
                 };
@@ -113,7 +113,7 @@ namespace SmartPendant.MAUIHybrid.Services
             {
                 var entry = new TranscriptEntry
                 {
-                    Timestamp = DateTime.UtcNow,
+                    Timestamp = DateTime.Now,
                     SpeakerLabel = e.Result.SpeakerId,
                     Text = e.Result.Text,
                 };

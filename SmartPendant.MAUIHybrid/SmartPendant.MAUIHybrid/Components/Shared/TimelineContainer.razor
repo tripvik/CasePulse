@@ -1,40 +1,85 @@
+@using MudBlazor
+@using SmartPendant.MAUIHybrid.Models
+
 @if (TimelineEvents is null || !TimelineEvents.Any())
 {
-    <MudText Typo="Typo.h6" Color="Color.Primary">No timeline events available.</MudText>
+    <MudPaper Class="d-flex align-center justify-center mud-width-full" Elevation="0" Style="min-height: 60vh;">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">No Timeline Events Available</MudText>
+            <MudText Typo="Typo.body2" Class="text-center">
+                Once a conversation is processed, its key moments and topics will appear here.
+            </MudText>
+        </MudStack>
+    </MudPaper>
 }
 else
 {
-    <MudTimeline>
+    <MudTimeline TimelinePosition="TimelinePosition.Alternate" Modifiers >
         @foreach (var timelineEvent in TimelineEvents)
         {
-            <MudTimelineItem Color="@GetEventColor(timelineEvent)" Size="Size.Small">
+            <MudTimelineItem Color="@GetEventColor(timelineEvent)" Icon="@GetEventIcon(timelineEvent)" Variant="Variant.Outlined">
                 <ItemOpposite>
-                    <MudText Color="@GetEventColor(timelineEvent)" Typo="Typo.h5">@timelineEvent.Timestamp</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Primary" Class="font-weight-bold">@timelineEvent.Timestamp</MudText>
                 </ItemOpposite>
                 <ItemContent>
-                    <MudText Color="@GetEventColor(timelineEvent)" Typo="Typo.h6" GutterBottom="true">@timelineEvent.Title</MudText>
-                    <MudText>@timelineEvent.Description</MudText>
+                    <MudCard Outlined Class="mb-4">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">@timelineEvent.Title</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudText>@timelineEvent.Description</MudText>
+                        </MudCardContent>
+                    </MudCard>
                 </ItemContent>
             </MudTimelineItem>
         }
     </MudTimeline>
 }
+
 @code {
     [Parameter]
     public List<TimelineEvent> TimelineEvents { get; set; } = new();
+
     /// <summary>
-    /// Determines the color for each timeline event based on its position or content.
-    /// You can customize this logic based on your specific requirements.
+    /// Determines the color for each timeline event based on its position.
     /// </summary>
     private Color GetEventColor(TimelineEvent timelineEvent)
     {
         var index = TimelineEvents.IndexOf(timelineEvent);
-        return (index % 3) switch
+        return (index % 4) switch
         {
-            0 => Color.Info,
-            1 => Color.Success,
-            2 => Color.Error,
-            _ => Color.Primary
+            0 => Color.Primary,
+            1 => Color.Secondary,
+            2 => Color.Info,
+            3 => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Determines the icon for each timeline event for better visual distinction.
+    /// </summary>
+    private string GetEventIcon(TimelineEvent timelineEvent)
+    {
+        var title = timelineEvent.Title?.ToLowerInvariant() ?? "";
+
+        if (title.Contains("summary")) return Icons.Material.Filled.Summarize;
+        if (title.Contains("topic")) return Icons.Material.Filled.Topic;
+        if (title.Contains("action item")) return Icons.Material.Filled.AssignmentTurnedIn;
+        if (title.Contains("start")) return Icons.Material.Filled.PlayCircle;
+        if (title.Contains("end")) return Icons.Material.Filled.StopCircle;
+
+        var index = TimelineEvents.IndexOf(timelineEvent);
+        return (index % 4) switch
+        {
+            0 => Icons.Material.Filled.Event,
+            1 => Icons.Material.Filled.Assignment,
+            2 => Icons.Material.Filled.Phone,
+            3 => Icons.Material.Filled.MeetingRoom,
+            _ => Icons.Material.Filled.Help
         };
     }
 }

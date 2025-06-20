@@ -2,48 +2,64 @@
           AlignItems="AlignItems.Center"
           Justify="Justify.FlexStart"
           Style="height: calc(100vh - 100px);">
-    @foreach (var task in Tasks)
+
+    @if (Tasks is null || !Tasks.Any())
     {
-        <MudPaper Class="pa-4 rounded-lg" Elevation="2" Style="width:100%; border-left: 5px solid var(--mud-palette-primary);">
-            <MudGrid Spacing="2">
-                <MudItem xs="12">
-                    <div class="d-flex align-center">
-                        <MudAvatar Color="Color.Primary" Class="mr-3">
-                            @if (!string.IsNullOrEmpty(task.Assignee))
-                            {
-                                @task.Assignee.FirstOrDefault()
-                            }
-                        </MudAvatar>
-                        <div class="flex-grow-1">
-                            <MudText Typo="Typo.body1" Class="font-weight-bold">@task.Assignee</MudText>
-                            @if (!string.IsNullOrEmpty(task.DueDate))
-                            {
-                                <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Text" Text="@($"Due: {task.DueDate}")" T="string" />
-                            }
-                        </div>
-                        <MudMenu Icon="@Icons.Material.Filled.MoreVert">
-                            <MudMenuItem Icon="@Icons.Material.Filled.Done" OnClick="@(() => MarkAsDone())">Mark as Done</MudMenuItem>
-                            <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditTask())">Edit</MudMenuItem>
-                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteTask())">Delete</MudMenuItem>
-                        </MudMenu>
-                    </div>
-                </MudItem>
-
-                <MudItem xs="12">
-                    <MudText Typo="Typo.h6" GutterBottom="true">@task.ConversationTitle</MudText>
-                    <MudText Typo="Typo.body2">@task.Task</MudText>
-                </MudItem>
-
-                <MudItem xs="12" Class="d-flex justify-end">
-                    <MudButton Variant="Variant.Text"
-                               Color="Color.Primary"
-                               Href="@($"/conversation/{task.ConversationTitle}")"
-                               EndIcon="@Icons.Material.Filled.ArrowForward">
-                        View Source
-                    </MudButton>
-                </MudItem>
-            </MudGrid>
+        <MudPaper Class="d-flex align-center justify-center mud-width-full" Elevation="0" Style="min-height: 50vh;">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.AssignmentTurnedIn" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">No Tasks Available</MudText>
+                <MudText Typo="Typo.body2" Class="text-center">
+                    Once action items are created, they will be listed here.
+                </MudText>
+            </MudStack>
         </MudPaper>
+    }
+    else
+    {
+        @foreach (var task in Tasks)
+        {
+            <MudPaper Class="pa-4 rounded-lg" Elevation="2" Style="width:100%; border-left: 5px solid var(--mud-palette-primary);">
+                <MudGrid Spacing="2">
+                    <MudItem xs="12">
+                        <div class="d-flex align-center">
+                            <MudAvatar Color="Color.Primary" Class="mr-3">
+                                @if (!string.IsNullOrEmpty(task.Assignee))
+                                {
+                                    @task.Assignee.FirstOrDefault()
+                                }
+                            </MudAvatar>
+                            <div class="flex-grow-1">
+                                <MudText Typo="Typo.body1" Class="font-weight-bold">@task.Assignee</MudText>
+                                @if (!string.IsNullOrEmpty(task.DueDate))
+                                {
+                                    <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Text" Text="@($"Due: {task.DueDate}")" T="string" />
+                                }
+                            </div>
+                            <MudMenu Icon="@Icons.Material.Filled.MoreVert">
+                                <MudMenuItem Icon="@Icons.Material.Filled.Done" OnClick="@(() => MarkAsDone())">Mark as Done</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => EditTask())">Edit</MudMenuItem>
+                                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => DeleteTask())">Delete</MudMenuItem>
+                            </MudMenu>
+                        </div>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.h6" GutterBottom="true">@task.ConversationTitle</MudText>
+                        <MudText Typo="Typo.body2">@task.Task</MudText>
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex justify-end">
+                        <MudButton Variant="Variant.Text"
+                                   Color="Color.Primary"
+                                   Href="@($"/conversation/{task.ConversationTitle}")"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward">
+                            View Source
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+            </MudPaper>
+        }
     }
 </MudStack>
 

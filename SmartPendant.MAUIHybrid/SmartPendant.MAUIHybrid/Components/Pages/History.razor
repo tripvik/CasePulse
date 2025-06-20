@@ -1,5 +1,6 @@
 ﻿@page "/history"
 @inject IConversationService ConversationService
+@inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
     <div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
@@ -14,7 +15,7 @@
                             AdornmentIcon="@Icons.Material.Outlined.Search" 
                             Adornment="Adornment.End" 
                             Label="Search" 
-                            DebounceInterval="300" 
+                            DebounceInterval="100" 
                             Variant="Variant.Outlined" 
                             Clearable
                             FullWidth
@@ -61,7 +62,7 @@
                             <MudGrid Spacing="2">
                                 @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
                                 {
-                                    <MudItem xs="12" sm="6" md="4" lg="3">
+                                    <MudItem xs="12">
                                         <ConversationCard 
                                             Conversation="@conversation" 
                                             OnConversationSelected="@OnConversationSelected" />
@@ -122,7 +123,7 @@
 
     private async Task FilterConversations()
     {
-        await Task.Delay(1); // Ensure UI updates
+        await Task.Delay(100);
 
         var filtered = Conversations.AsEnumerable();
 
@@ -196,7 +197,6 @@
 
     private void OnConversationSelected(Conversation conversation)
     {
-        // Handle conversation selection - navigate to conversation or show details
-        // Example: NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
+        NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
     }
 }

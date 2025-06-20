@@ -1,17 +1,19 @@
 @page "/"
-@implements IDisposable
+@implements IAsyncDisposable
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
 @inject IConversationService ConversationService
-@inject InsightService InsightService
+@inject IInsightService InsightService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
     <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4 flex-shrink-0">
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@(OrchestrationService.IsDeviceConnected? Icons.Material.Filled.BluetoothConnected : Icons.Material.Filled.Bluetooth)"
+            <MudIcon Icon="@(OrchestrationService.IsDeviceConnected ? Icons.Material.Filled.BluetoothConnected : Icons.Material.Filled.Bluetooth)"
                      Color="@(OrchestrationService.IsDeviceConnected ? Color.Success : Color.Error)" />
-            <MudText Typo="Typo.body1" Color="@(OrchestrationService.IsDeviceConnected? Color.Success: Color.Error)">@(OrchestrationService.IsDeviceConnected ? "Connected" : "Disconnected")</MudText>
+            <MudText Typo="Typo.body1" Color="@(OrchestrationService.IsDeviceConnected ? Color.Success : Color.Error)">
+                @(OrchestrationService.IsDeviceConnected ? "Connected" : "Disconnected")
+            </MudText>
         </MudStack>
         @if (OrchestrationService.IsRecording)
         {
@@ -32,12 +34,12 @@
               AlignItems="AlignItems.Center"
               Style="max-width: 400px; width: 100%; margin: 0 auto;"
               Class="pa-4 flex-shrink-0">
-        <MudButton @onclick="ToggleRecording"
+        <MudButton OnClick="ToggleRecordingAsync"
                    Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Filled"
                    StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Stop : Icons.Material.Filled.Mic)"
                    Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
                    Class="rounded-xl py-3"
-                   FullWidth>
+                   FullWidth="true">
             @if (OrchestrationService.IsStateChanging)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
@@ -48,12 +50,12 @@
                 <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Start") Recording</MudText>
             }
         </MudButton>
-        <MudButton @onclick="GenerateInsightAsync"
-                   Disabled="@isGeneratingInsight" Variant="Variant.Filled"
+        <MudButton OnClick="GenerateInsightAsync"
+                   Disabled="@_isGeneratingInsight" Variant="Variant.Filled"
                    StartIcon="@Icons.Material.Filled.AutoAwesome"
                    Color="@Color.Secondary"
-                   Class="rounded-xl py-3" FullWidth>
-            @if (isGeneratingInsight)
+                   Class="rounded-xl py-3" FullWidth="true">
+            @if (_isGeneratingInsight)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
                 <MudText Class="ms-2">Generating</MudText>
@@ -66,25 +68,49 @@
     </MudStack>
 </MudStack>
 
-
 @code {
     #region Fields
-    private bool isGeneratingInsight;
+
+    private bool _isGeneratingInsight;
+    private readonly CancellationTokenSource _cts = new();
+
     #endregion
 
     #region Lifecycle Methods
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
-
+        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+        Snackbar.Configuration.ShowTransitionDuration = 500;
         // Subscribe to state changes from the orchestration service.
-        OrchestrationService.ConversationCompleted += OnConversationCompletionAsync;
+        OrchestrationService.ConversationCompleted += OnConversationCompleted;
         OrchestrationService.StateHasChanged += OnStateHasChanged;
         OrchestrationService.Notify += OnNotify;
     }
 
-    private async Task ToggleRecording()
+    public async ValueTask DisposeAsync()
+    {
+        // Cancel any ongoing operations and unsubscribe from events to prevent memory leaks.
+        _cts.Cancel();
+        _cts.Dispose();
+
+        OrchestrationService.ConversationCompleted -= OnConversationCompleted;
+        OrchestrationService.StateHasChanged -= OnStateHasChanged;
+        OrchestrationService.Notify -= OnNotify;
+
+        // Ensure the orchestration service is properly disposed if it implements IAsyncDisposable.
+        if (OrchestrationService is IAsyncDisposable disposableService)
+        {
+            await disposableService.DisposeAsync();
+        }
+    }
+
+    #endregion
+
+    #region UI Event Handlers
+
+    private async Task ToggleRecordingAsync()
     {
         if (OrchestrationService.IsRecording)
         {
@@ -95,12 +121,45 @@
             await OrchestrationService.StartAsync();
         }
     }
+
+    private async Task GenerateInsightAsync()
+    {
+        var conversation = OrchestrationService.CurrentConversation;
+        if (conversation is null || !conversation.Transcript.Any())
+        {
+            Snackbar.Add("There is no transcript content to generate insights from.", Severity.Info);
+            return;
+        }
+
+        _isGeneratingInsight = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            await InsightService.GenerateAndApplyInsightAsync(conversation, _cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Snackbar.Add("Insight generation was canceled.", Severity.Warning);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to generate insight: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            Snackbar.Add($"Insight successfully generated", Severity.Success);
+            _isGeneratingInsight = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     #endregion
 
-    #region Event Handlers
+    #region Service Event Handlers
+
     private void OnStateHasChanged(object? sender, EventArgs e)
     {
-        // The UI needs to be re-rendered when the state changes.
         InvokeAsync(StateHasChanged);
     }
 
@@ -109,84 +168,33 @@
         Snackbar.Add(args.message, args.severity);
     }
 
-    private async void OnConversationCompletionAsync(object? sender, EventArgs e)
+    /// <summary>
+    /// Handles the completion of a conversation, triggers insight generation and saving.
+    /// </summary>
+    private async void OnConversationCompleted(object? sender, EventArgs e)
     {
         try
         {
+            // First, generate the AI insight for the completed conversation.
             await GenerateInsightAsync();
-            await SaveConversationAsync();
-            await InvokeAsync(StateHasChanged);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            await InvokeAsync(StateHasChanged);
-        }
-    }
 
-    private async Task SaveConversationAsync()
-    {
-        try
-        {
-            await ConversationService.SaveConversationAsync(OrchestrationService.CurrentConversation);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Failed to save conversation: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task GenerateInsightAsync()
-    {
-        try
-        {
-            isGeneratingInsight = true;
-            await InvokeAsync(StateHasChanged);
-
+            // Next, save the conversation with the generated insights.
             var conversation = OrchestrationService.CurrentConversation;
-
-            if (conversation.Transcript.Count > 1)
+            if (conversation != null)
             {
-                conversation.DurationMinutes = (conversation.Transcript[^1].Timestamp - conversation.Transcript[0].Timestamp).TotalMinutes;
+                await ConversationService.SaveConversationAsync(conversation);
+                Snackbar.Add("Conversation saved successfully.", Severity.Success);
             }
-
-            var input = new InsightInput()
-            {
-                Transcript = conversation.Transcript,
-                Location = conversation.Location,
-                CreatedAt = conversation.CreatedAt,
-                DurationMinutes = conversation.DurationMinutes
-            };
-
-            var result = await InsightService.GetInsightAsync(input);
-            conversation.AiInsights!.ActionItems = result.ActionItems;
-            conversation.AiInsights.Topics = result.Topics;
-            conversation.Summary = result.Summary;
-            conversation.Title = result.Title;
-            conversation.Timeline = result.Timeline;
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to generate insight: {ex.Message}", Severity.Error);
+            Snackbar.Add($"A critical error occurred during conversation finalization: {ex.Message}", Severity.Error);
         }
         finally
         {
-            isGeneratingInsight = false;
             await InvokeAsync(StateHasChanged);
         }
     }
 
-    #endregion
-
-    #region Disposal
-    public void Dispose()
-    {
-        OrchestrationService.StateHasChanged -= OnStateHasChanged;
-        OrchestrationService.Notify -= OnNotify;
-        OrchestrationService.ConversationCompleted -= OnConversationCompletionAsync;
-    }
     #endregion
 }

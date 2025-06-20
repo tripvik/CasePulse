@@ -9,10 +9,10 @@ namespace SmartPendant.MAUIHybrid.Models
     /// </summary>
     public class Conversation
     {
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } = Guid.NewGuid();
         public string? UserId { get; set; }
         public string? Title { get; set; }
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         public double DurationMinutes { get; set; }
 
         /// <summary>

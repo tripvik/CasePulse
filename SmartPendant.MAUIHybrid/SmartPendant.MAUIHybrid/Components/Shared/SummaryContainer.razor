@@ -1,86 +1,126 @@
-<MudContainer MaxWidth="MaxWidth.Large" Class="pa-4">
-    <MudGrid>
+<div class="summary-container">
+    <MudStack Spacing="6">
+        
         <!-- Summary Section -->
-        <MudItem xs="12" md="8">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.h5" Color="Color.Primary" GutterBottom="true">
-                    <MudIcon Icon="Icons.Material.Filled.Summarize" Class="mr-2" />
-                    Conversation Summary
-                </MudText>
-                <MudDivider Class="mb-3" />
-                
-                @if (string.IsNullOrWhiteSpace(Summary))
-                {
-                    <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info">
-                        No summary available for this conversation.
-                    </MudAlert>
-                }
-                else
-                {
-                    <div class="summary-content">
-                        <MarkdownRenderer Content="@Summary" />
+        <div class="summary-section">
+            <div class="section-header">
+                <MudText Typo="Typo.h6" Color="Color.Primary">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Summarize" Class="mr-2" Size="Size.Medium" />
+                        Summary
                     </div>
-                }
-            </MudPaper>
-        </MudItem>
-
-        <!-- Topics Section -->
-        <MudItem xs="12" md="4">
-            <MudPaper Class="pa-4 mb-4" Elevation="2">
-                <MudText Typo="Typo.h5" Color="Color.Secondary" GutterBottom="true">
-                    <MudIcon Icon="Icons.Material.Filled.Topic" Class="mr-2" />
-                    Key Topics
                 </MudText>
-                <MudDivider Class="mb-3" />
-                
-                @if (Topics is null || !Topics.Any())
-                {
-                    <MudAlert Severity="Severity.Info" Icon="Icons.Material.Filled.Info" Class="mb-2">
-                        No topics identified in this conversation.
-                    </MudAlert>
-                }
-                else
-                {
-                    <MudStack Spacing="2">
+            </div>
+            
+            @if (string.IsNullOrWhiteSpace(Summary))
+            {
+                <div class="empty-state-summary">
+                    <MudIcon Icon="@Icons.Material.Filled.Article" 
+                             Size="Size.Large" 
+                             Color="Color.Primary" 
+                             Class="empty-icon" />
+                    <MudText Typo="Typo.subtitle1" Class="empty-title">
+                        Summary Not Available
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="empty-description">
+                        The conversation summary will appear here once processing is complete.
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <div class="summary-content">
+                    <MarkdownRenderer Content="@Summary" />
+                </div>
+            }
+        </div>
+
+        <!-- Divider -->
+        <MudDivider />
+        
+        <!-- Topics Section -->
+        <div class="topics-section">
+            <div class="section-header">
+                <MudText Typo="Typo.h6" Color="Color.Secondary">
+                    <div class="d-flex align-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Topic" Class="mr-2" Size="Size.Medium" />
+                        <span class="mr-2">Key Topics</span>
+                        @if (Topics?.Any() == true)
+                        {
+                            <MudChip Size="Size.Small" T="string"
+                                     Color="Color.Info"
+                                     Variant="Variant.Text"
+                                     Class="topic-count-chip">
+                                @Topics.Count
+                            </MudChip>
+                        }
+                    </div>
+                </MudText>
+            </div>
+          
+            @if (Topics is null || !Topics.Any())
+            {
+                <div class="empty-state-topics">
+                    <MudIcon Icon="@Icons.Material.Filled.Label" 
+                             Size="Size.Large" 
+                             Color="Color.Secondary" 
+                             Class="empty-icon" />
+                    <MudText Typo="Typo.subtitle1" Class="empty-title">
+                        No Topics Identified
+                    </MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="empty-description">
+                        Key topics will be extracted and displayed here after processing.
+                    </MudText>
+                </div>
+            }
+            else
+            {
+                <div class="topics-content">
+                    <div class="topics-grid">
                         @foreach (var topic in Topics)
                         {
                             <MudChip T="string"
-                                Color="Color.Primary" 
-                                     Size="Size.Medium" 
-                                     Icon="Icons.Material.Filled.Label"
+                                     Color="Color.Primary"
+                                     Size="Size.Medium"
+                                     Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Tag"
                                      Class="topic-chip">
                                 @topic
                             </MudChip>
                         }
-                    </MudStack>
+                    </div>
                     
-                    <MudDivider Class="mt-3 mb-2" />
-                    <MudText Typo="Typo.caption" Color="Color.Tertiary">
-                        @Topics.Count topic@(Topics.Count == 1 ? "" : "s") identified
+                    @if (Topics.Count > 6)
+                    {
+                        <div class="topics-summary">
+                            <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="topics-count">
+                                Showing @Math.Min(6, Topics.Count) of @Topics.Count topics
+                            </MudText>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+        
+        <!-- Additional Insights Section (placeholder for future enhancements) -->
+        @if (HasAdditionalInsights)
+        {
+            <MudDivider />
+            <div class="insights-section">
+                <div class="section-header">
+                    <MudText Typo="Typo.h6" Color="Color.Tertiary" Class="section-title">
+                        <MudIcon Icon="@Icons.Material.Filled.Insights" Class="mr-2" Size="Size.Medium" />
+                        Additional Insights
                     </MudText>
-                }
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
-</MudContainer>
-
-<style>
-    .summary-content {
-        line-height: 1.6;
-        color: var(--mud-palette-text-primary);
-    }
-    
-    .topic-chip {
-        margin: 2px;
-        border-radius: 16px;
-    }
-    
-    .topic-chip:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
-        transition: all 0.2s ease-in-out;
-    }
-</style>
+                </div>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Text" Class="insights-placeholder">
+                    <MudText>Advanced insights and analytics will be available in future updates.</MudText>
+                </MudAlert>
+            </div>
+        }
+        
+    </MudStack>
+</div>
 
 @code {
     [Parameter]
@@ -88,4 +128,15 @@
     
     [Parameter]
     public List<string>? Topics { get; set; } = new();
+
+    [Parameter]
+    public bool HasAdditionalInsights { get; set; } = false;
+
+    protected override void OnParametersSet()
+    {
+        if (Topics?.Count > 10)
+        {
+            Topics = Topics.Take(10).ToList();
+        }
+    }
 }

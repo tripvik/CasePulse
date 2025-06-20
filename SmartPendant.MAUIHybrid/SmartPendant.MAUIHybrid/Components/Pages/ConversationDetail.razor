@@ -1,0 +1,40 @@
+@page "/conversation/{ConversationId:guid}"
+@inject IConversationService ConversationService
+@inject NavigationManager NavigationManager
+
+<MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
+    <div class="conversation-wrapper mt-6">
+        @if (conversation is null)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+        }
+        else
+        {
+            <ConversationContainer Conversation="@conversation" />
+        }
+    </div>
+    <MudButton Variant="Variant.Outlined"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.ArrowBack"
+               OnClick="@GoBack"
+               Class="my-4">
+        Back to History
+    </MudButton>
+</MudStack>
+
+@code {
+    [Parameter]
+    public Guid ConversationId { get; set; }
+
+    private Conversation? conversation;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        conversation = await ConversationService.GetConversationAsync(ConversationId);
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/history");
+    }
+}

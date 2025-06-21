@@ -25,6 +25,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
         public event EventHandler? StateHasChanged;
         public event EventHandler<(string message, Severity severity)>? Notify;
         public event EventHandler? ConversationCompleted;
+        public event EventHandler<(bool isRecording, bool isDeviceConnected, bool isStateChanging)>? SetStateEvent;
         #endregion
 
         #region Constructor
@@ -36,6 +37,10 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
             _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
             _pipelineManager.ConversationCompleted += (s, e) => ConversationCompleted?.Invoke(s, e);
             _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
+            _pipelineManager.SetStateEvent += (object? s, (bool isRecording, bool isDeviceConnected, bool isStateChanging) state) =>
+            {
+                SetState(state.isRecording, state.isDeviceConnected, state.isStateChanging);
+            };
         }
         #endregion
 
@@ -50,8 +55,8 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
                 // The actual logic is now inside the Android Service,
                 // which will be started here. The service will then start the pipeline.
                 Platform.CurrentActivity?.StartForegroundService(_serviceIntent);
-
-                SetState(isRecording: true, isDeviceConnected: true, isStateChanging: false);
+                //Event set in _pipelineManager.StartPipelineAsync
+                //SetState(isRecording: true, isDeviceConnected: true, isStateChanging: false);
             }
             catch (Exception ex)
             {
@@ -72,8 +77,8 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
                 // This will trigger the OnDestroy method in the service,
                 // which in turn calls StopPipelineAsync.
                 Platform.CurrentActivity?.StopService(_serviceIntent);
-
-                SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
+                //Event set in _pipelineManager.StopPipelineAsync
+                //SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
             }
             catch (Exception ex)
             {

@@ -73,6 +73,14 @@
 
     private bool _isGeneratingInsight;
     private readonly CancellationTokenSource _cts = new();
+    private bool _isDesktop
+    {
+        get
+        {
+            return (DeviceInfo.Platform == DevicePlatform.WinUI ||
+                    DeviceInfo.Platform == DevicePlatform.macOS);
+        }
+    }
 
     #endregion
 
@@ -81,7 +89,15 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+        if(_isDesktop)
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
+        }
+
+        else
+        {
+            Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
+        }
         Snackbar.Configuration.ShowTransitionDuration = 500;
         // Subscribe to state changes from the orchestration service.
         OrchestrationService.ConversationCompleted += OnConversationCompleted;

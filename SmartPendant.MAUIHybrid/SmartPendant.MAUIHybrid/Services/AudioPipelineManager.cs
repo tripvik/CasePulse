@@ -55,7 +55,7 @@ public class AudioPipelineManager : IAsyncDisposable
         _transcriptionService = transcriptionService;
         CurrentConversation = new Conversation();
 
-        _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(500)
+        _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(5000)
         {
             SingleReader = true,
             SingleWriter = true,

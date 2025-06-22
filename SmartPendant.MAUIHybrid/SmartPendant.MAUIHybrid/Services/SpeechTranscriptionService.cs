@@ -31,7 +31,8 @@ namespace SmartPendant.MAUIHybrid.Services
             _speechConfig.SpeechRecognitionLanguage = "en-IN";
             _speechConfig.SetProperty(PropertyId.Speech_SegmentationStrategy, "Semantic");
             _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_PostProcessingOption, "TrueText");
-            _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "true");
+            //Intermediate results are not needed for this service, so we disable them to reduce noise and processing overhead.
+            _speechConfig.SetProperty(PropertyId.SpeechServiceResponse_DiarizeIntermediateResults, "false");
         }
         #endregion
 

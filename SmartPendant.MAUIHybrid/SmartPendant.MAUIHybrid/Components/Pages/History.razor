@@ -50,7 +50,7 @@
                     Showing @filteredConversations.Count of @Conversations.Count conversations
                 </MudText>
                 
-                <MudGrid Spacing="3">
+                <MudGrid Spacing="3" Style="margin-bottom:50px;">
                     @foreach (var conversationGroup in GetGroupedConversations())
                     {
                         <MudItem xs="12" class="pa-2">
@@ -73,7 +73,7 @@
                             <MudDivider Class="mb-3" />
                             
                             <MudCollapse Expanded="IsGroupExpanded(conversationGroup.Key)">
-                                <MudGrid Spacing="3" Style="margin-bottom:80px;">
+                                <MudGrid Spacing="3">
                                     @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
                                     {
                                         <MudItem xs="12">

@@ -2,15 +2,15 @@
 @using SmartPendant.MAUIHybrid.Models
 @if (TimelineEvents is null || !TimelineEvents.Any())
 {
-    <MudContainer Class="d-flex align-center justify-center" Style="min-height: 50vh;">
-        <MudStack AlignItems="AlignItems.Center" Spacing="1" Class="pa-2">
-            <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Medium" Color="Color.Primary" />
-            <MudText Typo="Typo.subtitle1" Class="text-center">No Timeline Events</MudText>
+    <MudPaper Class="d-flex align-center justify-center mud-width-full my-4" Elevation="0" Style="min-height: 50vh;">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6" Class="text-center">No Timeline Events</MudText>
             <MudText Typo="Typo.body2" Class="text-center mud-text-secondary">
                 Key moments will appear here once the conversation is processed.
             </MudText>
         </MudStack>
-    </MudContainer>
+    </MudPaper>
 }
 else
 {

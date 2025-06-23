@@ -54,21 +54,36 @@
                     @foreach (var conversationGroup in GetGroupedConversations())
                     {
                         <MudItem xs="12" class="pa-2">
-                            <MudText Typo="Typo.h6" Class="pa-2" Color="Color.Primary">
-                                @conversationGroup.Key.ToString("MMMM dd, yyyy")
-                            </MudText>
+                            <div class="d-flex align-center justify-space-between pa-2 cursor-pointer" 
+                                 @onclick="() => ToggleGroup(conversationGroup.Key)">
+                                <MudText Typo="Typo.h6">
+                                    @conversationGroup.Key.ToString("MMMM dd, yyyy")
+                                </MudText>
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" T="string">
+                                        @conversationGroup.Count() conversation@(conversationGroup.Count() != 1 ? "s" : "")
+                                    </MudChip>
+                                    <MudIconButton 
+                                        Icon="@(IsGroupExpanded(conversationGroup.Key) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                        Size="Size.Medium"
+                                        OnClick="() => ToggleGroup(conversationGroup.Key)"
+                                        Color="Color.Inherit" />
+                                </div>
+                            </div>
                             <MudDivider Class="mb-3" />
                             
-                            <MudGrid Spacing="3" Style="margin-bottom:80px;">
-                                @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
-                                {
-                                    <MudItem xs="12">
-                                        <ConversationCard 
-                                            Conversation="@conversation" 
-                                            OnConversationSelected="@OnConversationSelected" />
-                                    </MudItem>
-                                }
-                            </MudGrid>
+                            <MudCollapse Expanded="IsGroupExpanded(conversationGroup.Key)">
+                                <MudGrid Spacing="3" Style="margin-bottom:80px;">
+                                    @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
+                                    {
+                                        <MudItem xs="12">
+                                            <ConversationCard 
+                                                Conversation="@conversation" 
+                                                OnConversationSelected="@OnConversationSelected" />
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </MudCollapse>
                         </MudItem>
                     }
                 </MudGrid>
@@ -83,6 +98,8 @@
 @code {
     private List<Conversation> Conversations = new();
     private List<Conversation> filteredConversations = new();
+    private HashSet<DateTime> expandedGroups = new();
+    private bool allExpanded = true;
 
     private string searchQuery = string.Empty;
     private DateRange? dateRange;
@@ -97,11 +114,48 @@
         {
             Conversations = await ConversationService.GetAllConversationsAsync();
             filteredConversations = Conversations.ToList();
+            
+            // Initialize all groups as expanded
+            InitializeExpandedGroups();
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private void InitializeExpandedGroups()
+    {
+        expandedGroups.Clear();
+        var groupDates = GetGroupedConversations().Select(g => g.Key);
+        foreach (var date in groupDates)
+        {
+            expandedGroups.Add(date);
+        }
+        allExpanded = true;
+    }
+
+    private bool IsGroupExpanded(DateTime groupDate)
+    {
+        return expandedGroups.Contains(groupDate);
+    }
+
+    private void ToggleGroup(DateTime groupDate)
+    {
+        if (expandedGroups.Contains(groupDate))
+        {
+            expandedGroups.Remove(groupDate);
+        }
+        else
+        {
+            expandedGroups.Add(groupDate);
+        }
+        
+        // Update allExpanded state
+        var totalGroups = GetGroupedConversations().Count();
+        allExpanded = expandedGroups.Count == totalGroups;
+        
+        StateHasChanged();
     }
 
     private async Task OnSearchChanged()
@@ -144,6 +198,10 @@
         }
 
         filteredConversations = filtered.ToList();
+        
+        // Update expanded groups after filtering
+        InitializeExpandedGroups();
+        
         StateHasChanged();
     }
 

@@ -50,7 +50,7 @@
                 <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Record")</MudText>
             }
         </MudButton>
-        <MudButton OnClick="GenerateInsightAsync"
+        <MudButton OnClick="@(() => GenerateInsightAsync(true))"
                    Disabled="@_isGeneratingInsight" Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.AutoAwesome"
                    Color="@Color.Secondary"
@@ -138,7 +138,7 @@
         }
     }
 
-    private async Task GenerateInsightAsync()
+    private async Task GenerateInsightAsync(bool interim = false)
     {
         var conversation = OrchestrationService.CurrentConversation;
         if (conversation is null || !conversation.Transcript.Any())
@@ -164,7 +164,8 @@
         }
         finally
         {
-            Snackbar.Add($"Insight successfully generated", Severity.Success);
+            if (interim)
+                Snackbar.Add($"Insights generated", Severity.Success);
             _isGeneratingInsight = false;
             await InvokeAsync(StateHasChanged);
         }
@@ -199,7 +200,7 @@
             if (conversation != null)
             {
                 await ConversationService.SaveConversationAsync(conversation);
-                Snackbar.Add("Conversation saved successfully.", Severity.Success);
+                Snackbar.Add("Conversation processed", Severity.Success);
             }
         }
         catch (Exception ex)

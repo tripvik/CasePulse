@@ -22,6 +22,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
         public event EventHandler? StateHasChanged;
         public event EventHandler? ConversationCompleted;
         public event EventHandler<(string message, Severity severity)>? Notify;
+        public event EventHandler<(bool isRecording, bool isDeviceConnected, bool isStateChanging)>? SetStateEvent;
         #endregion
 
         #region Constructor
@@ -31,6 +32,11 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
             _pipelineManager.StateHasChanged += (s, e) => StateHasChanged?.Invoke(s, e);
             _pipelineManager.ConversationCompleted += (s, e) => ConversationCompleted?.Invoke(s, e);
             _pipelineManager.Notify += (s, e) => Notify?.Invoke(s, e);
+            _pipelineManager.SetStateEvent += (s, e) => SetStateEvent?.Invoke(s, e);
+            _pipelineManager.SetStateEvent += (object? s, (bool isRecording, bool isDeviceConnected, bool isStateChanging) state) =>
+            {
+                SetState(state.isRecording, state.isDeviceConnected, state.isStateChanging);
+            };
         }
         #endregion
 
@@ -41,11 +47,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
             SetState(isStateChanging: true);
 
             var (success, errorMessage) = await _pipelineManager.StartPipelineAsync();
-            if (success)
-            {
-                SetState(isRecording: true, isDeviceConnected: true, isStateChanging: false);
-            }
-            else
+            if (!success)
             {
                 Notify?.Invoke(this, (errorMessage ?? "An unknown error occurred.", Severity.Error));
                 SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
@@ -57,7 +59,8 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
             if (!IsRecording && !IsStateChanging) return;
             SetState(isStateChanging: true);
             await _pipelineManager.StopPipelineAsync();
-            SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
+            //Event set in PiplineManager.StopPipelineAsync
+            //SetState(isRecording: false, isDeviceConnected: false, isStateChanging: false);
         }
         #endregion
 

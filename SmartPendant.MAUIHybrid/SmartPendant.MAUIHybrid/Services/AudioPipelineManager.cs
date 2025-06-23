@@ -4,6 +4,7 @@ using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Models;
 using System.Diagnostics;
 using System.Threading.Channels;
+using System.Threading.Tasks;
 using Timer = System.Timers.Timer;
 
 namespace SmartPendant.MAUIHybrid.Services;
@@ -42,6 +43,7 @@ public class AudioPipelineManager : IAsyncDisposable
     public event EventHandler? StateHasChanged;
     public event EventHandler<(string message, Severity severity)>? Notify;
     public event EventHandler? ConversationCompleted;
+    public event EventHandler<(bool isRecording, bool isDeviceConnected, bool isStateChanging)>? SetStateEvent;
 
     #endregion
 
@@ -53,7 +55,7 @@ public class AudioPipelineManager : IAsyncDisposable
         _transcriptionService = transcriptionService;
         CurrentConversation = new Conversation();
 
-        _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(500)
+        _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(5000)
         {
             SingleReader = true,
             SingleWriter = true,
@@ -68,13 +70,15 @@ public class AudioPipelineManager : IAsyncDisposable
     public async Task<(bool success, string? errorMessage)> StartPipelineAsync()
     {
         Debug.WriteLine("Starting audio pipeline...");
-
+        //moved to clear conversation regardless of successful subsequent device connection.
+        CurrentConversation = new Conversation();
         // Connect and initialize device
         var (connected, connEx) = await _connectionService.ConnectAsync();
         if (!connected)
         {
             var message = $"Failed to connect: {connEx?.Message ?? "Unknown error."}";
             Debug.WriteLine($"Error: {message}");
+            Notify?.Invoke(this, (message, Severity.Error));
             return (false, message);
         }
 
@@ -83,17 +87,15 @@ public class AudioPipelineManager : IAsyncDisposable
             const string message = "Failed to initialize Bluetooth service.";
             Debug.WriteLine($"Error: {message}");
             await _connectionService.DisconnectAsync();
+            Notify?.Invoke(this, (message, Severity.Error));
             return (false, message);
         }
-
-        CurrentConversation = new Conversation();
+        SetStateEvent?.Invoke(this, (isRecording:false,isDeviceConnected:true, isStateChanging: true));
         await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
-
         SubscribeToEvents();
-
         _pipelineCts = new CancellationTokenSource();
         _processingTask = ProcessAudioDataFromChannelAsync(_pipelineCts.Token);
-
+        SetStateEvent?.Invoke(this, (isRecording: true, isDeviceConnected: true, isStateChanging: false));
         StartInactivityTimer();
 
         Debug.WriteLine("Audio pipeline started successfully.");
@@ -110,8 +112,9 @@ public class AudioPipelineManager : IAsyncDisposable
         // Gracefully complete the pipeline.
         if (_pipelineCts is not null)
         {
-            _audioDataChannel.Writer.TryComplete();
-            if (_processingTask is not null) await _processingTask;
+            //Once the channel is completed, it cannot be reused. 
+            //_audioDataChannel.Writer.TryComplete();
+            //if (_processingTask is not null) await _processingTask;
 
             _pipelineCts.Cancel();
             _pipelineCts.Dispose();
@@ -129,7 +132,7 @@ public class AudioPipelineManager : IAsyncDisposable
 
         await _transcriptionService.StopAsync();
         await _connectionService.DisconnectAsync();
-
+        SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: false, isStateChanging: false));
         Debug.WriteLine("Audio pipeline stopped.");
     }
 
@@ -140,7 +143,9 @@ public class AudioPipelineManager : IAsyncDisposable
     private void SubscribeToEvents()
     {
         _connectionService.DataReceived += OnDataReceived;
-        _connectionService.ConnectionLost += OnConnectionLost;
+        _connectionService.ConnectionLost += async (sender, reason) => await OnConnectionLost(sender, reason);
+        //Disconnected event is fired in case on intentional disconnection, like when the user clicks on stop recording button. Hence commented out.
+        //_connectionService.Disconnected += async (sender, reason) => await OnConnectionLost(sender, reason);
         _transcriptionService.TranscriptReceived += OnTranscriptReceived;
         _transcriptionService.RecognizingTranscriptReceived += OnRecognizingTranscriptReceived;
     }
@@ -148,7 +153,8 @@ public class AudioPipelineManager : IAsyncDisposable
     private void UnsubscribeFromEvents()
     {
         _connectionService.DataReceived -= OnDataReceived;
-        _connectionService.ConnectionLost -= OnConnectionLost;
+        _connectionService.ConnectionLost -= async (sender, reason) => await OnConnectionLost(sender, reason);
+       // _connectionService.Disconnected +=  async (sender, reason) => await OnConnectionLost(sender, reason);
         _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
         _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
     }
@@ -161,14 +167,12 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         try
         {
-            if (_pipelineCts is not null && !_pipelineCts.IsCancellationRequested)
-            {
-                await _audioDataChannel.Writer.WriteAsync(data, _pipelineCts.Token);
-            }
+            await _audioDataChannel.Writer.WriteAsync(data, _pipelineCts.Token);
         }
-        catch (ChannelClosedException)
+        catch (OperationCanceledException)
         {
             // This is expected when the pipeline is shutting down.
+            return;
         }
         catch (Exception ex)
         {
@@ -176,12 +180,13 @@ public class AudioPipelineManager : IAsyncDisposable
         }
     }
 
-    private void OnConnectionLost(object? sender, string reason)
+    private async Task OnConnectionLost(object? sender, string reason)
     {
         var message = $"Connection Lost: {reason}";
         Debug.WriteLine($"Warning: {message}");
         Notify?.Invoke(this, (message, Severity.Error));
-        // Orchestrator should handle the high-level StopAsync call.
+        await StopPipelineAsync();
+        SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: false, isStateChanging: false));
     }
 
     private void OnTranscriptReceived(object? sender, TranscriptEntry entry)

@@ -1,0 +1,52 @@
+@inject NavigationManager NavigationManager
+
+<MudPaper Class="pa-3 m3-card-hover" Elevation="1" Style="width:100%; border-left: 2px solid var(--mud-palette-primary);">
+    <div class="d-flex align-center mb-2">
+        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
+            @if (!string.IsNullOrEmpty(Task.Assignee))
+            {
+                @Task.Assignee.FirstOrDefault()
+            }
+        </MudAvatar>
+        <div class="flex-grow-1">
+            <MudText Typo="Typo.subtitle2">@Task.Assignee</MudText>
+            @if (!string.IsNullOrEmpty(Task.DueDate))
+            {
+                <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Text" Text="@($"Due: {Task.DueDate}")" T="string" Class="pa-1" />
+            }
+        </div>
+        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+            <MudMenu>
+                <MudMenuItem Icon="@Icons.Material.Filled.Done" OnClick="@(() => OnMarkDone.InvokeAsync())">Mark as Done</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditTask.InvokeAsync())">Edit</MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => OnDeleteTask.InvokeAsync())">Delete</MudMenuItem>
+            </MudMenu>
+        </MudIconButton>
+    </div>
+    <div class="mb-2">
+        <MudText Typo="Typo.subtitle1" GutterBottom="false" Class="mb-1">@Task.ConversationTitle</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@Task.Task</MudText>
+    </div>
+    <div class="d-flex justify-end">
+        <MudButton Variant="Variant.Text"
+                   Color="Color.Primary"
+                   Size="Size.Small"
+                   OnClick="@(() => NavigationManager.NavigateTo($"conversation/{Task.ConversationId}"))"
+                   EndIcon="@Icons.Material.Filled.ArrowForward">
+            View Conversation
+        </MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    [Parameter] public ActionItem Task { get; set; }
+
+    [Parameter]
+    public EventCallback<ActionItem> OnMarkDone { get; set; }
+
+    [Parameter]
+    public EventCallback<ActionItem> OnEditTask { get; set; }
+
+    [Parameter]
+    public EventCallback<ActionItem> OnDeleteTask { get; set; }
+}

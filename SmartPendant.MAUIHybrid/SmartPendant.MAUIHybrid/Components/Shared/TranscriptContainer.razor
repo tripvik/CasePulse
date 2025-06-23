@@ -1,4 +1,6 @@
-﻿<div style="height: 100%; overflow-y: auto;" id="chatContainer">
+﻿@inject IJSRuntime JS
+
+<div style="height: 100%; overflow-y: auto;" id="chatContainer">
     @for (int i = 0; i < Messages.Count; i++)
     {
         var message = Messages[i];
@@ -13,10 +15,9 @@
         </MudChat>
     }
 </div>
+
 @code {
     [Parameter] public List<TranscriptEntry> Messages { get; set; } = [];
-    [Inject]
-    IJSRuntime? JS { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

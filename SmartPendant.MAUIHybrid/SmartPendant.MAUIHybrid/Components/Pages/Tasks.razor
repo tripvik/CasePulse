@@ -1,18 +1,71 @@
 ﻿@page "/tasks"
 @inject IConversationService ConversationService
 
-<div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
-    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Title="Favorite" Size="Size.Large" />
-    <MudText Typo="Typo.h5">Action Items</MudText>
-</div>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+    <!-- Header -->
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
+        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+        <MudText Typo="Typo.h5">Action Items</MudText>
+    </div>
 
-<TaskCard Tasks="@MyActionItems" />
+    <!-- Filter Dropdown -->
+    <MudPaper Class="mb-4" Elevation="0">
+        <MudSelect @bind-Value="SelectedStatus" Label="Filter by status" Dense Variant="Variant.Outlined">
+            <MudSelectItem Value=@("All")>All</MudSelectItem>
+            <MudSelectItem Value=@("Pending")>Pending</MudSelectItem>
+            <MudSelectItem Value=@("Completed")>Completed</MudSelectItem>
+        </MudSelect>
+    </MudPaper>
+
+    <!-- Action Items -->
+    @if (FilteredTasks is null || !FilteredTasks.Any())
+    {
+        <MudText Typo="Typo.body1" Class="text-secondary text-center mt-4">
+            No action items available.
+        </MudText>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Style="margin-bottom:80px;">
+            @foreach (var task in FilteredTasks)
+            {
+                <MudItem xs="12">
+                    <TaskCard Task="task"
+                              OnMarkDone="@(() => MarkAsDone(task))"
+                              OnEditTask="@(() => EditTask(task))"
+                              OnDeleteTask="@(() => DeleteTask(task))" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
 
 @code {
     private List<ActionItem> MyActionItems = new();
+    private string SelectedStatus = "All";
+
+    private IEnumerable<ActionItem> FilteredTasks =>
+        SelectedStatus == "All"
+            ? MyActionItems
+            : MyActionItems.Where(t => string.Equals(t.Status, SelectedStatus, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
         MyActionItems = await ConversationService.GetAllTasksAsync();
+    }
+
+    private void MarkAsDone(ActionItem task)
+    {
+        // TODO: Mark task as done
+    }
+
+    private void EditTask(ActionItem task)
+    {
+        // TODO: Open edit dialog/modal
+    }
+
+    private void DeleteTask(ActionItem task)
+    {
+        // TODO: Confirm and delete
     }
 }

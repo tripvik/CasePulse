@@ -1,105 +1,109 @@
-<MudCard Elevation="2"
-         Class="rounded-lg"
-         @onclick="HandleCardClick"
-         @onmouseover="() => Hovered = true"
-         @onmouseout="() => Hovered = false"
-         Style="@CardHoverStyle">
-    <MudCardHeader>
+<MudCard Class="m3-card-hover"
+         Style="border-left: 2px solid var(--mud-palette-primary);"
+         @onclick="HandleCardClick">
+    <MudCardHeader Class="px-4 pt-2 pb-0">
         <CardHeaderContent>
-            <div class="w-full">
-                <MudText Typo="Typo.h6" Class="mb-3 fw-600 text-primary">
-                    @(!string.IsNullOrEmpty(Conversation.Title) ? Conversation.Title : "Untitled Conversation")
-                </MudText>
-                <div class="d-flex flex-wrap gap-2">
-                    <MudChip Size="Size.Small" T="string"
-                             Color="Color.Primary"
-                             Variant="Variant.Text"
-                             Icon="@Icons.Material.Outlined.Schedule">
-                        @Conversation.CreatedAt.ToString("MMM dd, yyyy")
-                    </MudChip>
-                    <MudChip Size="Size.Small" T="string"
-                             Color="Color.Secondary"
-                             Variant="Variant.Text"
-                             Icon="@Icons.Material.Outlined.Timer">
-                        @($"{Conversation.DurationMinutes:F1} min")
-                    </MudChip>
-                </div>
-            </div>
+            <MudText Typo="Typo.subtitle1">
+                @(!string.IsNullOrEmpty(Conversation.Title) ? Conversation.Title : "Untitled Conversation")
+            </MudText>
         </CardHeaderContent>
         <CardHeaderActions>
             <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
+                           Class="pa-3"
                            Color="Color.Default"
                            Size="Size.Small" />
         </CardHeaderActions>
     </MudCardHeader>
 
-    <MudCardContent Class="pt-2">
+    <MudCardContent Class="px-4 pb-2 pt-0">
         @if (!string.IsNullOrEmpty(Conversation.Summary))
         {
-            <MudText Typo="Typo.body2" Class="mb-3 lh-lg text-secondary">
-                @Conversation.Summary
+            <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+                @TruncatedSummary
             </MudText>
         }
         else
         {
-            <MudText Typo="Typo.body2" Class="text-disabled fst-italic">
+            <MudText Typo="Typo.body2" Class="mb-3 text-disabled fst-italic">
                 No summary available
             </MudText>
         }
-
-        @if (!string.IsNullOrEmpty(Conversation.Location))
-        {
-            <div class="d-flex align-center mt-2 text-secondary">
-                <MudIcon Icon="@Icons.Material.Outlined.LocationOn"
-                         Size="Size.Small"
-                         Color="Color.Tertiary" />
-                <MudText Typo="Typo.caption" Class="ml-1">
-                    @Conversation.Location
-                </MudText>
-            </div>
-        }
-    </MudCardContent>
-
-    <MudCardActions Class="pt-2 bg-surface">
-        <div class="d-flex justify-space-between align-center w-full">
-            @if (Conversation.Tags?.Any() == true)
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <MudChip Size="Size.Small" T="string"
+                     Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Outlined.Schedule">
+                @Conversation.CreatedAt.ToString("MMM dd, yyyy")
+            </MudChip>
+            <MudChip Size="Size.Small" T="string"
+                     Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Outlined.Timer">
+                @($"{Conversation.DurationMinutes:F1} min")
+            </MudChip>
+            @if (!string.IsNullOrEmpty(Conversation.Location))
             {
-                <div class="d-flex flex-wrap align-center gap-1">
-                    @foreach (var tag in Conversation.Tags.Take(3))
-                    {
-                        <MudChip Size="Size.Small" T="string"
-                                 Color="Color.Surface"
-                                 Variant="Variant.Filled"
-                                 Class="text-caption h-6">
-                            @tag
-                        </MudChip>
-                    }
-                    @if (Conversation.Tags.Count > 3)
-                    {
-                        <MudText Typo="Typo.caption" Class="ml-1 text-secondary">
-                            +@(Conversation.Tags.Count - 3) more
-                        </MudText>
-                    }
-                </div>
+                <MudChip Size="Size.Small" T="string"
+                         Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Outlined.LocationOn">
+                    @Conversation.Location
+                </MudChip>
             }
         </div>
-    </MudCardActions>
+    </MudCardContent>
+
+    @if (Conversation.Tags?.Any() == true)
+    {
+        <MudCardActions Class="pa-0">
+            <div class="d-flex flex-wrap align-center gap-1">
+                @foreach (var tag in Conversation.Tags.Take(3))
+                {
+                    <MudChip Size="Size.Small" T="string"
+                             Variant="Variant.Filled"
+                             Color="Color.Default">
+                        @tag
+                    </MudChip>
+                }
+                @if (Conversation.Tags.Count > 3)
+                {
+                    <MudText Typo="Typo.caption" Class="ml-1 mud-text-secondary">
+                        +@(Conversation.Tags.Count - 3) more
+                    </MudText>
+                }
+            </div>
+        </MudCardActions>
+    }
 </MudCard>
 
 @code {
     [Parameter] public Conversation Conversation { get; set; } = new();
     [Parameter] public EventCallback<Conversation> OnConversationSelected { get; set; }
 
-    private bool Hovered { get; set; }
+    private const int SummaryMaxLength = 180;
+
+    /// <summary>
+    /// Returns a truncated version of the conversation summary.
+    /// </summary>
+    private string TruncatedSummary
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Conversation.Summary))
+            {
+                return string.Empty;
+            }
+
+            if (Conversation.Summary.Length > SummaryMaxLength)
+            {
+                // Truncate and add ellipsis
+                return $"{Conversation.Summary.Substring(0, SummaryMaxLength)}...";
+            }
+
+            return Conversation.Summary;
+        }
+    }
 
     private async Task HandleCardClick()
     {
         if (OnConversationSelected.HasDelegate)
             await OnConversationSelected.InvokeAsync(Conversation);
     }
-
-    private string CardHoverStyle =>
-        Hovered
-            ? "cursor: pointer; transition: all 0.2s ease-in-out; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.15);"
-            : "cursor: pointer; transition: all 0.2s ease-in-out;";
 }

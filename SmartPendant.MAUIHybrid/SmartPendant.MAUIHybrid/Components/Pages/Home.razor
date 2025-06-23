@@ -9,9 +9,9 @@
     @* Header Section *@
     <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mt-4 flex-shrink-0">
         <MudStack Row Justify="Justify.Center" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@(OrchestrationService.IsDeviceConnected ? Icons.Material.Filled.BluetoothConnected : Icons.Material.Filled.Bluetooth)"
+            <MudIcon Icon="@(OrchestrationService.IsDeviceConnected? Icons.Material.Filled.BluetoothConnected : Icons.Material.Filled.Bluetooth)"
                      Color="@(OrchestrationService.IsDeviceConnected ? Color.Success : Color.Error)" />
-            <MudText Typo="Typo.body1" Color="@(OrchestrationService.IsDeviceConnected ? Color.Success : Color.Error)">
+            <MudText Typo="Typo.body1" Color="@(OrchestrationService.IsDeviceConnected? Color.Success: Color.Error)">
                 @(OrchestrationService.IsDeviceConnected ? "Connected" : "Disconnected")
             </MudText>
         </MudStack>
@@ -33,9 +33,9 @@
     <MudStack Justify="Justify.SpaceEvenly" Row
               AlignItems="AlignItems.Center"
               Style="max-width: 400px; width: 100%; margin: 0 auto;"
-              Class="pa-4 flex-shrink-0">
+              Class="py-4 flex-shrink-0">
         <MudButton OnClick="ToggleRecordingAsync"
-                   Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Filled"
+                   Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Outlined"
                    StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Stop : Icons.Material.Filled.Mic)"
                    Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
                    Class="rounded-xl py-3"
@@ -47,11 +47,11 @@
             }
             else
             {
-                <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Start") Recording</MudText>
+                <MudText>@(OrchestrationService.IsRecording ? "Stop" : "Record")</MudText>
             }
         </MudButton>
         <MudButton OnClick="GenerateInsightAsync"
-                   Disabled="@_isGeneratingInsight" Variant="Variant.Filled"
+                   Disabled="@_isGeneratingInsight" Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.AutoAwesome"
                    Color="@Color.Secondary"
                    Class="rounded-xl py-3" FullWidth="true">
@@ -62,7 +62,7 @@
             }
             else
             {
-                <MudText>Generate Insight</MudText>
+                <MudText>Insight</MudText>
             }
         </MudButton>
     </MudStack>
@@ -89,7 +89,7 @@
     protected override void OnInitialized()
     {
         base.OnInitialized();
-        if(_isDesktop)
+        if (_isDesktop)
         {
             Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
         }

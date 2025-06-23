@@ -80,17 +80,30 @@ namespace SmartPendant.MAUIHybrid.Models
     public class ActionItem
     {
         /// <summary>
+        /// The id of the parent conversation for easy reference.
+        /// </summary>
+        [JsonIgnore]
+        [Description("Id of the conversation where this action item was identified")]
+        public Guid ConversationId { get; set; }
+
+        /// <summary>
         /// The title of the parent conversation for easy reference.
         /// </summary>
         [Description("Title of the conversation where this action item was identified")]
         public string? ConversationTitle { get; set; }
-
         /// <summary>
         /// The specific task or action to be completed.
         /// </summary>
         [Description("Clear description of the task or action that needs to be completed")]
         [JsonPropertyName("task")]
         public string? Task { get; set; }
+
+        /// <summary>
+        /// Current status of the Task.
+        /// </summary>
+        [Description("Current status of the Task")]
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
 
         /// <summary>
         /// The person responsible for completing this action.

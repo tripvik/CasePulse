@@ -2,12 +2,12 @@
 @inject IConversationService ConversationService
 @inject NavigationManager NavigationManager
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
-    <div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
         <MudIcon Icon="@Icons.Material.Filled.History" Title="Favorite" Size="Size.Large" />
         <MudText Typo="Typo.h5"> Conversation History</MudText>
     </div>
-    <MudTabs Rounded Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary" >
+    <MudTabs Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary" >
         <MudTabPanel Text="By Date" Icon="@Icons.Material.Filled.DateRange">
              <div class="d-flex align-center flex-grow-1 gap-4 pt-4 mb-4">
                     <MudTextField 
@@ -36,7 +36,7 @@
             }
             else if (!filteredConversations.Any())
             {
-                <MudPaper Elevation="1" Class="pa-8 text-center">
+                <MudPaper Elevation="1" Class="pa-10" Style="text-align:center">
                     <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
                     <MudText Typo="Typo.h6" Color="Color.Secondary">No conversations found</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -46,20 +46,20 @@
             }
             else
             {
-                <MudText Typo="Typo.body2" Color="Color.Info" Class="mb-3">
+                <MudText Typo="Typo.body2" Color="Color.Info" Class="mb-3 px-2">
                     Showing @filteredConversations.Count of @Conversations.Count conversations
                 </MudText>
                 
                 <MudGrid Spacing="3">
                     @foreach (var conversationGroup in GetGroupedConversations())
                     {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.h6" Class="mb-2 mt-4" Color="Color.Primary">
+                        <MudItem xs="12" class="pa-2">
+                            <MudText Typo="Typo.h6" Class="pa-2" Color="Color.Primary">
                                 @conversationGroup.Key.ToString("MMMM dd, yyyy")
                             </MudText>
                             <MudDivider Class="mb-3" />
                             
-                            <MudGrid Spacing="2">
+                            <MudGrid Spacing="3" Style="margin-bottom:80px;">
                                 @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
                                 {
                                     <MudItem xs="12">

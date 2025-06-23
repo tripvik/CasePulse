@@ -173,13 +173,13 @@ h1:focus {
 }
 
 
-.history .mud-tabs-tabbar-wrapper {
-    width: auto !important;
-}
-
-    .history .mud-tabs-tabbar-wrapper .mud-tooltip-inline {
-        width: 50% !important;
+    .history .mud-tabs-tabbar-wrapper {
+        width: auto !important;
     }
+
+        .history .mud-tabs-tabbar-wrapper .mud-tooltip-inline {
+            width: 50% !important;
+        }
 
 .full-height-container {
     height: calc(100vh - 112px);
@@ -204,9 +204,9 @@ h1:focus {
         width: auto !important;
     }
 
-    .conversation-container-wrapper .mud-tabs-tabbar-wrapper .mud-tooltip-inline {
-        width: 50% !important;
-    }
+        .conversation-container-wrapper .mud-tabs-tabbar-wrapper .mud-tooltip-inline {
+            width: 50% !important;
+        }
 
     .conversation-container-wrapper .mud-tabs {
         height: 100%;
@@ -243,3 +243,12 @@ h1:focus {
 .flex-shrink-0 {
     flex-shrink: 0;
 }
+
+.m3-card-hover {
+    transition: background-color 0.2s ease-in-out !important;
+}
+
+    .m3-card-hover:hover {
+        cursor: pointer !important;
+        background-color: var(--mud-palette-action-default-hover) !important;
+    }

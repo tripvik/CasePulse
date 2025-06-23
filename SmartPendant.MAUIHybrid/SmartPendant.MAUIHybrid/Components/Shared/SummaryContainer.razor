@@ -1,28 +1,28 @@
 <div class="summary-container">
     <MudStack Spacing="6">
-        
+
         <!-- Summary Section -->
         <div class="summary-section">
             <div class="section-header">
                 <MudText Typo="Typo.h6" Color="Color.Primary">
                     <div class="d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Summarize" Class="mr-2" Size="Size.Medium" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Summarize" Class="mr-2" Size="Size.Medium" />
                         Summary
                     </div>
                 </MudText>
             </div>
-            
+
             @if (string.IsNullOrWhiteSpace(Summary))
             {
                 <div class="empty-state-summary">
-                    <MudIcon Icon="@Icons.Material.Filled.Article" 
-                             Size="Size.Large" 
-                             Color="Color.Primary" 
+                    <MudIcon Icon="@Icons.Material.Outlined.Article"
+                             Size="Size.Large"
+                             Color="Color.Primary"
                              Class="empty-icon" />
                     <MudText Typo="Typo.subtitle1" Class="empty-title">
                         Summary Not Available
                     </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="empty-description">
+                    <MudText Typo="Typo.body2" Class="empty-description mud-text-secondary">
                         The conversation summary will appear here once processing is complete.
                     </MudText>
                 </div>
@@ -37,13 +37,13 @@
 
         <!-- Divider -->
         <MudDivider />
-        
+
         <!-- Topics Section -->
         <div class="topics-section">
             <div class="section-header">
                 <MudText Typo="Typo.h6" Color="Color.Secondary">
                     <div class="d-flex align-center">
-                        <MudIcon Icon="@Icons.Material.Filled.Topic" Class="mr-2" Size="Size.Medium" />
+                        <MudIcon Icon="@Icons.Material.Outlined.Topic" Class="mr-2" Size="Size.Medium" />
                         <span class="mr-2">Key Topics</span>
                         @if (Topics?.Any() == true)
                         {
@@ -57,18 +57,18 @@
                     </div>
                 </MudText>
             </div>
-          
+
             @if (Topics is null || !Topics.Any())
             {
                 <div class="empty-state-topics">
-                    <MudIcon Icon="@Icons.Material.Filled.Label" 
-                             Size="Size.Large" 
-                             Color="Color.Secondary" 
+                    <MudIcon Icon="@Icons.Material.Outlined.Label"
+                             Size="Size.Large"
+                             Color="Color.Secondary"
                              Class="empty-icon" />
                     <MudText Typo="Typo.subtitle1" Class="empty-title">
                         No Topics Identified
                     </MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="empty-description">
+                    <MudText Typo="Typo.body2" Class="empty-description mud-text-secondary">
                         Key topics will be extracted and displayed here after processing.
                     </MudText>
                 </div>
@@ -83,13 +83,13 @@
                                      Color="Color.Primary"
                                      Size="Size.Medium"
                                      Variant="Variant.Text"
-                                     Icon="@Icons.Material.Filled.Tag"
+                                     Icon="@Icons.Material.Outlined.Tag"
                                      Class="topic-chip">
                                 @topic
                             </MudChip>
                         }
                     </div>
-                    
+
                     @if (Topics.Count > 6)
                     {
                         <div class="topics-summary">
@@ -101,7 +101,7 @@
                 </div>
             }
         </div>
-        
+
         <!-- Additional Insights Section (placeholder for future enhancements) -->
         @if (HasAdditionalInsights)
         {
@@ -118,14 +118,14 @@
                 </MudAlert>
             </div>
         }
-        
+
     </MudStack>
 </div>
 
 @code {
     [Parameter]
     public string? Summary { get; set; }
-    
+
     [Parameter]
     public List<string>? Topics { get; set; } = new();
 

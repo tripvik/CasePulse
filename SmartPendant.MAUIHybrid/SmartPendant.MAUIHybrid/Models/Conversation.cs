@@ -80,9 +80,14 @@ namespace SmartPendant.MAUIHybrid.Models
     public class ActionItem
     {
         /// <summary>
+        /// The id of the action item.
+        /// </summary>
+        [Description("Unique identifier of the action item")]
+        public Guid TaskId { get; set; } = Guid.NewGuid();
+
+        /// <summary>
         /// The id of the parent conversation for easy reference.
         /// </summary>
-        [JsonIgnore]
         [Description("Id of the conversation where this action item was identified")]
         public Guid ConversationId { get; set; }
 
@@ -99,11 +104,13 @@ namespace SmartPendant.MAUIHybrid.Models
         public string? Task { get; set; }
 
         /// <summary>
-        /// Current status of the Task.
+        /// Gets or sets the current status of the task. Must be either "Pending" or "Completed".
+        /// Use "Completed" only if the task is clearly marked as done; otherwise, default to "Pending".
         /// </summary>
-        [Description("Current status of the Task")]
+        [Description("Current status of the task. Must be either 'Pending' or 'Completed'.")]
         [JsonPropertyName("status")]
-        public string? Status { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
+        public ActionStatus Status { get; set; }
 
         /// <summary>
         /// The person responsible for completing this action.
@@ -113,11 +120,12 @@ namespace SmartPendant.MAUIHybrid.Models
         public string? Assignee { get; set; }
 
         /// <summary>
-        /// The due date for the action item, if specified.
+        /// The due date for the action item, if specified. Use ISO 8601 format (e.g., 2025-06-24T00:00:00).
+        /// If no due date is available, use null. Do not use empty strings or natural language.
         /// </summary>
-        [Description("When this task should be completed (can be relative like 'next week' or absolute date)")]
+        [Description("Due date in ISO 8601 format or null if not specified.")]
         [JsonPropertyName("dueDate")]
-        public string? DueDate { get; set; }
+        public DateTime? DueDate { get; set; }
     }
 
     /// <summary>
@@ -145,5 +153,23 @@ namespace SmartPendant.MAUIHybrid.Models
         [Description("Brief description of what happened at this point in the conversation")]
         [JsonPropertyName("description")]
         public string? Description { get; set; }
+    }
+
+    /// <summary>
+    /// Represents the current status of a task.
+    /// </summary>
+    public enum ActionStatus
+    {
+        /// <summary>
+        /// The task is pending and not yet completed.
+        /// </summary>
+        [Description("Pending")]
+        Pending,
+
+        /// <summary>
+        /// The task has been completed.
+        /// </summary>
+        [Description("Completed")]
+        Completed
     }
 }

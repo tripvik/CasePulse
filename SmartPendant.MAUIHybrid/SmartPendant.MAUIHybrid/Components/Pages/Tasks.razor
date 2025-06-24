@@ -20,7 +20,7 @@
     <!-- Action Items -->
     @if (FilteredTasks is null || !FilteredTasks.Any())
     {
-        <MudText Typo="Typo.body1" Class="text-secondary text-center mt-4">
+        <MudText Typo="Typo.body1" Class="mud-text-secondary text-center mt-4">
             No action items available.
         </MudText>
     }
@@ -30,9 +30,8 @@
             @foreach (var task in FilteredTasks)
             {
                 <MudItem xs="12">
-                    <TaskCard Task="task"
+                    <TaskCard ActionItem="task" ShowLink
                               OnMarkDone="@(() => MarkAsDone(task))"
-                              OnEditTask="@(() => EditTask(task))"
                               OnDeleteTask="@(() => DeleteTask(task))" />
                 </MudItem>
             }
@@ -41,31 +40,60 @@
 </MudContainer>
 
 @code {
-    private List<ActionItem> MyActionItems = new();
-    private string SelectedStatus = "All";
+    private List<ActionItem> ActionItems = new();
+    private string SelectedStatus = "Pending";
 
     private IEnumerable<ActionItem> FilteredTasks =>
         SelectedStatus == "All"
-            ? MyActionItems
-            : MyActionItems.Where(t => string.Equals(t.Status, SelectedStatus, StringComparison.OrdinalIgnoreCase));
+            ? ActionItems
+            : ActionItems.Where(t => string.Equals(t.Status.ToString(), SelectedStatus, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
-        MyActionItems = await ConversationService.GetAllTasksAsync();
+        ActionItems = await ConversationService.GetAllTasksAsync();
     }
 
-    private void MarkAsDone(ActionItem task)
+    private async Task MarkAsDone(ActionItem task)
     {
-        // TODO: Mark task as done
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        if (conversation?.AiInsights?.ActionItems == null)
+        {
+            return;
+        }
+
+        var item = conversation.AiInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (item != null)
+        {
+            item.Status = ActionStatus.Completed;
+            await ConversationService.SaveConversationAsync(conversation);
+            StateHasChanged();
+        }
     }
 
-    private void EditTask(ActionItem task)
+    private async Task DeleteTask(ActionItem task)
     {
-        // TODO: Open edit dialog/modal
-    }
+        if (task?.TaskId == null)
+            return;
 
-    private void DeleteTask(ActionItem task)
-    {
-        // TODO: Confirm and delete
+        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        if (conversation?.AiInsights?.ActionItems == null)
+            return;
+
+        var itemToRemove = conversation.AiInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (itemToRemove != null)
+        {
+            conversation.AiInsights.ActionItems.Remove(itemToRemove);
+            await ConversationService.SaveConversationAsync(conversation);
+        }
+
+        ActionItems = await ConversationService.GetAllTasksAsync();
+        StateHasChanged();
     }
 }

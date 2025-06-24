@@ -1,3 +1,5 @@
+@inject IConversationService ConversationService
+
 <MudStack Class="mx-2 my-4"
           AlignItems="AlignItems.Center"
           Justify="Justify.FlexStart" >
@@ -5,10 +7,10 @@
     @if (Tasks is null || !Tasks.Any())
     {
         <MudPaper Class="d-flex align-center justify-center mud-width-full" Elevation="0" Style="min-height: 50vh;">
-            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Style="text-align:center">
                 <MudIcon Icon="@Icons.Material.Outlined.AssignmentTurnedIn" Size="Size.Large" Color="Color.Primary" />
                 <MudText Typo="Typo.h6">No Tasks Available</MudText>
-                <MudText Typo="Typo.body2" Style="text-align:center" Class="mud-text-secondary">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     Once action items are created, they will be listed here.
                 </MudText>
             </MudStack>
@@ -18,7 +20,7 @@
     {
         @foreach (var task in Tasks)
         {
-            <TaskCard Task="@task" OnMarkDone="MarkAsDone" OnEditTask="EditTask" OnDeleteTask="DeleteTask" />
+            <TaskCard ActionItem="@task" OnMarkDone="MarkAsDone" OnDeleteTask="DeleteTask" />
         }
     }
 </MudStack>
@@ -27,18 +29,47 @@
     [Parameter]
     public List<ActionItem> Tasks { get; set; } = new();
 
-    private void MarkAsDone(ActionItem task)
+    private async Task MarkAsDone(ActionItem task)
     {
-        // Add logic to handle marking the task as done
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        if (conversation?.AiInsights?.ActionItems == null)
+        {
+            return;
+        }
+
+        var item = conversation.AiInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (item != null)
+        {
+            item.Status = ActionStatus.Completed;
+            await ConversationService.SaveConversationAsync(conversation);
+            StateHasChanged();
+        }
     }
 
-    private void EditTask(ActionItem task)
+    private async Task DeleteTask(ActionItem task)
     {
-        // Add logic to handle editing the task
-    }
+        if (task?.TaskId == null)
+            return;
 
-    private void DeleteTask(ActionItem task)
-    {
-        // Add logic to handle deleting the task
+        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        if (conversation?.AiInsights?.ActionItems == null)
+            return;
+
+        var itemToRemove = conversation.AiInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (itemToRemove != null)
+        {
+            conversation.AiInsights.ActionItems.Remove(itemToRemove);
+            await ConversationService.SaveConversationAsync(conversation);
+        }
+
+        Tasks = await ConversationService.GetAllTasksAsync();
+        StateHasChanged();
     }
 }

@@ -36,7 +36,7 @@
             }
             else if (!filteredConversations.Any())
             {
-                <MudPaper Elevation="1" Class="pa-10" Style="text-align:center">
+                <MudPaper Elevation="0" Class="pa-10 mt-10" Style="text-align:center">
                     <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
                     <MudText Typo="Typo.h6" Color="Color.Secondary">No conversations found</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -79,7 +79,8 @@
                                         <MudItem xs="12">
                                             <ConversationCard 
                                                 Conversation="@conversation" 
-                                                OnConversationSelected="@OnConversationSelected" />
+                                                OnConversationSelected="@ViewConversationAsync"
+                                                OnConversationDeleted="@DeleteConversationAsync"/>
                                         </MudItem>
                                     }
                                 </MudGrid>
@@ -109,13 +110,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadConversationsAsync();
+    }
+
+    private async Task LoadConversationsAsync()
+    {
         isLoading = true;
         try
         {
             Conversations = await ConversationService.GetAllConversationsAsync();
             filteredConversations = Conversations.ToList();
-            
-            // Initialize all groups as expanded
+
             InitializeExpandedGroups();
         }
         finally
@@ -150,11 +155,11 @@
         {
             expandedGroups.Add(groupDate);
         }
-        
+
         // Update allExpanded state
         var totalGroups = GetGroupedConversations().Count();
         allExpanded = expandedGroups.Count == totalGroups;
-        
+
         StateHasChanged();
     }
 
@@ -198,10 +203,10 @@
         }
 
         filteredConversations = filtered.ToList();
-        
+
         // Update expanded groups after filtering
         InitializeExpandedGroups();
-        
+
         StateHasChanged();
     }
 
@@ -231,7 +236,7 @@
             selectedTags.Add(tag);
         else
             selectedTags.Remove(tag);
-        
+
         StateHasChanged();
     }
 
@@ -253,8 +258,17 @@
         return filtered.OrderByDescending(c => c.CreatedAt);
     }
 
-    private void OnConversationSelected(Conversation conversation)
+    private void ViewConversationAsync(Conversation conversation)
     {
         NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
+    }
+
+    private async Task DeleteConversationAsync(Conversation? conversation)
+    {
+        if (conversation == null)
+            return;
+
+        await ConversationService.DeleteConversationAsync(conversation.Id);
+        await LoadConversationsAsync();
     }
 }

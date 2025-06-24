@@ -1,3 +1,5 @@
+@inject IDialogService DialogService
+
 <MudCard Class="m3-card-hover"
          Style="border-left: 2px solid var(--mud-palette-primary);"
          @onclick="HandleCardClick">
@@ -8,17 +10,18 @@
             </MudText>
         </CardHeaderContent>
         <CardHeaderActions>
-            <MudIconButton Icon="@Icons.Material.Filled.MoreVert"
-                           Class="pa-3"
-                           Color="Color.Default"
-                           Size="Size.Small" />
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                     Color="Color.Default"
+                     Size="Size.Medium">
+                <MudMenuItem Label="Delete" Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="ConfirmAndDeleteAsync" />
+            </MudMenu>
         </CardHeaderActions>
     </MudCardHeader>
 
     <MudCardContent Class="px-4 pb-2 pt-0">
         @if (!string.IsNullOrEmpty(Conversation.Summary))
         {
-            <MudText Typo="Typo.body2" Class="mb-3 mud-text-secondary">
+            <MudText Typo="Typo.body2" Class="mb-3 mr-3 mud-text-secondary">
                 @TruncatedSummary
             </MudText>
         }
@@ -76,6 +79,7 @@
 @code {
     [Parameter] public Conversation Conversation { get; set; } = new();
     [Parameter] public EventCallback<Conversation> OnConversationSelected { get; set; }
+    [Parameter] public EventCallback<Conversation> OnConversationDeleted { get; set; }
 
     private const int SummaryMaxLength = 180;
 
@@ -105,5 +109,23 @@
     {
         if (OnConversationSelected.HasDelegate)
             await OnConversationSelected.InvokeAsync(Conversation);
+    }
+
+    private async Task ConfirmAndDeleteAsync()
+    {
+        if (Conversation is null)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            title: "Delete Conversation",
+            markupMessage: (MarkupString)$"Are you sure you want to delete the conversation?",
+            yesText: "Delete",
+            noText: "Cancel",
+            options: new DialogOptions { CloseOnEscapeKey = true });
+
+        if (confirmed == true)
+        {
+            await OnConversationDeleted.InvokeAsync(Conversation);
+        }
     }
 }

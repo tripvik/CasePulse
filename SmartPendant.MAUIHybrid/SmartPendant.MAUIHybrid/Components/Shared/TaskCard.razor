@@ -1,52 +1,101 @@
 @inject NavigationManager NavigationManager
+@inject IDialogService DialogService
 
 <MudPaper Class="pa-3 m3-card-hover" Elevation="1" Style="width:100%; border-left: 2px solid var(--mud-palette-primary);">
     <div class="d-flex align-center mb-2">
-        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-2">
-            @if (!string.IsNullOrEmpty(Task.Assignee))
-            {
-                @Task.Assignee.FirstOrDefault()
-            }
-        </MudAvatar>
+        <MudCheckBox Value="@IsCompleted"
+                     T="bool"
+                     Color="Color.Primary"
+                     Size="Size.Medium"
+                     Class="mr-2"
+                     Disabled="@IsCompleted"
+                     ValueChanged="OnCheckedChanged" />
+
         <div class="flex-grow-1">
-            <MudText Typo="Typo.subtitle2">@Task.Assignee</MudText>
-            @if (!string.IsNullOrEmpty(Task.DueDate))
-            {
-                <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Text" Text="@($"Due: {Task.DueDate}")" T="string" Class="pa-1" />
-            }
+            <MudText Typo="Typo.subtitle2" Class="ml-2">@ActionItem?.Assignee</MudText>
+            <MudChip Size="Size.Small"
+                     Color="Color.Info"
+                     Variant="Variant.Text"
+                     Text="@($"Due: {(ActionItem?.DueDate != null ? ActionItem.DueDate.Value.ToShortDateString() : "No due date")}")"
+                     T="string" />
         </div>
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
-            <MudMenu>
-                <MudMenuItem Icon="@Icons.Material.Filled.Done" OnClick="@(() => OnMarkDone.InvokeAsync())">Mark as Done</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditTask.InvokeAsync())">Edit</MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.Delete" OnClick="@(() => OnDeleteTask.InvokeAsync())">Delete</MudMenuItem>
-            </MudMenu>
-        </MudIconButton>
+        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                 Color="Color.Default"
+                 Size="Size.Medium">
+            <MudMenuItem Label="Delete" Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="ConfirmAndDeleteAsync" />
+        </MudMenu>
     </div>
     <div class="mb-2">
-        <MudText Typo="Typo.subtitle1" GutterBottom="false" Class="mb-1">@Task.ConversationTitle</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">@Task.Task</MudText>
+        <MudText Typo="Typo.subtitle1" GutterBottom="false" Class="mb-1">@ActionItem?.ConversationTitle</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">@ActionItem?.Task</MudText>
     </div>
-    <div class="d-flex justify-end">
-        <MudButton Variant="Variant.Text"
-                   Color="Color.Primary"
-                   Size="Size.Small"
-                   OnClick="@(() => NavigationManager.NavigateTo($"conversation/{Task.ConversationId}"))"
-                   EndIcon="@Icons.Material.Filled.ArrowForward">
-            View Conversation
-        </MudButton>
-    </div>
+    @if (ShowLink)
+    {
+        <div class="d-flex justify-end">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       Size="Size.Small"
+                       OnClick="@(() => NavigationManager.NavigateTo($"conversation/{ActionItem?.ConversationId}"))"
+                       EndIcon="@Icons.Material.Filled.ArrowForward">
+                View Conversation
+            </MudButton>
+        </div>
+    }
 </MudPaper>
 
 @code {
-    [Parameter] public ActionItem Task { get; set; }
+    #region Parameters
 
-    [Parameter]
-    public EventCallback<ActionItem> OnMarkDone { get; set; }
+    [Parameter] public ActionItem? ActionItem { get; set; }
+    [Parameter] public bool ShowLink { get; set; }
+    [Parameter] public EventCallback<ActionItem> OnMarkDone { get; set; }
+    [Parameter] public EventCallback<ActionItem> OnDeleteTask { get; set; }
 
-    [Parameter]
-    public EventCallback<ActionItem> OnEditTask { get; set; }
+    #endregion
 
-    [Parameter]
-    public EventCallback<ActionItem> OnDeleteTask { get; set; }
+    #region Private Properties
+
+    private bool IsCompleted { get; set; }
+
+    #endregion
+
+    #region Lifecycle
+
+    protected override void OnInitialized()
+    {
+        IsCompleted = ActionItem?.Status == ActionStatus.Completed;
+    }
+
+    #endregion
+
+    #region Event Handlers
+
+    private async Task OnCheckedChanged(bool value)
+    {
+        IsCompleted = value;
+
+        if (IsCompleted)
+        {
+            await OnMarkDone.InvokeAsync(ActionItem);
+        }
+    }
+
+    private async Task ConfirmAndDeleteAsync()
+    {
+        if (ActionItem is null) return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            title: "Delete Task",
+            markupMessage: (MarkupString)$"Are you sure you want to delete the action item?",
+            yesText: "Delete",
+            noText: "Cancel",
+            options: new DialogOptions { CloseOnEscapeKey = true });
+
+        if (confirmed == true)
+        {
+            await OnDeleteTask.InvokeAsync(ActionItem);
+        }
+    }
+
+    #endregion
 }

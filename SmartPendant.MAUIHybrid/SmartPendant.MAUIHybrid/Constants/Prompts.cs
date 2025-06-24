@@ -32,7 +32,9 @@
            - Extract the specific task description
            - Identify who is responsible (use speaker labels/names from transcript)
            - Note any mentioned deadlines or timeframes
+           - The status of the action item must be either "Pending" or "Completed" — use "Completed" only if the task is clearly done; otherwise, default to "Pending".
            - If no explicit assignee is mentioned but context suggests responsibility, indicate "Implied: [Speaker]"
+           - When including a deadline or due date, use ISO 8601 format: "yyyy-MM-ddTHH:mm:ss" (e.g., "2025-06-24T00:00:00").
 
         5. **Timeline**: Create a timeline of 3-8 significant events, decisions, or topic changes during the conversation:
            - Use MM:SS format for timestamps (relative to conversation start)
@@ -49,6 +51,5 @@
 
         Return your analysis as a properly formatted JSON object matching the InsightResult structure.
         """;
-
     }
 }

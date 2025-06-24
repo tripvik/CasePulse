@@ -1,18 +1,29 @@
 ﻿@inject IJSRuntime JS
 
 <div style="height: 100%; overflow-y: auto;" id="chatContainer">
-    @for (int i = 0; i < Messages.Count; i++)
+    @if (Messages == null || Messages.Count == 0)
     {
-        var message = Messages[i];
-        var position = i > 0 && Messages[i - 1].SpeakerLabel != message.SpeakerLabel
-        ? ChatBubblePosition.Start
-        : ChatBubblePosition.End;
-        var time = message.Timestamp.ToString("g");
-        <MudChat ChatPosition="@position" Elevation="0" Style="background: var(--mud-palette-background);">
-            <MudAvatar Size="Size.Medium">@message.Initials</MudAvatar>
-            <MudChatHeader Name="@message.SpeakerLabel" Time="@time" />
-            <MudChatBubble>@message.Text</MudChatBubble>
-        </MudChat>
+        <div class="d-flex flex-column justify-center align-center" style="height: 100%; text-align: center; color: gray;">
+            <MudIcon Icon="@Icons.Material.Filled.ChatBubbleOutline" Size="Size.Large" Class="mb-2" />
+            <div>No messages yet. Start the conversation!</div>
+        </div>
+    }
+    else
+    {
+        @for (int i = 0; i < Messages.Count; i++)
+        {
+            var message = Messages[i];
+            var position = i > 0 && Messages[i - 1].SpeakerLabel != message.SpeakerLabel
+            ? ChatBubblePosition.Start
+            : ChatBubblePosition.End;
+            var time = message.Timestamp.ToString("g");
+
+            <MudChat ChatPosition="@position" Elevation="0" Style="background: var(--mud-palette-background);">
+                <MudAvatar Size="Size.Medium">@message.Initials</MudAvatar>
+                <MudChatHeader Name="@message.SpeakerLabel" Time="@time" />
+                <MudChatBubble>@message.Text</MudChatBubble>
+            </MudChat>
+        }
     }
 </div>
 

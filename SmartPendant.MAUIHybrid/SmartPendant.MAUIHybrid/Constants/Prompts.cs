@@ -20,7 +20,7 @@
 
         1. **Title**: Create a concise, descriptive title (max 60 characters) that captures the main purpose or topic of the conversation.
 
-        2. **Summary**: Write a comprehensive summary in markdown format that covers the following points and make sure to not include any headings such as "Summary" or "Title".
+        2. **Summary**: Write a comprehensive summary in markdown format that covers the following points, without using any headings such as "Summary" or "Title":
            - Main topics discussed
            - Key decisions made
            - Important outcomes or conclusions
@@ -40,6 +40,11 @@
            - Use MM:SS format for timestamps (relative to conversation start)
            - Focus on important moments like decisions, topic changes, or key announcements
            - Keep descriptions brief but informative (max 50 characters)
+
+        6. **UsernameMappings**: Based on the dialogue, map diarized speaker labels (e.g., "Guest-1", "Speaker-2") to real names or usernames where possible:
+        - Use contextual clues such as introductions, references, or known roles to identify speakers
+        - If confident, provide the actual name or username
+        - If unsure, omit that mapping or return it with a null or empty "Name" field
 
         **Guidelines:**
         - Be accurate and only extract information explicitly mentioned or clearly implied

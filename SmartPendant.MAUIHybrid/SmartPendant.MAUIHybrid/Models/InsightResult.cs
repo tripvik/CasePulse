@@ -37,6 +37,12 @@ namespace SmartPendant.MAUIHybrid.Models
         /// </summary>
         [Description("Chronological list of important events, decisions, or milestones mentioned in the conversation")]
         public List<TimelineEvent>? Timeline { get; set; }
+
+        /// <summary>
+        /// Mappings of diarized speaker labels (e.g., "Guest-1") to actual user identities based on conversation context.
+        /// </summary>
+        [Description("AI-generated mappings of diarized speaker labels (e.g., 'Guest-1') to actual usernames or identities.")]
+        public List<UsernameMapping>? UsernameMappings { get; set; }
     }
 
     public class ActionItemResult
@@ -76,5 +82,20 @@ namespace SmartPendant.MAUIHybrid.Models
         [Description("Due date in ISO 8601 format or null if not specified.")]
         [JsonPropertyName("dueDate")]
         public DateTime? DueDate { get; set; }
+    }
+
+    public class UsernameMapping
+    {
+        /// <summary>
+        /// The diarized speaker label (e.g., "Guest-1", "Speaker-2") automatically assigned by Azure Speech.
+        /// </summary>
+        [Description("The diarized speaker label to map, such as 'Guest-1' or 'Speaker-2'.")]
+        public string? Label { get; set; }
+
+        /// <summary>
+        /// The actual name or username of the person identified from the conversation context.
+        /// </summary>
+        [Description("The actual username or person name corresponding to the diarized speaker label.")]
+        public string? Name { get; set; }
     }
 }

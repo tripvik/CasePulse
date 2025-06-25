@@ -57,6 +57,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 if (insightResult != null)
                 {
                     ApplyInsightsToConversation(conversation, insightResult);
+                    ApplyUsernameMappingsToTranscript(conversation, insightResult);
                     Debug.WriteLine($"Successfully generated insights for conversation {conversation.Id}");
                 }
                 else
@@ -138,6 +139,73 @@ namespace SmartPendant.MAUIHybrid.Services
                 : $"Conversation {conversation.CreatedAt:yyyy-MM-dd HH:mm}";
 
             conversation.Timeline = insightResult.Timeline;
+        }
+
+        /// <summary>
+        /// Applies AI-generated username mappings to the transcript entries' SpeakerLabel property.
+        /// </summary>
+        /// <param name="conversation">The conversation containing the transcript to update.</param>
+        /// <param name="insightResult">The insight result containing username mappings.</param>
+        private static void ApplyUsernameMappingsToTranscript(Conversation conversation, InsightResult insightResult)
+        {
+            if (conversation.Transcript == null || !conversation.Transcript.Any() ||
+                insightResult.UsernameMappings == null || !insightResult.UsernameMappings.Any())
+            {
+                Debug.WriteLine("No transcript entries or username mappings available for processing");
+                return;
+            }
+
+            // Create a dictionary for faster lookups
+            var mappingLookup = insightResult.UsernameMappings
+                .Where(m => !string.IsNullOrWhiteSpace(m.Label) && !string.IsNullOrWhiteSpace(m.Name))
+                .ToDictionary(m => m.Label!.Trim(), m => m.Name!.Trim(), StringComparer.OrdinalIgnoreCase);
+
+            var mappingsApplied = 0;
+
+            foreach (var transcriptEntry in conversation.Transcript)
+            {
+                // Try to map using existing SpeakerLabel first
+                if (!string.IsNullOrWhiteSpace(transcriptEntry.SpeakerLabel) &&
+                    mappingLookup.TryGetValue(transcriptEntry.SpeakerLabel, out var mappedName))
+                {
+                    transcriptEntry.SpeakerLabel = mappedName;
+                    transcriptEntry.Initials = GetInitials(mappedName);
+                    mappingsApplied++;
+                }
+                // If no SpeakerLabel, try to map using SpeakerId
+                else if (!string.IsNullOrWhiteSpace(transcriptEntry.SpeakerId) &&
+                         mappingLookup.TryGetValue(transcriptEntry.SpeakerId, out mappedName))
+                {
+                    transcriptEntry.SpeakerLabel = mappedName;
+                    transcriptEntry.Initials = GetInitials(mappedName);
+                    mappingsApplied++;
+                }
+            }
+
+            Debug.WriteLine($"Applied {mappingsApplied} username mappings to transcript entries for conversation {conversation.Id}");
+        }
+
+        /// <summary>
+        /// Generates initials from a full name.
+        /// </summary>
+        /// <param name="name">The full name to generate initials from.</param>
+        /// <returns>Two-character initials, or "UN" if name is invalid.</returns>
+        private static string GetInitials(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return "UN"; // Unknown
+
+            var words = name.Trim()
+                           .Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries)
+                           .Where(w => !string.IsNullOrWhiteSpace(w))
+                           .ToArray();
+
+            return words.Length switch
+            {
+                0 => "UN",
+                1 => (words[0].Length >= 2 ? words[0][..2] : words[0].PadRight(2, 'X')).ToUpper(),
+                _ => $"{words[0][0]}{words[^1][0]}".ToUpper()
+            };
         }
 
         /// <summary>

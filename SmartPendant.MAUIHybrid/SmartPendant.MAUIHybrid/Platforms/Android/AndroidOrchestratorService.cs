@@ -18,7 +18,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
         public bool IsRecording { get; private set; }
         public bool IsDeviceConnected { get; private set; }
         public bool IsStateChanging { get; private set; }
-        public Conversation CurrentConversation => _pipelineManager.CurrentConversation;
+        public ConversationModel CurrentConversation => _pipelineManager.CurrentConversation;
         #endregion
 
         #region Events

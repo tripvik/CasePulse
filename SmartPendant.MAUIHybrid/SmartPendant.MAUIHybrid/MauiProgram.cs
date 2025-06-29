@@ -73,7 +73,7 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddSingleton<AudioPipelineManager>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
-            builder.Services.AddSingleton<IInsightService, InsightService>();
+            builder.Services.AddSingleton<ConversationInsightService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
             builder.Services.AddScoped<IConversationService, LocalStorageConversationService>();
 

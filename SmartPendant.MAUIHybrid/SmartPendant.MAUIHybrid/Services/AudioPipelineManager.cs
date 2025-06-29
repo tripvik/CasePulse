@@ -34,7 +34,7 @@ public class AudioPipelineManager : IAsyncDisposable
 
     #region Properties
 
-    public Conversation CurrentConversation { get; private set; } = new();
+    public ConversationModel CurrentConversation { get; private set; } = new();
 
     #endregion
 
@@ -53,7 +53,7 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         _connectionService = connectionService;
         _transcriptionService = transcriptionService;
-        CurrentConversation = new Conversation();
+        CurrentConversation = new ConversationModel();
 
         _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(5000)
         {
@@ -71,7 +71,7 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         Debug.WriteLine("Starting audio pipeline...");
         //moved to clear conversation regardless of successful subsequent device connection.
-        CurrentConversation = new Conversation();
+        CurrentConversation = new ConversationModel();
         // Connect and initialize device
         var (connected, connEx) = await _connectionService.ConnectAsync();
         if (!connected)
@@ -213,7 +213,7 @@ public class AudioPipelineManager : IAsyncDisposable
         }
 
         // Reset for a new conversation segment.
-        CurrentConversation = new Conversation();
+        CurrentConversation = new ConversationModel();
         StateHasChanged?.Invoke(this, EventArgs.Empty);
 
         // The timer is AutoReset=false, so it stops. We restart it to monitor the new empty segment.

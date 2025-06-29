@@ -44,7 +44,7 @@
     [Parameter]
     public Guid ConversationId { get; set; }
 
-    private Conversation? conversation;
+    private ConversationModel? conversation;
     private bool isLoading = true;
 
     protected override async Task OnParametersSetAsync()

@@ -12,7 +12,7 @@ namespace SmartPendant.MAUIHybrid.Abstractions
         bool IsRecording { get; }
         bool IsDeviceConnected { get; }
         bool IsStateChanging { get; }
-        Conversation CurrentConversation { get; }
+        ConversationModel CurrentConversation { get; }
 
         event EventHandler? StateHasChanged;
         event EventHandler? ConversationCompleted;

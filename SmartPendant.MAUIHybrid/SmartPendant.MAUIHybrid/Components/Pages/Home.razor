@@ -3,7 +3,7 @@
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
 @inject IConversationService ConversationService
-@inject IInsightService InsightService
+@inject ConversationInsightService ConversationInsightService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -152,7 +152,7 @@
 
         try
         {
-            await InsightService.GenerateAndApplyInsightAsync(conversation, _cts.Token);
+            await ConversationInsightService.GenerateAndApplyInsightAsync(conversation, _cts.Token);
         }
         catch (OperationCanceledException)
         {

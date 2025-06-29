@@ -7,7 +7,7 @@ namespace SmartPendant.MAUIHybrid.Models
     /// Represents the main data model for a single conversation record.
     /// This model is designed to hold all necessary information for display after being processed by an LLM.
     /// </summary>
-    public class Conversation
+    public class ConversationModel
     {
         public Guid Id { get; set; } = Guid.NewGuid();
         public string? UserId { get; set; }

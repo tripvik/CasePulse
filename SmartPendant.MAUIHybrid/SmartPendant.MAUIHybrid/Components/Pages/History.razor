@@ -97,8 +97,8 @@
 </MudContainer>
 
 @code {
-    private List<Conversation> Conversations = new();
-    private List<Conversation> filteredConversations = new();
+    private List<ConversationModel> Conversations = new();
+    private List<ConversationModel> filteredConversations = new();
     private HashSet<DateTime> expandedGroups = new();
     private bool allExpanded = true;
 
@@ -210,7 +210,7 @@
         StateHasChanged();
     }
 
-    private IEnumerable<IGrouping<DateTime, Conversation>> GetGroupedConversations()
+    private IEnumerable<IGrouping<DateTime, ConversationModel>> GetGroupedConversations()
     {
         return filteredConversations
             .GroupBy(c => c.CreatedAt.Date)
@@ -240,7 +240,7 @@
         StateHasChanged();
     }
 
-    private IEnumerable<Conversation> GetTopicFilteredConversations()
+    private IEnumerable<ConversationModel> GetTopicFilteredConversations()
     {
         var filtered = Conversations.AsEnumerable();
 
@@ -258,12 +258,12 @@
         return filtered.OrderByDescending(c => c.CreatedAt);
     }
 
-    private void ViewConversationAsync(Conversation conversation)
+    private void ViewConversationAsync(ConversationModel conversation)
     {
         NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
     }
 
-    private async Task DeleteConversationAsync(Conversation? conversation)
+    private async Task DeleteConversationAsync(ConversationModel? conversation)
     {
         if (conversation == null)
             return;

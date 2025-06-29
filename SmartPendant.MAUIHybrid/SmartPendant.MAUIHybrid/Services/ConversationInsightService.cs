@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.AI;
-using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Constants;
 using SmartPendant.MAUIHybrid.Models;
 using System.Diagnostics;
@@ -10,7 +9,7 @@ namespace SmartPendant.MAUIHybrid.Services
     /// <summary>
     /// Provides services for generating AI-driven insights from conversation transcripts.
     /// </summary>
-    public class InsightService : IInsightService
+    public class ConversationInsightService
     {
         #region Fields
 
@@ -20,7 +19,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
         #region Constructor
 
-        public InsightService(IChatClient chatClient)
+        public ConversationInsightService(IChatClient chatClient)
         {
             _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         }
@@ -36,7 +35,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <param name="cancellationToken">A token to cancel the operation.</param>
         /// <exception cref="ArgumentNullException">Thrown if the conversation is null.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the conversation has invalid data.</exception>
-        public async Task GenerateAndApplyInsightAsync(Conversation conversation, CancellationToken cancellationToken = default)
+        public async Task GenerateAndApplyInsightAsync(ConversationModel conversation, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(conversation);
 
@@ -86,7 +85,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversation">The conversation to validate.</param>
         /// <returns>True if the conversation is valid for processing.</returns>
-        private static bool IsValidConversation(Conversation conversation)
+        private static bool IsValidConversation(ConversationModel conversation)
         {
             return conversation.Transcript?.Any() == true &&
                    conversation.Transcript.All(t => !string.IsNullOrWhiteSpace(t.Text));
@@ -96,7 +95,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// Calculates and sets the conversation duration based on transcript timestamps.
         /// </summary>
         /// <param name="conversation">The conversation to calculate duration for.</param>
-        private static void CalculateConversationDuration(Conversation conversation)
+        private static void CalculateConversationDuration(ConversationModel conversation)
         {
             if (conversation.Transcript?.Count > 1)
             {
@@ -113,7 +112,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversation">The conversation to update.</param>
         /// <param name="insightResult">The insights to apply.</param>
-        private static void ApplyInsightsToConversation(Conversation conversation, InsightResult insightResult)
+        private static void ApplyInsightsToConversation(ConversationModel conversation, InsightResult insightResult)
         {
             conversation.AiInsights = new AiInsights
             {
@@ -146,7 +145,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversation">The conversation containing the transcript to update.</param>
         /// <param name="insightResult">The insight result containing username mappings.</param>
-        private static void ApplyUsernameMappingsToTranscript(Conversation conversation, InsightResult insightResult)
+        private static void ApplyUsernameMappingsToTranscript(ConversationModel conversation, InsightResult insightResult)
         {
             if (conversation.Transcript == null || !conversation.Transcript.Any() ||
                 insightResult.UsernameMappings == null || !insightResult.UsernameMappings.Any())
@@ -241,11 +240,11 @@ namespace SmartPendant.MAUIHybrid.Services
         }
 
         /// <summary>
-        /// Creates an <see cref="InsightInput"/> object from a <see cref="Conversation"/>.
+        /// Creates an <see cref="InsightInput"/> object from a <see cref="ConversationModel"/>.
         /// </summary>
         /// <param name="conversation">The conversation to convert.</param>
         /// <returns>A new InsightInput instance.</returns>
-        private static InsightInput CreateInsightInputFromConversation(Conversation conversation)
+        private static InsightInput CreateInsightInputFromConversation(ConversationModel conversation)
         {
             return new InsightInput
             {

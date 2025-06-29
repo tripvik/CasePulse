@@ -13,40 +13,40 @@ namespace SmartPendant.MAUIHybrid.Abstractions
         /// Saves a single conversation.
         /// </summary>
         /// <param name="conversation">The conversation object to save.</param>
-        Task SaveConversationAsync(Conversation conversation);
+        Task SaveConversationAsync(ConversationModel conversation);
 
         /// <summary>
         /// Saves a collection of conversations.
         /// </summary>
         /// <param name="conversations">The collection of conversations to save.</param>
-        Task SaveConversationsAsync(IEnumerable<Conversation> conversations);
+        Task SaveConversationsAsync(IEnumerable<ConversationModel> conversations);
 
         /// <summary>
         /// Retrieves a single conversation by its unique ID.
         /// </summary>
         /// <param name="conversationId">The ID of the conversation to retrieve.</param>
         /// <returns>The conversation object, or null if not found.</returns>
-        Task<Conversation?> GetConversationAsync(Guid conversationId);
+        Task<ConversationModel?> GetConversationAsync(Guid conversationId);
 
         /// <summary>
         /// Retrieves all saved conversations.
         /// </summary>
         /// <returns>A list of all conversation objects.</returns>
-        Task<List<Conversation>> GetAllConversationsAsync();
+        Task<List<ConversationModel>> GetAllConversationsAsync();
 
         /// <summary>
         /// Retrieves all conversations recorded on a specific date.
         /// </summary>
         /// <param name="date">The date to filter conversations by.</param>
         /// <returns>A list of conversations from the specified date.</returns>
-        Task<List<Conversation>> GetConversationsByDateAsync(DateTime date);
+        Task<List<ConversationModel>> GetConversationsByDateAsync(DateTime date);
 
         /// <summary>
         /// Retrieves all conversations that contain a specific topic in their insights.
         /// </summary>
         /// <param name="topic">The topic to search for.</param>
         /// <returns>A list of conversations related to the specified topic.</returns>
-        Task<List<Conversation>> GetConversationsByTopicAsync(string topic);
+        Task<List<ConversationModel>> GetConversationsByTopicAsync(string topic);
 
         /// <summary>
         /// Deletes a single conversation by its ID.

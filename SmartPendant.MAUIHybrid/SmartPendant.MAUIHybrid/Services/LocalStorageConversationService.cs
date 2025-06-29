@@ -20,7 +20,7 @@ namespace SmartPendant.MAUIHybrid.Services
         }
 
         #region Conversation Methods
-        public async Task SaveConversationAsync(Conversation conversation)
+        public async Task SaveConversationAsync(ConversationModel conversation)
         {
             if (conversation is null) return;
             try
@@ -39,7 +39,7 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task SaveConversationsAsync(IEnumerable<Conversation> conversations)
+        public async Task SaveConversationsAsync(IEnumerable<ConversationModel> conversations)
         {
             foreach (var conversation in conversations)
             {
@@ -47,11 +47,11 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task<Conversation?> GetConversationAsync(Guid conversationId)
+        public async Task<ConversationModel?> GetConversationAsync(Guid conversationId)
         {
             try
             {
-                return await _localStorage.GetItemAsync<Conversation>(conversationId.ToString());
+                return await _localStorage.GetItemAsync<ConversationModel>(conversationId.ToString());
             }
             catch (Exception ex)
             {
@@ -60,9 +60,9 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task<List<Conversation>> GetAllConversationsAsync()
+        public async Task<List<ConversationModel>> GetAllConversationsAsync()
         {
-            var conversations = new List<Conversation>();
+            var conversations = new List<ConversationModel>();
             var conversationIds = await GetConversationIdListAsync();
             foreach (var id in conversationIds)
             {
@@ -75,15 +75,15 @@ namespace SmartPendant.MAUIHybrid.Services
             return conversations;
         }
 
-        public async Task<List<Conversation>> GetConversationsByDateAsync(DateTime date)
+        public async Task<List<ConversationModel>> GetConversationsByDateAsync(DateTime date)
         {
             var allConversations = await GetAllConversationsAsync();
             return allConversations.Where(c => c.CreatedAt.Date == date.Date).ToList();
         }
 
-        public async Task<List<Conversation>> GetConversationsByTopicAsync(string topic)
+        public async Task<List<ConversationModel>> GetConversationsByTopicAsync(string topic)
         {
-            if (string.IsNullOrWhiteSpace(topic)) return new List<Conversation>();
+            if (string.IsNullOrWhiteSpace(topic)) return new List<ConversationModel>();
             var allConversations = await GetAllConversationsAsync();
             return allConversations
                 .Where(c => c.AiInsights?.Topics?.Contains(topic, StringComparer.OrdinalIgnoreCase) ?? false)

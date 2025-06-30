@@ -1,10 +1,29 @@
-﻿@if (IsMobile)
+﻿@inject NavigationManager Navigation
+@implements IDisposable
+
+@if (IsMobile)
 {
-    <MudStack Row Justify="Justify.SpaceAround" Style="width:100%" >
-        <MudIconButton Href="/" Icon="@Icons.Material.Filled.Home" Color="Color.Inherit" Size="Size.Medium" />
-        <MudIconButton Href="/history" Icon="@Icons.Material.Filled.History" Color="Color.Inherit" Size="Size.Medium" />
-        <MudIconButton Href="/tasks" Icon="@Icons.Material.Filled.TaskAlt" Color="Color.Inherit" Size="Size.Medium" />
-        <MudIconButton Href="/dayinsights" Icon="@Icons.Material.Filled.LightMode" Color="Color.Inherit" Size="Size.Medium" />
+    <MudStack Row Justify="Justify.SpaceAround" Style="width:100%">
+        <MudIconButton Href="/" 
+                       Icon="@Icons.Material.Filled.Home" 
+                       Color="Color.Inherit" 
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/")" />
+        <MudIconButton Href="/history" 
+                       Icon="@Icons.Material.Filled.History" 
+                       Color="Color.Inherit" 
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/history")" />
+        <MudIconButton Href="/tasks" 
+                       Icon="@Icons.Material.Filled.TaskAlt" 
+                       Color="Color.Inherit" 
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/tasks")" />
+        <MudIconButton Href="/dayinsights" 
+                       Icon="@Icons.Material.Filled.LightMode" 
+                       Color="Color.Inherit" 
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/dayinsights")" />
     </MudStack>
 }
 else
@@ -19,4 +38,29 @@ else
 
 @code {
     [Parameter] public bool IsMobile { get; set; } = false;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private string GetButtonStyle(string href)
+    {
+        var currentPath = new Uri(Navigation.Uri).AbsolutePath;
+        
+        // Check if current path matches the href
+        bool isActive = string.Equals(currentPath, href, StringComparison.OrdinalIgnoreCase);
+        
+        return isActive ? "background: var(--mud-palette-primary-hover);" : "";
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
 }

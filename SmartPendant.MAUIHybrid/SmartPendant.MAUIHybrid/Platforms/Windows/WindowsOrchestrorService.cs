@@ -16,6 +16,7 @@ namespace SmartPendant.MAUIHybrid.Platforms.Windows
         public bool IsDeviceConnected { get; private set; }
         public bool IsStateChanging { get; private set; }
         public ConversationModel CurrentConversation => _pipelineManager.CurrentConversation;
+        public DayModel CurrentDay => _pipelineManager.CurrentDay;
         #endregion
 
         #region Events

@@ -35,7 +35,7 @@ public class AudioPipelineManager : IAsyncDisposable
     #region Properties
 
     public ConversationModel CurrentConversation { get; private set; } = new();
-
+    public DayModel CurrentDay { get; private set; } = new();
     #endregion
 
     #region Events
@@ -90,7 +90,7 @@ public class AudioPipelineManager : IAsyncDisposable
             Notify?.Invoke(this, (message, Severity.Error));
             return (false, message);
         }
-        SetStateEvent?.Invoke(this, (isRecording:false,isDeviceConnected:true, isStateChanging: true));
+        SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: true, isStateChanging: true));
         await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
         SubscribeToEvents();
         _pipelineCts = new CancellationTokenSource();
@@ -127,6 +127,15 @@ public class AudioPipelineManager : IAsyncDisposable
         if (CurrentConversation.Transcript.Any())
         {
             Debug.WriteLine("Finalizing conversation upon stopping.");
+            if (CurrentConversation.CreatedAt.Date == DateTime.Now.Date)
+            {
+                CurrentDay.Conversations.Add(CurrentConversation);
+            }
+            else
+            {
+                CurrentDay = new DayModel { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
+            }
+
             ConversationCompleted?.Invoke(this, EventArgs.Empty);
         }
 
@@ -154,7 +163,7 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         _connectionService.DataReceived -= OnDataReceived;
         _connectionService.ConnectionLost -= async (sender, reason) => await OnConnectionLost(sender, reason);
-       // _connectionService.Disconnected +=  async (sender, reason) => await OnConnectionLost(sender, reason);
+        // _connectionService.Disconnected +=  async (sender, reason) => await OnConnectionLost(sender, reason);
         _transcriptionService.TranscriptReceived -= OnTranscriptReceived;
         _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
     }
@@ -207,8 +216,17 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         Debug.WriteLine("Inactivity timer elapsed. Finalizing current conversation segment.");
 
-        if (CurrentConversation.Transcript.Any())
+        if (CurrentConversation.Transcript.Count != 0)
         {
+            if (CurrentConversation.CreatedAt.Date == DateTime.Now.Date)
+            {
+                CurrentDay.Conversations.Add(CurrentConversation);
+            }
+            else
+            {
+                CurrentDay = new DayModel { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
+            }
+
             ConversationCompleted?.Invoke(this, EventArgs.Empty);
         }
 

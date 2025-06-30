@@ -2,8 +2,10 @@
 @implements IAsyncDisposable
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
-@inject IConversationService ConversationService
+@inject IConversationDataService ConversationService
+@inject IDayDataService DayDataService
 @inject ConversationInsightService ConversationInsightService
+@inject DayInsightService DayInsightService
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -140,8 +142,13 @@
 
     private async Task GenerateInsightAsync(bool interim = false)
     {
-        var conversation = OrchestrationService.CurrentConversation;
-        if (conversation is null || !conversation.Transcript.Any())
+        var conversationModel = OrchestrationService.CurrentConversation;
+        var dayModel = OrchestrationService.CurrentDay;
+
+        var todaysConversation = await ConversationService.GetConversationsByDateAsync(DateTime.Now.Date);
+        dayModel.Conversations.AddRange(todaysConversation);
+
+        if (conversationModel is null || !conversationModel.Transcript.Any())
         {
             Snackbar.Add("There is no transcript content to generate insights from.", Severity.Info);
             return;
@@ -152,7 +159,8 @@
 
         try
         {
-            await ConversationInsightService.GenerateAndApplyInsightAsync(conversation, _cts.Token);
+            await ConversationInsightService.GenerateAndApplyInsightAsync(conversationModel, _cts.Token);
+            await DayInsightService.GenerateAndApplyDailyInsightAsync(dayModel, _cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -196,10 +204,17 @@
             await GenerateInsightAsync();
 
             // Next, save the conversation with the generated insights.
-            var conversation = OrchestrationService.CurrentConversation;
-            if (conversation != null)
+            var conversatioModel = OrchestrationService.CurrentConversation;
+            if (conversatioModel != null)
             {
-                await ConversationService.SaveConversationAsync(conversation);
+                await ConversationService.SaveConversationAsync(conversatioModel);
+                Snackbar.Add("Conversation processed", Severity.Success);
+            }
+
+            var dayModel = OrchestrationService.CurrentDay;
+            if (dayModel != null)
+            {
+                await DayDataService.SaveDayModelAsync(dayModel);
                 Snackbar.Add("Conversation processed", Severity.Success);
             }
         }

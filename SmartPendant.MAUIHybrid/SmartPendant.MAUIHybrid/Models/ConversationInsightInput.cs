@@ -5,7 +5,7 @@ namespace SmartPendant.MAUIHybrid.Models
     /// <summary>
     /// Input data for generating conversation insights.
     /// </summary>
-    public class InsightInput
+    public class ConversationInsightInput
     {
         /// <summary>
         /// The full transcript of the conversation with speaker diarization.

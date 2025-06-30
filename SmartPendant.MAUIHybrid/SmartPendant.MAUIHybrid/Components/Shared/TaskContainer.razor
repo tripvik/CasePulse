@@ -1,4 +1,4 @@
-@inject IConversationService ConversationService
+@inject IConversationDataService ConversationService
 
 <MudStack Class="mx-2 my-4"
           AlignItems="AlignItems.Center"
@@ -35,12 +35,12 @@
             return;
 
         var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
-        if (conversation?.AiInsights?.ActionItems == null)
+        if (conversation?.ConversationInsights?.ActionItems == null)
         {
             return;
         }
 
-        var item = conversation.AiInsights.ActionItems
+        var item = conversation.ConversationInsights.ActionItems
             .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
 
         if (item != null)
@@ -57,15 +57,15 @@
             return;
 
         var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
-        if (conversation?.AiInsights?.ActionItems == null)
+        if (conversation?.ConversationInsights?.ActionItems == null)
             return;
 
-        var itemToRemove = conversation.AiInsights.ActionItems
+        var itemToRemove = conversation.ConversationInsights.ActionItems
             .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
 
         if (itemToRemove != null)
         {
-            conversation.AiInsights.ActionItems.Remove(itemToRemove);
+            conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
             await ConversationService.SaveConversationAsync(conversation);
         }
 

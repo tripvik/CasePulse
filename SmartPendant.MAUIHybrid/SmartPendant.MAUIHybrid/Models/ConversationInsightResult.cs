@@ -6,7 +6,7 @@ namespace SmartPendant.MAUIHybrid.Models
     /// <summary>
     /// Represents the AI-generated insights from a conversation transcript.
     /// </summary>
-    public class InsightResult
+    public class ConversationInsightResult
     {
         /// <summary>
         /// A concise summary of the conversation's main points and outcomes.

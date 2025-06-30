@@ -1,5 +1,5 @@
 ﻿@page "/tasks"
-@inject IConversationService ConversationService
+@inject IConversationDataService ConversationService
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
     <!-- Header -->
@@ -59,12 +59,12 @@
             return;
 
         var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
-        if (conversation?.AiInsights?.ActionItems == null)
+        if (conversation?.ConversationInsights?.ActionItems == null)
         {
             return;
         }
 
-        var item = conversation.AiInsights.ActionItems
+        var item = conversation.ConversationInsights.ActionItems
             .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
 
         if (item != null)
@@ -81,15 +81,15 @@
             return;
 
         var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
-        if (conversation?.AiInsights?.ActionItems == null)
+        if (conversation?.ConversationInsights?.ActionItems == null)
             return;
 
-        var itemToRemove = conversation.AiInsights.ActionItems
+        var itemToRemove = conversation.ConversationInsights.ActionItems
             .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
 
         if (itemToRemove != null)
         {
-            conversation.AiInsights.ActionItems.Remove(itemToRemove);
+            conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
             await ConversationService.SaveConversationAsync(conversation);
         }
 

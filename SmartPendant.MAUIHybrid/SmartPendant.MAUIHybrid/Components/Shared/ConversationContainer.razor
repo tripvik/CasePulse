@@ -13,12 +13,12 @@
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.AutoAwesome">
             <div class="tab-content-wrapper">
-                <SummaryContainer Summary="@Conversation?.Summary" Topics="@Conversation?.AiInsights?.Topics" />
+                <SummaryContainer Summary="@Conversation?.Summary" Topics="@Conversation?.ConversationInsights?.Topics" />
             </div>
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.TaskAlt">
             <div class="tab-content-wrapper">
-                <TaskContainer Tasks="@Conversation?.AiInsights?.ActionItems" />
+                <TaskContainer Tasks="@Conversation?.ConversationInsights?.ActionItems" />
             </div>
         </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.Timeline">

@@ -1,5 +1,5 @@
 ﻿@page "/history"
-@inject IConversationService ConversationService
+@inject IConversationDataService ConversationService
 @inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
@@ -219,7 +219,7 @@
 
     private IEnumerable<string> GetAvailableTopics()
     {
-        return Conversations.SelectMany(c => c.AiInsights?.Topics!);
+        return Conversations.SelectMany(c => c.ConversationInsights?.Topics!);
     }
 
     private IEnumerable<string> GetAvailableTags()
@@ -246,7 +246,7 @@
 
         if (!string.IsNullOrEmpty(selectedTopic))
         {
-            filtered = filtered.Where(c => c.AiInsights?.Topics?.Contains(selectedTopic) ?? false);
+            filtered = filtered.Where(c => c.ConversationInsights?.Topics?.Contains(selectedTopic) ?? false);
         }
 
         if (selectedTags.Any())

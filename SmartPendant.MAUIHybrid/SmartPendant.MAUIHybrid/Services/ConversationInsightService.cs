@@ -112,9 +112,9 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversation">The conversation to update.</param>
         /// <param name="insightResult">The insights to apply.</param>
-        private static void ApplyInsightsToConversation(ConversationModel conversation, InsightResult insightResult)
+        private static void ApplyInsightsToConversation(ConversationModel conversation, ConversationInsightResult insightResult)
         {
-            conversation.AiInsights = new AiInsights
+            conversation.ConversationInsights = new ConversationInsights
             {
                 ActionItems = insightResult.ActionItems?
                     .Where(item => item != null)
@@ -124,7 +124,7 @@ namespace SmartPendant.MAUIHybrid.Services
             };
 
             // Ensure all action items have the correct conversation ID
-            foreach (var item in conversation.AiInsights.ActionItems)
+            foreach (var item in conversation.ConversationInsights.ActionItems)
             {
                 item.ConversationId = conversation.Id;
             }
@@ -145,7 +145,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversation">The conversation containing the transcript to update.</param>
         /// <param name="insightResult">The insight result containing username mappings.</param>
-        private static void ApplyUsernameMappingsToTranscript(ConversationModel conversation, InsightResult insightResult)
+        private static void ApplyUsernameMappingsToTranscript(ConversationModel conversation, ConversationInsightResult insightResult)
         {
             if (conversation.Transcript == null || !conversation.Transcript.Any() ||
                 insightResult.UsernameMappings == null || !insightResult.UsernameMappings.Any())
@@ -208,12 +208,12 @@ namespace SmartPendant.MAUIHybrid.Services
         }
 
         /// <summary>
-        /// Calls the AI chat client to get an <see cref="InsightResult"/> based on the provided input.
+        /// Calls the AI chat client to get an <see cref="ConversationInsightResult"/> based on the provided input.
         /// </summary>
         /// <param name="insightInput">The input data for insight generation.</param>
         /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <returns>The generated <see cref="InsightResult"/>, or null if an error occurs.</returns>
-        private async Task<InsightResult?> GetInsightAsync(InsightInput insightInput, CancellationToken cancellationToken)
+        /// <returns>The generated <see cref="ConversationInsightResult"/>, or null if an error occurs.</returns>
+        private async Task<ConversationInsightResult?> GetInsightAsync(ConversationInsightInput insightInput, CancellationToken cancellationToken)
         {
             try
             {
@@ -221,7 +221,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
                 Debug.WriteLine($"Generating insights with prompt length: {prompt.Length} characters");
 
-                var response = await _chatClient.GetResponseAsync<InsightResult>(
+                var response = await _chatClient.GetResponseAsync<ConversationInsightResult>(
                     chatMessage: prompt,
                     cancellationToken: cancellationToken);
 
@@ -240,13 +240,13 @@ namespace SmartPendant.MAUIHybrid.Services
         }
 
         /// <summary>
-        /// Creates an <see cref="InsightInput"/> object from a <see cref="ConversationModel"/>.
+        /// Creates an <see cref="ConversationInsightInput"/> object from a <see cref="ConversationModel"/>.
         /// </summary>
         /// <param name="conversation">The conversation to convert.</param>
         /// <returns>A new InsightInput instance.</returns>
-        private static InsightInput CreateInsightInputFromConversation(ConversationModel conversation)
+        private static ConversationInsightInput CreateInsightInputFromConversation(ConversationModel conversation)
         {
-            return new InsightInput
+            return new ConversationInsightInput
             {
                 Transcript = conversation.Transcript?.ToList() ?? new List<TranscriptEntry>(),
                 Location = conversation.Location,
@@ -260,7 +260,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="input">The input data for prompt generation.</param>
         /// <returns>The formatted prompt string.</returns>
-        private static string GenerateInsightsPrompt(InsightInput input)
+        private static string GenerateInsightsPrompt(ConversationInsightInput input)
         {
             var transcriptBuilder = new StringBuilder();
 
@@ -308,7 +308,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 TaskId = Guid.NewGuid(),
                 ConversationId = conversationId,
                 ConversationTitle = result.ConversationTitle?.Trim(),
-                Task = result.Task?.Trim() ?? string.Empty,
+                Description = result.Task?.Trim() ?? string.Empty,
                 Status = result.Status,
                 Assignee = result.Assignee?.Trim(),
                 DueDate = result.DueDate

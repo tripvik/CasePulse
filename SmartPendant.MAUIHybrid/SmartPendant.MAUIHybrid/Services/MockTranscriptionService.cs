@@ -100,14 +100,14 @@ namespace SmartPendant.MAUIHybrid.Services
                 new() { SpeakerId = "vikash", SpeakerLabel = "You", Text = "I’ll handle communication with the ops team.", Initials = "VK", Timestamp = DateTime.Now.AddDays(-2).AddMinutes(5) },
                 new() { SpeakerId = "alice", SpeakerLabel = "Alice", Text = "Great, I'll update the status document by end of day.", Initials = "AL", Timestamp = DateTime.Now.AddDays(-2).AddMinutes(10) }
             },
-                AiInsights = new AiInsights
+                ConversationInsights = new ConversationInsights
                 {
                     Topics = new List<string> { "Project Launch", "Deployment Strategy", "Team Coordination" },
                     ActionItems = new List<ActionItem>
                     {
-                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Task = "Finalize launch checklist", Assignee = "Alice", DueDate = DateTime.Parse("2025-06-15") },
-                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Task = "Coordinate with ops for deployment", Assignee = "Vikash", DueDate = DateTime.Parse("2025-06-14") },
-                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Task = "Confirm deployment slots", Assignee = "Bob", DueDate = DateTime.Parse("2025-06-13") }
+                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Description = "Finalize launch checklist", Assignee = "Alice", DueDate = DateTime.Parse("2025-06-15") },
+                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Description = "Coordinate with ops for deployment", Assignee = "Vikash", DueDate = DateTime.Parse("2025-06-14") },
+                        new() {ConversationTitle = "Team Sync: Project Atlas Launch", Description = "Confirm deployment slots", Assignee = "Bob", DueDate = DateTime.Parse("2025-06-13") }
                     }
                 },
                 Timeline = new List<TimelineEvent>
@@ -137,13 +137,13 @@ namespace SmartPendant.MAUIHybrid.Services
                 new() { SpeakerId = "vikash", SpeakerLabel = "You", Text = "We should also consider a series of short video testimonials.", Initials = "VK", Timestamp = DateTime.Now.AddDays(-5).AddMinutes(8) },
                 new() { SpeakerId = "charlie", SpeakerLabel = "Charlie", Text = "Good idea, I'll research some tools for video creation.", Initials = "CH", Timestamp = DateTime.Now.AddDays(-5).AddMinutes(15) }
             },
-                AiInsights = new AiInsights
+                ConversationInsights = new ConversationInsights
                 {
                     Topics = new List<string> { "Marketing Strategy", "Ad Channels", "Content Creation", "Video Marketing" },
                     ActionItems = new List<ActionItem>
                 {
-                    new() { ConversationTitle = "Q3 Marketing Campaign Brainstorm", Task = "Research new ad channels", Assignee = "Charlie", DueDate = DateTime.Parse("2025-06-18") },
-                    new() { ConversationTitle = "Q3 Marketing Campaign Brainstorm", Task = "Draft video testimonial concept", Assignee = "You", DueDate = DateTime.Parse("2025-06-20") }
+                    new() { ConversationTitle = "Q3 Marketing Campaign Brainstorm", Description = "Research new ad channels", Assignee = "Charlie", DueDate = DateTime.Parse("2025-06-18") },
+                    new() { ConversationTitle = "Q3 Marketing Campaign Brainstorm", Description = "Draft video testimonial concept", Assignee = "You", DueDate = DateTime.Parse("2025-06-20") }
                 }
                 },
                 Timeline = new List<TimelineEvent>
@@ -172,13 +172,13 @@ namespace SmartPendant.MAUIHybrid.Services
                 new() { SpeakerId = "vikash", SpeakerLabel = "You", Text = "I can help with the dependency issue after my current task.", Initials = "VK", Timestamp = DateTime.Now.AddDays(-1).AddMinutes(5) },
                 new() { SpeakerId = "eve", SpeakerLabel = "Eve", Text = "Thanks, Vikash! That would be great.", Initials = "EV", Timestamp = DateTime.Now.AddDays(-1).AddMinutes(6) }
             },
-                AiInsights = new AiInsights
+                ConversationInsights = new ConversationInsights
                 {
                     Topics = new List<string> { "Sprint Progress", "Blockers", "API Integration", "User Authentication" },
                     ActionItems = new List<ActionItem>
                 {
-                    new() { ConversationTitle = "Weekly Product Development Standup", Task = "Assist Frank with dependency issue", Assignee = "You", DueDate = DateTime.Parse("2025-06-14") },
-                    new() { ConversationTitle = "Weekly Product Development Standup", Task = "Review user authentication module", Assignee = "Frank", DueDate = DateTime.Parse("2025-06-16") }
+                    new() { ConversationTitle = "Weekly Product Development Standup", Description = "Assist Frank with dependency issue", Assignee = "You", DueDate = DateTime.Parse("2025-06-14") },
+                    new() { ConversationTitle = "Weekly Product Development Standup", Description = "Review user authentication module", Assignee = "Frank", DueDate = DateTime.Parse("2025-06-16") }
                 }
                 },
                 Timeline = new List<TimelineEvent>
@@ -207,13 +207,13 @@ namespace SmartPendant.MAUIHybrid.Services
                 new() { SpeakerId = "henry", SpeakerLabel = "Henry (Client)", Text = "A way to export reports directly to PDF would be very helpful.", Initials = "HE", Timestamp = DateTime.Now.AddDays(-7).AddMinutes(10) },
                 new() { SpeakerId = "grace", SpeakerLabel = "Grace (Client)", Text = "And perhaps more filtering options for date ranges.", Initials = "GR", Timestamp = DateTime.Now.AddDays(-7).AddMinutes(12) }
             },
-                AiInsights = new AiInsights
+                ConversationInsights = new ConversationInsights
                 {
                     Topics = new List<string> { "Client Feedback", "New Features", "Reporting", "Export Functionality" },
                     ActionItems = new List<ActionItem>
                 {
-                    new() { ConversationTitle = "Client Feedback Session - New Feature", Task = "Investigate PDF export for reports", Assignee = "You", DueDate = DateTime.Parse("2025-06-21") },
-                    new() { ConversationTitle = "Client Feedback Session - New Feature", Task = "Add more date range filtering options", Assignee = "Development Team", DueDate = DateTime.Parse("2025-06-28") }
+                    new() { ConversationTitle = "Client Feedback Session - New Feature", Description = "Investigate PDF export for reports", Assignee = "You", DueDate = DateTime.Parse("2025-06-21") },
+                    new() { ConversationTitle = "Client Feedback Session - New Feature", Description = "Add more date range filtering options", Assignee = "Development Team", DueDate = DateTime.Parse("2025-06-28") }
                 }
                 },
                 Timeline = new List<TimelineEvent>
@@ -242,13 +242,13 @@ namespace SmartPendant.MAUIHybrid.Services
                 new() { SpeakerId = "vikash", SpeakerLabel = "You", Text = "I'll send out a detailed FAQ document regarding benefits and time off.", Initials = "VK", Timestamp = DateTime.Now.AddMonths(-1).AddMinutes(20) },
                 new() { SpeakerId = "irene", SpeakerLabel = "Irene (HR)", Text = "Perfect, Vikash. And please remember to complete your W-4 forms by Friday.", Initials = "IR", Timestamp = DateTime.Now.AddMonths(-1).AddMinutes(30) }
             },
-                AiInsights = new AiInsights
+                ConversationInsights = new ConversationInsights
                 {
                     Topics = new List<string> { "HR Onboarding", "Company Policies", "Employee Benefits", "Payroll" },
                     ActionItems = new List<ActionItem>
                 {
-                    new() { ConversationTitle = "HR Onboarding Session", Task = "Send benefits and time off FAQ", Assignee = "You", DueDate = DateTime.Parse("2025-06-14") },
-                    new() { ConversationTitle = "HR Onboarding Session", Task = "Complete W-4 forms", Assignee = "New Hires", DueDate = DateTime.Parse("2025-06-13") }
+                    new() { ConversationTitle = "HR Onboarding Session", Description = "Send benefits and time off FAQ", Assignee = "You", DueDate = DateTime.Parse("2025-06-14") },
+                    new() { ConversationTitle = "HR Onboarding Session", Description = "Complete W-4 forms", Assignee = "New Hires", DueDate = DateTime.Parse("2025-06-13") }
                 }
                 },
                 Timeline = new List<TimelineEvent>

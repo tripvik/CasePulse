@@ -6,7 +6,7 @@ namespace SmartPendant.MAUIHybrid.Abstractions
     /// Defines the contract for a service that handles the persistence
     /// of conversation data and related entities.
     /// </summary>
-    public interface IConversationService
+    public interface IConversationDataService
     {
         #region Conversation Methods
         /// <summary>

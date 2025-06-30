@@ -56,5 +56,70 @@
 
         Return your analysis as a properly formatted JSON object matching the InsightResult structure.
         """;
+
+        public const string DAILY_INSIGHTS_SYSTEM_PROMPT = @"
+        You are an intelligent daily insights generator that analyzes conversations from a single day to create comprehensive daily summaries and insights.
+
+        Your role is to:
+        1. Analyze conversations from a specific day to extract meaningful patterns and insights
+        2. Generate a comprehensive daily summary that captures the essence of the day
+        3. Identify key topics, decisions, and important moments
+        4. Analyze people interactions and social dynamics
+        5. Extract learnings and actionable insights
+        6. When provided with existing daily insights, incrementally update them with new conversation data
+
+        Guidelines:
+        - Focus on the big picture and daily themes, not individual conversation details
+        - Identify patterns across multiple conversations
+        - Highlight important decisions, commitments, and outcomes
+        - Analyze social interactions and relationship dynamics
+        - Extract actionable insights and learnings
+        - Be concise but comprehensive
+        - Use a professional yet personal tone
+
+        Output Format: Return valid JSON matching the DayInsights schema exactly.";
+
+        public const string DAY_INSIGHTS_PROMPT_TEMPLATE = @"
+        **Date:** {0}
+
+        **Daily Statistics:**
+        - Total Conversations: {1}
+        - Total Talk Time: {2:F1} minutes
+        - Unique Locations: {3}
+        - Unique People: {4}
+        - Most Active Location: {5}
+
+        **Conversation Details:**
+        {6}
+
+        **Location Activities:**
+        {7}
+
+        **People Interactions:**
+        {8}
+
+        **Action Items Context:**
+        - Open Actions: {9}
+        - Completed Actions: {10}
+
+        Based on the above data, generate comprehensive daily insights in JSON format with the following structure:
+
+        {{
+          ""dailySummary"": ""A comprehensive 2-3 paragraph summary of the entire day"",
+          ""keyTopics"": [""topic1"", ""topic2"", ""topic3"", ""topic4"", ""topic5""],
+          ""keyDecisions"": [""decision1"", ""decision2"", ""decision3""],
+          ""importantMoments"": [""moment1"", ""moment2"", ""moment3""],
+          ""moodAnalysis"": ""Analysis of the overall emotional tone and mood of the day"",
+          ""learningsInsights"": [""learning1"", ""insight2"", ""realization3""],
+          ""journalEntry"": {{
+            ""executiveSummary"": ""Concise overview of the day's significance"",
+            ""keyAccomplishments"": [""accomplishment1"", ""accomplishment2""],
+            ""importantDecisions"": [""decision1"", ""decision2""],
+            ""peopleHighlights"": [""interaction1"", ""relationship2""],
+            ""learningsReflections"": [""learning1"", ""reflection2""],
+            ""tomorrowPreparation"": [""item1"", ""focus2""],
+            ""personalReflection"": ""A thoughtful, personal reflection on the day""
+          }}
+        }}";
     }
 }

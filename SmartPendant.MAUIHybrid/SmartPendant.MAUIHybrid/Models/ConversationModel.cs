@@ -25,7 +25,7 @@ namespace SmartPendant.MAUIHybrid.Models
         public List<string> Tags { get; set; } = [];
         public List<TranscriptEntry> Transcript { get; set; } = [];
         public TranscriptEntry? RecognizingEntry { get; set; }
-        public AiInsights? AiInsights { get; set; } = new();
+        public ConversationInsights? ConversationInsights { get; set; } = new();
         public List<TimelineEvent>? Timeline { get; set; }
     }
 
@@ -68,7 +68,7 @@ namespace SmartPendant.MAUIHybrid.Models
     /// <summary>
     /// A container for all AI-generated insights.
     /// </summary>
-    public class AiInsights
+    public class ConversationInsights
     {
         public List<string>? Topics { get; set; }
         public List<ActionItem>? ActionItems { get; set; }
@@ -101,7 +101,7 @@ namespace SmartPendant.MAUIHybrid.Models
         /// </summary>
         [Description("Clear description of the task or action that needs to be completed")]
         [JsonPropertyName("task")]
-        public string? Task { get; set; }
+        public string? Description { get; set; }
 
         /// <summary>
         /// Gets or sets the current status of the task. Must be either "Pending" or "Completed".

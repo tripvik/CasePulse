@@ -9,12 +9,12 @@ namespace SmartPendant.MAUIHybrid.Services
     /// An implementation of IConversationService that uses LocalStorage
     /// for client-side data persistence.
     /// </summary>
-    public class LocalStorageConversationService : IConversationService
+    public class LocalStorageConversationDataService : IConversationDataService
     {
         private readonly ILocalStorageService _localStorage;
         private const string ConversationListKey = "conversation_list";
 
-        public LocalStorageConversationService(ILocalStorageService localStorage)
+        public LocalStorageConversationDataService(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
         }
@@ -86,8 +86,17 @@ namespace SmartPendant.MAUIHybrid.Services
             if (string.IsNullOrWhiteSpace(topic)) return new List<ConversationModel>();
             var allConversations = await GetAllConversationsAsync();
             return allConversations
-                .Where(c => c.AiInsights?.Topics?.Contains(topic, StringComparer.OrdinalIgnoreCase) ?? false)
+                .Where(c => c.ConversationInsights?.Topics?.Contains(topic, StringComparer.OrdinalIgnoreCase) ?? false)
                 .ToList();
+        }
+
+        public async Task<ConversationModel?> GetConversationByDateAsync(DateTime date)
+        {
+            var allConversations = await GetAllConversationsAsync();
+            return allConversations
+                .Where(c => c.CreatedAt.Date == date.Date)
+                .OrderBy(c => c.CreatedAt)
+                .FirstOrDefault();
         }
 
         public async Task DeleteConversationAsync(Guid conversationId)
@@ -121,7 +130,7 @@ namespace SmartPendant.MAUIHybrid.Services
         {
             var allConversations = await GetAllConversationsAsync();
             return allConversations
-                .SelectMany(c => c.AiInsights?.ActionItems ?? Enumerable.Empty<ActionItem>())
+                .SelectMany(c => c.ConversationInsights?.ActionItems ?? Enumerable.Empty<ActionItem>())
                 .ToList();
         }
 

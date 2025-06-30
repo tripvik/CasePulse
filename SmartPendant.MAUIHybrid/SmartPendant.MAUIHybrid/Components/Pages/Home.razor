@@ -146,7 +146,10 @@
         var dayRecord = OrchestrationService.CurrentDay;
 
         var todaysConversation = await ConversationRepository.GetConversationsByDateAsync(DateTime.Now.Date);
-        dayRecord.Conversations.AddRange(todaysConversation);
+        
+        dayRecord.Conversations = dayRecord.Conversations
+            .UnionBy(todaysConversation, c => c.Id)
+            .ToList();
 
         if (ConversationRecord is null || !ConversationRecord.Transcript.Any())
         {

@@ -1,5 +1,5 @@
 ﻿@page "/history"
-@inject IConversationDataService ConversationService
+@inject IConversationRepository ConversationRepository
 @inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
@@ -97,14 +97,13 @@
 </MudContainer>
 
 @code {
-    private List<ConversationModel> Conversations = new();
-    private List<ConversationModel> filteredConversations = new();
+    private List<ConversationRecord> Conversations = new();
+    private List<ConversationRecord> filteredConversations = new();
     private HashSet<DateTime> expandedGroups = new();
     private bool allExpanded = true;
 
     private string searchQuery = string.Empty;
     private DateRange? dateRange;
-    private string? selectedTopic;
     private HashSet<string> selectedTags = new();
     private bool isLoading = true;
 
@@ -118,7 +117,7 @@
         isLoading = true;
         try
         {
-            Conversations = await ConversationService.GetAllConversationsAsync();
+            Conversations = await ConversationRepository.GetAllConversationsAsync();
             filteredConversations = Conversations.ToList();
 
             InitializeExpandedGroups();
@@ -210,7 +209,7 @@
         StateHasChanged();
     }
 
-    private IEnumerable<IGrouping<DateTime, ConversationModel>> GetGroupedConversations()
+    private IEnumerable<IGrouping<DateTime, ConversationRecord>> GetGroupedConversations()
     {
         return filteredConversations
             .GroupBy(c => c.CreatedAt.Date)
@@ -240,35 +239,17 @@
         StateHasChanged();
     }
 
-    private IEnumerable<ConversationModel> GetTopicFilteredConversations()
-    {
-        var filtered = Conversations.AsEnumerable();
-
-        if (!string.IsNullOrEmpty(selectedTopic))
-        {
-            filtered = filtered.Where(c => c.ConversationInsights?.Topics?.Contains(selectedTopic) ?? false);
-        }
-
-        if (selectedTags.Any())
-        {
-            filtered = filtered.Where(c => 
-                c.Tags != null && selectedTags.Any(tag => c.Tags.Contains(tag)));
-        }
-
-        return filtered.OrderByDescending(c => c.CreatedAt);
-    }
-
-    private void ViewConversationAsync(ConversationModel conversation)
+    private void ViewConversationAsync(ConversationRecord conversation)
     {
         NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
     }
 
-    private async Task DeleteConversationAsync(ConversationModel? conversation)
+    private async Task DeleteConversationAsync(ConversationRecord? conversation)
     {
         if (conversation == null)
             return;
 
-        await ConversationService.DeleteConversationAsync(conversation.Id);
+        await ConversationRepository.DeleteConversationAsync(conversation.Id);
         await LoadConversationsAsync();
     }
 }

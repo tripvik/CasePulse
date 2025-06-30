@@ -81,6 +81,8 @@ namespace SmartPendant.MAUIHybrid.Services
                 IsDarkMode = newValue;
                 OnMajorUpdateOccured();
             }
+
+            await Task.CompletedTask;
         }
 
         public async Task ToggleDarkMode()

@@ -9,7 +9,7 @@ namespace SmartPendant.MAUIHybrid.Services
     /// <summary>
     /// Provides services for generating AI-driven insights from a full day's conversations.
     /// </summary>
-    public class DayInsightService
+    public class DailyJournalInsightService
     {
         #region Fields
 
@@ -19,7 +19,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
         #region Constructor
 
-        public DayInsightService(IChatClient chatClient)
+        public DailyJournalInsightService(IChatClient chatClient)
         {
             _chatClient = chatClient ?? throw new ArgumentNullException(nameof(chatClient));
         }
@@ -31,53 +31,53 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <summary>
         /// Generates AI insights for a given day and applies them to the day model object.
         /// </summary>
-        /// <param name="dayModel">The day model object to process.</param>
+        /// <param name="dayRecord">The day model object to process.</param>
         /// <param name="cancellationToken">A token to cancel the operation.</param>
-        /// <exception cref="ArgumentNullException">Thrown if the dayModel is null.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if the dayModel has invalid data.</exception>
-        public async Task GenerateAndApplyDailyInsightAsync(DayModel dayModel, CancellationToken cancellationToken = default)
+        /// <exception cref="ArgumentNullException">Thrown if the dayRecord is null.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the dayRecord has invalid data.</exception>
+        public async Task GenerateAndApplyDailyInsightAsync(DayRecord dayRecord, CancellationToken cancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(dayModel);
+            ArgumentNullException.ThrowIfNull(dayRecord);
 
-            if (!IsValidDayModel(dayModel))
+            if (!IsValiddayRecord(dayRecord))
             {
-                Debug.WriteLine($"GenerateAndApplyDailyInsightAsync called with invalid day data. Date: {dayModel.Date:yyyy-MM-dd}");
+                Debug.WriteLine($"GenerateAndApplyDailyInsightAsync called with invalid day data. Date: {dayRecord.Date:yyyy-MM-dd}");
                 return;
             }
 
             try
             {
                 // Calculate day statistics
-                CalculateDayStats(dayModel);
+                CalculateDayStats(dayRecord);
 
                 // Organize action items
-                OrganizeActionItems(dayModel);
+                OrganizeActionItems(dayRecord);
 
                 // Group location activities
-                GroupLocationActivities(dayModel);
+                GroupLocationActivities(dayRecord);
 
                 // Generate AI insights
-                var dayInsightInput = CreateDayInsightInputFromModel(dayModel);
+                var dayInsightInput = CreateDayInsightInputFromModel(dayRecord);
                 var insightResult = await GetDayInsightAsync(dayInsightInput, cancellationToken);
 
                 if (insightResult != null)
                 {
-                    ApplyInsightsToDayModel(dayModel, insightResult);
-                    Debug.WriteLine($"Successfully generated daily insights for {dayModel.Date:yyyy-MM-dd}");
+                    ApplyInsightsTodayRecord(dayRecord, insightResult);
+                    Debug.WriteLine($"Successfully generated daily insights for {dayRecord.Date:yyyy-MM-dd}");
                 }
                 else
                 {
-                    Debug.WriteLine($"No insights generated for day {dayModel.Date:yyyy-MM-dd}");
+                    Debug.WriteLine($"No insights generated for day {dayRecord.Date:yyyy-MM-dd}");
                 }
             }
             catch (OperationCanceledException)
             {
-                Debug.WriteLine($"Daily insight generation was cancelled for {dayModel.Date:yyyy-MM-dd}");
+                Debug.WriteLine($"Daily insight generation was cancelled for {dayRecord.Date:yyyy-MM-dd}");
                 throw;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to generate daily insights for {dayModel.Date:yyyy-MM-dd}. Error: {ex.Message}");
+                Debug.WriteLine($"Failed to generate daily insights for {dayRecord.Date:yyyy-MM-dd}. Error: {ex.Message}");
                 throw;
             }
         }
@@ -89,12 +89,12 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <summary>
         /// Validates if the day model has the minimum required data for insight generation.
         /// </summary>
-        /// <param name="dayModel">The day model to validate.</param>
+        /// <param name="dayRecord">The day model to validate.</param>
         /// <returns>True if the day model is valid for processing.</returns>
-        private static bool IsValidDayModel(DayModel dayModel)
+        private static bool IsValiddayRecord(DayRecord dayRecord)
         {
-            return dayModel.Conversations?.Any() == true &&
-                   dayModel.Conversations.All(c => c.Transcript?.Any() == true);
+            return dayRecord.Conversations?.Any() == true &&
+                   dayRecord.Conversations.All(c => c.Transcript?.Any() == true);
         }
 
         #endregion
@@ -104,39 +104,38 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <summary>
         /// Calculates and sets the day statistics based on conversations.
         /// </summary>
-        /// <param name="dayModel">The day model to calculate statistics for.</param>
-        private static void CalculateDayStats(DayModel dayModel)
+        private static void CalculateDayStats(DayRecord dayRecord)
         {
-            if (!dayModel.Conversations?.Any() == true)
+            if (dayRecord.Conversations == null || !dayRecord.Conversations.Any())
             {
-                dayModel.Stats = new DayStats();
+                dayRecord.Stats = new DayStats();
                 return;
             }
 
-            var conversations = dayModel.Conversations;
+            var conversations = dayRecord.Conversations;
             var totalMinutes = conversations.Sum(c => c.DurationMinutes);
             var locations = conversations.Where(c => !string.IsNullOrWhiteSpace(c.Location))
-                                      .Select(c => c.Location!.Trim())
-                                      .Distinct(StringComparer.OrdinalIgnoreCase)
-                                      .ToList();
+                                          .Select(c => c.Location!.Trim())
+                                          .Distinct(StringComparer.OrdinalIgnoreCase)
+                                          .ToList();
 
-            var people = conversations.SelectMany(c => c.Transcript ?? [])
-                                    .Where(t => !string.IsNullOrWhiteSpace(t.SpeakerLabel))
-                                    .Select(t => t.SpeakerLabel!.Trim())
-                                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                                    .ToList();
+            var people = conversations.SelectMany(c => c.Transcript ?? new List<TranscriptEntry>())
+                                       .Where(t => !string.IsNullOrWhiteSpace(t.SpeakerLabel))
+                                       .Select(t => t.SpeakerLabel!.Trim())
+                                       .Distinct(StringComparer.OrdinalIgnoreCase)
+                                       .ToList();
 
             var conversationTimes = conversations.Select(c => c.CreatedAt.TimeOfDay).OrderBy(t => t).ToList();
             var longestConversation = conversations.OrderByDescending(c => c.DurationMinutes).FirstOrDefault();
 
             // Find most active location
             var locationGroups = conversations.Where(c => !string.IsNullOrWhiteSpace(c.Location))
-                                           .GroupBy(c => c.Location!.Trim(), StringComparer.OrdinalIgnoreCase)
-                                           .ToList();
+                                               .GroupBy(c => c.Location!.Trim(), StringComparer.OrdinalIgnoreCase)
+                                               .ToList();
             var mostActiveLocation = locationGroups.OrderByDescending(g => g.Sum(c => c.DurationMinutes))
-                                                 .FirstOrDefault()?.Key;
+                                                   .FirstOrDefault()?.Key;
 
-            dayModel.Stats = new DayStats
+            dayRecord.Stats = new DayStats
             {
                 TotalTalkTimeMinutes = totalMinutes,
                 TotalConversations = conversations.Count,
@@ -153,31 +152,30 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <summary>
         /// Organizes action items into open and completed categories.
         /// </summary>
-        /// <param name="dayModel">The day model to organize action items for.</param>
-        private static void OrganizeActionItems(DayModel dayModel)
+        /// <param name="dayRecord">The day model to organize action items for.</param>
+        private static void OrganizeActionItems(DayRecord dayRecord)
         {
-            var allActionItems = dayModel.Conversations
+            var allActionItems = dayRecord.Conversations
                 .Where(c => c.ConversationInsights?.ActionItems?.Any() == true)
-                .SelectMany(c => c.ConversationInsights.ActionItems)
-                .Where(a => a != null)
+                .SelectMany(c => c.ConversationInsights!.ActionItems!)
                 .ToList();
 
-            dayModel.OpenActions = allActionItems.Where(a => a.Status == ActionStatus.Pending).ToList();
-            dayModel.CompletedActions = allActionItems.Where(a => a.Status == ActionStatus.Completed).ToList();
+            dayRecord.OpenActions = allActionItems.Where(a => a.Status == ActionStatus.Pending).ToList();
+            dayRecord.CompletedActions = allActionItems.Where(a => a.Status == ActionStatus.Completed).ToList();
         }
 
         /// <summary>
         /// Groups conversations by location and calculates location-based activities.
         /// </summary>
-        /// <param name="dayModel">The day model to group location activities for.</param>
-        private static void GroupLocationActivities(DayModel dayModel)
+        /// <param name="dayRecord">The day model to group location activities for.</param>
+        private static void GroupLocationActivities(DayRecord dayRecord)
         {
-            var locationGroups = dayModel.Conversations
+            var locationGroups = dayRecord.Conversations
                 .Where(c => !string.IsNullOrWhiteSpace(c.Location))
                 .GroupBy(c => c.Location!.Trim(), StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            dayModel.LocationActivities = locationGroups.Select(group =>
+            dayRecord.LocationActivities = locationGroups.Select(group =>
             {
                 var conversations = group.ToList();
                 var topics = conversations.SelectMany(c => c.ConversationInsights?.Topics ?? [])
@@ -240,22 +238,22 @@ namespace SmartPendant.MAUIHybrid.Services
         }
 
         /// <summary>
-        /// Creates a DayInsightInput object from a DayModel.
+        /// Creates a DayInsightInput object from a dayRecord.
         /// </summary>
-        /// <param name="dayModel">The day model to convert.</param>
+        /// <param name="dayRecord">The day model to convert.</param>
         /// <returns>A new DayInsightInput instance.</returns>
-        private static DayInsightInput CreateDayInsightInputFromModel(DayModel dayModel)
+        private static DayInsightInput CreateDayInsightInputFromModel(DayRecord dayRecord)
         {
-            var peopleInteractions = CalculatePeopleInteractions(dayModel.Conversations);
+            var peopleInteractions = CalculatePeopleInteractions(dayRecord.Conversations);
 
             return new DayInsightInput
             {
-                Date = dayModel.Date,
-                Conversations = dayModel.Conversations.ToList(),
-                Stats = dayModel.Stats,
-                LocationActivities = dayModel.LocationActivities.ToList(),
-                OpenActions = dayModel.OpenActions.ToList(),
-                CompletedActions = dayModel.CompletedActions.ToList(),
+                Date = dayRecord.Date,
+                Conversations = dayRecord.Conversations.ToList(),
+                Stats = dayRecord.Stats,
+                LocationActivities = dayRecord.LocationActivities.ToList(),
+                OpenActions = dayRecord.OpenActions.ToList(),
+                CompletedActions = dayRecord.CompletedActions.ToList(),
                 PeopleInteractions = peopleInteractions
             };
         }
@@ -265,7 +263,7 @@ namespace SmartPendant.MAUIHybrid.Services
         /// </summary>
         /// <param name="conversations">The conversations to analyze.</param>
         /// <returns>A list of person interactions.</returns>
-        private static List<PersonInteraction> CalculatePeopleInteractions(List<ConversationModel> conversations)
+        private static List<PersonInteraction> CalculatePeopleInteractions(List<ConversationRecord> conversations)
         {
             var speakerGroups = conversations
                 .SelectMany(c => c.Transcript?.Where(t => !string.IsNullOrWhiteSpace(t.SpeakerLabel)) ?? [])
@@ -401,19 +399,19 @@ namespace SmartPendant.MAUIHybrid.Services
         /// <summary>
         /// Applies the generated daily insights to the day model object.
         /// </summary>
-        /// <param name="dayModel">The day model to update.</param>
+        /// <param name="dayRecord">The day model to update.</param>
         /// <param name="insightResult">The insights to apply.</param>
-        private static void ApplyInsightsToDayModel(DayModel dayModel, DayInsightResult insightResult)
+        private static void ApplyInsightsTodayRecord(DayRecord dayRecord, DayInsightResult insightResult)
         {
             // Apply main insights
-            dayModel.Insights = new DayInsights
+            dayRecord.Insights = new DayInsights
             {
                 DailySummary = insightResult.DailySummary?.Trim(),
                 KeyTopics = insightResult.KeyTopics ?? [],
                 KeyDecisions = insightResult.KeyDecisions ?? [],
                 ImportantMoments = insightResult.ImportantMoments ?? [],
-                PeopleInteracted = dayModel.LocationActivities.SelectMany(la =>
-                    dayModel.Conversations.Where(c => c.Location == la.Location)
+                PeopleInteracted = dayRecord.LocationActivities.SelectMany(la =>
+                    dayRecord.Conversations.Where(c => c.Location == la.Location)
                         .SelectMany(c => c.Transcript?.Where(t => !string.IsNullOrWhiteSpace(t.SpeakerLabel)) ?? [])
                         .Select(t => t.SpeakerLabel!)
                         .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -429,7 +427,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 LearningsInsights = insightResult.LearningsInsights ?? [],
                 JournalEntry = new DailyJournalEntry
                 {
-                    Date = dayModel.Date,
+                    Date = dayRecord.Date,
                     ExecutiveSummary = insightResult.JournalEntry?.ExecutiveSummary?.Trim(),
                     KeyAccomplishments = insightResult.JournalEntry?.KeyAccomplishments ?? [],
                     ImportantDecisions = insightResult.JournalEntry?.ImportantDecisions ?? [],
@@ -440,7 +438,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 }
             };
 
-            Debug.WriteLine($"Applied daily insights to day model for {dayModel.Date:yyyy-MM-dd}");
+            Debug.WriteLine($"Applied daily insights to day model for {dayRecord.Date:yyyy-MM-dd}");
         }
 
         #endregion

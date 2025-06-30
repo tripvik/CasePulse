@@ -1,9 +1,9 @@
 ﻿namespace SmartPendant.MAUIHybrid.Models
 {
-    public class DayModel
+    public class DayRecord
     {
         public DateTime Date { get; set; } = DateTime.Now;
-        public List<ConversationModel> Conversations { get; set; } = [];
+        public List<ConversationRecord> Conversations { get; set; } = [];
         public DayInsights Insights { get; set; } = new();
         public DayStats Stats { get; set; } = new();
         public List<LocationActivity> LocationActivities { get; set; } = [];

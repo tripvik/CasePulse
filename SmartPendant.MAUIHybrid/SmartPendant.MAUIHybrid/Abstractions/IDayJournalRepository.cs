@@ -5,41 +5,41 @@ namespace SmartPendant.MAUIHybrid.Abstractions
     /// <summary>
     /// Provides methods for saving, retrieving, and deleting daily data models.
     /// </summary>
-    public interface IDayDataService
+    public interface IDayJournalRepository
     {
         #region Save
 
         /// <summary>
-        /// Saves the specified <see cref="DayModel"/> to persistent storage.
+        /// Saves the specified <see cref="DayRecord"/> to persistent storage.
         /// </summary>
-        /// <param name="dayModel">The day model to save.</param>
+        /// <param name="dayRecord">The day model to save.</param>
         /// <returns>A task that represents the asynchronous save operation.</returns>
-        Task SaveDayModelAsync(DayModel dayModel);
+        Task SaveAsync(DayRecord dayRecord);
 
         #endregion
 
         #region Retrieve
 
         /// <summary>
-        /// Retrieves a <see cref="DayModel"/> for the specified date.
+        /// Retrieves a <see cref="DayRecord"/> for the specified date.
         /// </summary>
         /// <param name="date">The date to retrieve data for.</param>
         /// <returns>
         /// A task that represents the asynchronous get operation. 
-        /// The task result contains the <see cref="DayModel"/> if found; otherwise, <c>null</c>.
+        /// The task result contains the <see cref="DayRecord"/> if found; otherwise, <c>null</c>.
         /// </returns>
-        Task<DayModel?> GetDayModelAsync(DateTime date);
+        Task<DayRecord?> GetAsync(DateTime date);
 
         #endregion
 
         #region Delete
 
         /// <summary>
-        /// Deletes the <see cref="DayModel"/> associated with the specified date.
+        /// Deletes the <see cref="DayRecord"/> associated with the specified date.
         /// </summary>
         /// <param name="date">The date of the day model to delete.</param>
         /// <returns>A task that represents the asynchronous delete operation.</returns>
-        Task DeleteDayModelAsync(DateTime date);
+        Task DeleteAsync(DateTime date);
 
         #endregion
     }

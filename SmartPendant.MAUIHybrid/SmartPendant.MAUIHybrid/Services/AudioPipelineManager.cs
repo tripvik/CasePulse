@@ -34,8 +34,8 @@ public class AudioPipelineManager : IAsyncDisposable
 
     #region Properties
 
-    public ConversationModel CurrentConversation { get; private set; } = new();
-    public DayModel CurrentDay { get; private set; } = new();
+    public ConversationRecord CurrentConversation { get; private set; } = new();
+    public DayRecord CurrentDay { get; private set; } = new();
     #endregion
 
     #region Events
@@ -53,7 +53,7 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         _connectionService = connectionService;
         _transcriptionService = transcriptionService;
-        CurrentConversation = new ConversationModel();
+        CurrentConversation = new ConversationRecord();
 
         _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(5000)
         {
@@ -71,7 +71,7 @@ public class AudioPipelineManager : IAsyncDisposable
     {
         Debug.WriteLine("Starting audio pipeline...");
         //moved to clear conversation regardless of successful subsequent device connection.
-        CurrentConversation = new ConversationModel();
+        CurrentConversation = new ConversationRecord();
         // Connect and initialize device
         var (connected, connEx) = await _connectionService.ConnectAsync();
         if (!connected)
@@ -133,7 +133,7 @@ public class AudioPipelineManager : IAsyncDisposable
             }
             else
             {
-                CurrentDay = new DayModel { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
+                CurrentDay = new DayRecord { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
             }
 
             ConversationCompleted?.Invoke(this, EventArgs.Empty);
@@ -168,15 +168,18 @@ public class AudioPipelineManager : IAsyncDisposable
         _transcriptionService.RecognizingTranscriptReceived -= OnRecognizingTranscriptReceived;
     }
 
-    #endregion
-
-    #region Service Event Handlers
-
     private async void OnDataReceived(object? sender, byte[] data)
     {
         try
         {
-            await _audioDataChannel.Writer.WriteAsync(data, _pipelineCts.Token);
+            if (_audioDataChannel?.Writer != null && _pipelineCts?.Token != null)
+            {
+                await _audioDataChannel.Writer.WriteAsync(data, _pipelineCts.Token);
+            }
+            else
+            {
+                Debug.WriteLine("Audio data channel writer or cancellation token is null.");
+            }
         }
         catch (OperationCanceledException)
         {
@@ -224,14 +227,14 @@ public class AudioPipelineManager : IAsyncDisposable
             }
             else
             {
-                CurrentDay = new DayModel { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
+                CurrentDay = new DayRecord { Date = DateTime.Now.Date, Conversations = { CurrentConversation } };
             }
 
             ConversationCompleted?.Invoke(this, EventArgs.Empty);
         }
 
         // Reset for a new conversation segment.
-        CurrentConversation = new ConversationModel();
+        CurrentConversation = new ConversationRecord();
         StateHasChanged?.Invoke(this, EventArgs.Empty);
 
         // The timer is AutoReset=false, so it stops. We restart it to monitor the new empty segment.

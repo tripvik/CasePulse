@@ -9,18 +9,18 @@ namespace SmartPendant.MAUIHybrid.Services
     /// An implementation of IConversationService that uses LocalStorage
     /// for client-side data persistence.
     /// </summary>
-    public class LocalStorageConversationDataService : IConversationDataService
+    public class LocalConversationRepository : IConversationRepository
     {
         private readonly ILocalStorageService _localStorage;
         private const string ConversationListKey = "conversation_list";
 
-        public LocalStorageConversationDataService(ILocalStorageService localStorage)
+        public LocalConversationRepository(ILocalStorageService localStorage)
         {
             _localStorage = localStorage;
         }
 
         #region Conversation Methods
-        public async Task SaveConversationAsync(ConversationModel conversation)
+        public async Task SaveConversationAsync(ConversationRecord conversation)
         {
             if (conversation is null) return;
             try
@@ -39,7 +39,7 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task SaveConversationsAsync(IEnumerable<ConversationModel> conversations)
+        public async Task SaveConversationsAsync(IEnumerable<ConversationRecord> conversations)
         {
             foreach (var conversation in conversations)
             {
@@ -47,11 +47,11 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task<ConversationModel?> GetConversationAsync(Guid conversationId)
+        public async Task<ConversationRecord?> GetConversationAsync(Guid conversationId)
         {
             try
             {
-                return await _localStorage.GetItemAsync<ConversationModel>(conversationId.ToString());
+                return await _localStorage.GetItemAsync<ConversationRecord>(conversationId.ToString());
             }
             catch (Exception ex)
             {
@@ -60,9 +60,9 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task<List<ConversationModel>> GetAllConversationsAsync()
+        public async Task<List<ConversationRecord>> GetAllConversationsAsync()
         {
-            var conversations = new List<ConversationModel>();
+            var conversations = new List<ConversationRecord>();
             var conversationIds = await GetConversationIdListAsync();
             foreach (var id in conversationIds)
             {
@@ -75,22 +75,22 @@ namespace SmartPendant.MAUIHybrid.Services
             return conversations;
         }
 
-        public async Task<List<ConversationModel>> GetConversationsByDateAsync(DateTime date)
+        public async Task<List<ConversationRecord>> GetConversationsByDateAsync(DateTime date)
         {
             var allConversations = await GetAllConversationsAsync();
             return allConversations.Where(c => c.CreatedAt.Date == date.Date).ToList();
         }
 
-        public async Task<List<ConversationModel>> GetConversationsByTopicAsync(string topic)
+        public async Task<List<ConversationRecord>> GetConversationsByTopicAsync(string topic)
         {
-            if (string.IsNullOrWhiteSpace(topic)) return new List<ConversationModel>();
+            if (string.IsNullOrWhiteSpace(topic)) return new List<ConversationRecord>();
             var allConversations = await GetAllConversationsAsync();
             return allConversations
                 .Where(c => c.ConversationInsights?.Topics?.Contains(topic, StringComparer.OrdinalIgnoreCase) ?? false)
                 .ToList();
         }
 
-        public async Task<ConversationModel?> GetConversationByDateAsync(DateTime date)
+        public async Task<ConversationRecord?> GetConversationByDateAsync(DateTime date)
         {
             var allConversations = await GetAllConversationsAsync();
             return allConversations

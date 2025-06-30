@@ -6,47 +6,47 @@ namespace SmartPendant.MAUIHybrid.Abstractions
     /// Defines the contract for a service that handles the persistence
     /// of conversation data and related entities.
     /// </summary>
-    public interface IConversationDataService
+    public interface IConversationRepository
     {
         #region Conversation Methods
         /// <summary>
         /// Saves a single conversation.
         /// </summary>
         /// <param name="conversation">The conversation object to save.</param>
-        Task SaveConversationAsync(ConversationModel conversation);
+        Task SaveConversationAsync(ConversationRecord conversation);
 
         /// <summary>
         /// Saves a collection of conversations.
         /// </summary>
         /// <param name="conversations">The collection of conversations to save.</param>
-        Task SaveConversationsAsync(IEnumerable<ConversationModel> conversations);
+        Task SaveConversationsAsync(IEnumerable<ConversationRecord> conversations);
 
         /// <summary>
         /// Retrieves a single conversation by its unique ID.
         /// </summary>
         /// <param name="conversationId">The ID of the conversation to retrieve.</param>
         /// <returns>The conversation object, or null if not found.</returns>
-        Task<ConversationModel?> GetConversationAsync(Guid conversationId);
+        Task<ConversationRecord?> GetConversationAsync(Guid conversationId);
 
         /// <summary>
         /// Retrieves all saved conversations.
         /// </summary>
         /// <returns>A list of all conversation objects.</returns>
-        Task<List<ConversationModel>> GetAllConversationsAsync();
+        Task<List<ConversationRecord>> GetAllConversationsAsync();
 
         /// <summary>
         /// Retrieves all conversations recorded on a specific date.
         /// </summary>
         /// <param name="date">The date to filter conversations by.</param>
         /// <returns>A list of conversations from the specified date.</returns>
-        Task<List<ConversationModel>> GetConversationsByDateAsync(DateTime date);
+        Task<List<ConversationRecord>> GetConversationsByDateAsync(DateTime date);
 
         /// <summary>
         /// Retrieves all conversations that contain a specific topic in their insights.
         /// </summary>
         /// <param name="topic">The topic to search for.</param>
         /// <returns>A list of conversations related to the specified topic.</returns>
-        Task<List<ConversationModel>> GetConversationsByTopicAsync(string topic);
+        Task<List<ConversationRecord>> GetConversationsByTopicAsync(string topic);
 
         /// <summary>
         /// Deletes a single conversation by its ID.

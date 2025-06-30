@@ -1,6 +1,6 @@
 @page "/conversation/{ConversationId:guid}"
 @using System.Diagnostics
-@inject IConversationDataService ConversationService
+@inject IConversationRepository ConversationRepository
 @inject NavigationManager NavigationManager
 
 <MudStack Justify="Justify.Center" AlignItems="AlignItems.Stretch" Class="mx-2 full-height-container">
@@ -44,7 +44,7 @@
     [Parameter]
     public Guid ConversationId { get; set; }
 
-    private ConversationModel? conversation;
+    private ConversationRecord? conversation;
     private bool isLoading = true;
 
     protected override async Task OnParametersSetAsync()
@@ -53,7 +53,7 @@
 
         try
         {
-            conversation = await ConversationService.GetConversationAsync(ConversationId);
+            conversation = await ConversationRepository.GetConversationAsync(ConversationId);
         }
         catch
         {

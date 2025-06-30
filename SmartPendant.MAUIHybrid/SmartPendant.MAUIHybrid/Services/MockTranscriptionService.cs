@@ -78,13 +78,13 @@ namespace SmartPendant.MAUIHybrid.Services
             TranscriptReceived?.Invoke(this, nextEntry);
         }
 
-        private List<ConversationModel> GetSampleConversations()
+        private List<ConversationRecord> GetSampleConversations()
         {
-            var conversations = new List<ConversationModel>();
+            var conversations = new List<ConversationRecord>();
 
             // Conversation 1: Project Atlas Launch
             var conversation1Id = Guid.NewGuid();
-            conversations.Add(new ConversationModel
+            conversations.Add(new ConversationRecord
             {
                 Id = conversation1Id,
                 UserId = "user_123",
@@ -121,7 +121,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
             // Conversation 2: Q3 Marketing Campaign Brainstorm
             var conversation2Id = Guid.NewGuid();
-            conversations.Add(new ConversationModel
+            conversations.Add(new ConversationRecord
             {
                 Id = conversation2Id,
                 UserId = "user_456",
@@ -156,7 +156,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
             // Conversation 3: Weekly Product Development Standup
             var conversation3Id = Guid.NewGuid();
-            conversations.Add(new ConversationModel
+            conversations.Add(new ConversationRecord
             {
                 Id = conversation3Id,
                 UserId = "user_789",
@@ -191,7 +191,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
             // Conversation 4: Client Feedback Session - New Feature
             var conversation4Id = Guid.NewGuid();
-            conversations.Add(new ConversationModel
+            conversations.Add(new ConversationRecord
             {
                 Id = conversation4Id,
                 UserId = "user_101",
@@ -226,7 +226,7 @@ namespace SmartPendant.MAUIHybrid.Services
 
             // Conversation 5: HR Onboarding Session
             var conversation5Id = Guid.NewGuid();
-            conversations.Add(new ConversationModel
+            conversations.Add(new ConversationRecord
             {
                 Id = conversation5Id,
                 UserId = "user_222",

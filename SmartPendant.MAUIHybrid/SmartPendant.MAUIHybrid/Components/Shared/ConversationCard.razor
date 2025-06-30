@@ -77,9 +77,9 @@
 </MudCard>
 
 @code {
-    [Parameter] public ConversationModel Conversation { get; set; } = new();
-    [Parameter] public EventCallback<ConversationModel> OnConversationSelected { get; set; }
-    [Parameter] public EventCallback<ConversationModel> OnConversationDeleted { get; set; }
+    [Parameter] public ConversationRecord Conversation { get; set; } = new();
+    [Parameter] public EventCallback<ConversationRecord> OnConversationSelected { get; set; }
+    [Parameter] public EventCallback<ConversationRecord> OnConversationDeleted { get; set; }
 
     private const int SummaryMaxLength = 180;
 

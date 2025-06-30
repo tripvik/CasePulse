@@ -1,5 +1,5 @@
 ﻿@page "/tasks"
-@inject IConversationDataService ConversationService
+@inject IConversationRepository ConversationRepository
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
     <!-- Header -->
@@ -50,7 +50,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        ActionItems = await ConversationService.GetAllTasksAsync();
+        ActionItems = await ConversationRepository.GetAllTasksAsync();
     }
 
     private async Task MarkAsDone(ActionItem task)
@@ -58,7 +58,7 @@
         if (task?.TaskId == null)
             return;
 
-        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
         if (conversation?.ConversationInsights?.ActionItems == null)
         {
             return;
@@ -70,7 +70,7 @@
         if (item != null)
         {
             item.Status = ActionStatus.Completed;
-            await ConversationService.SaveConversationAsync(conversation);
+            await ConversationRepository.SaveConversationAsync(conversation);
             StateHasChanged();
         }
     }
@@ -80,7 +80,7 @@
         if (task?.TaskId == null)
             return;
 
-        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
         if (conversation?.ConversationInsights?.ActionItems == null)
             return;
 
@@ -90,10 +90,10 @@
         if (itemToRemove != null)
         {
             conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
-            await ConversationService.SaveConversationAsync(conversation);
+            await ConversationRepository.SaveConversationAsync(conversation);
         }
 
-        ActionItems = await ConversationService.GetAllTasksAsync();
+        ActionItems = await ConversationRepository.GetAllTasksAsync();
         StateHasChanged();
     }
 }

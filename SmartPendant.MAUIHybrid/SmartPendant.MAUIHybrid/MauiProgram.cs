@@ -74,10 +74,10 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             builder.Services.AddSingleton<ConversationInsightService>();
-            builder.Services.AddSingleton<DayInsightService>();
+            builder.Services.AddSingleton<DailyJournalInsightService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
-            builder.Services.AddScoped<IConversationDataService, LocalStorageConversationDataService>();
-            builder.Services.AddScoped<IDayDataService, LocalStorageDayDataService>();
+            builder.Services.AddScoped<IConversationRepository, LocalConversationRepository>();
+            builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
 
             var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
             var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];

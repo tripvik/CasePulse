@@ -1,4 +1,4 @@
-@inject IConversationDataService ConversationService
+@inject IConversationRepository ConversationRepository
 
 <MudStack Class="mx-2 my-4"
           AlignItems="AlignItems.Center"
@@ -34,7 +34,7 @@
         if (task?.TaskId == null)
             return;
 
-        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
         if (conversation?.ConversationInsights?.ActionItems == null)
         {
             return;
@@ -46,7 +46,7 @@
         if (item != null)
         {
             item.Status = ActionStatus.Completed;
-            await ConversationService.SaveConversationAsync(conversation);
+            await ConversationRepository.SaveConversationAsync(conversation);
             StateHasChanged();
         }
     }
@@ -56,7 +56,7 @@
         if (task?.TaskId == null)
             return;
 
-        var conversation = await ConversationService.GetConversationAsync(task.ConversationId);
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
         if (conversation?.ConversationInsights?.ActionItems == null)
             return;
 
@@ -66,10 +66,10 @@
         if (itemToRemove != null)
         {
             conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
-            await ConversationService.SaveConversationAsync(conversation);
+            await ConversationRepository.SaveConversationAsync(conversation);
         }
 
-        Tasks = await ConversationService.GetAllTasksAsync();
+        Tasks = await ConversationRepository.GetAllTasksAsync();
         StateHasChanged();
     }
 }

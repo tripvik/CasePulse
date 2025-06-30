@@ -6,7 +6,7 @@
     public class DayInsightInput
     {
         public DateTime Date { get; set; }
-        public List<ConversationModel> Conversations { get; set; } = [];
+        public List<ConversationRecord> Conversations { get; set; } = [];
         public DayStats Stats { get; set; } = new();
         public List<LocationActivity> LocationActivities { get; set; } = [];
         public List<ActionItem> OpenActions { get; set; } = [];

@@ -1,9 +1,11 @@
 ﻿@page "/dayinsights"
 @using SmartPendant.MAUIHybrid.Models
 @using SmartPendant.MAUIHybrid.Services
-@inject DayInsightService DayInsightService
+
 @inject ISnackbar Snackbar
-@inject IDayDataService DayDataService
+@inject DailyJournalInsightService DailyJournalInsightService
+@inject IDayJournalRepository DayJournalRepository
+
 <PageTitle>Daily Insights</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
@@ -24,19 +26,19 @@
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
         }
         <MudDivider Class="my-3" />
-        @if (dayModel != null)
+        @if (dayRecord != null)
         {
             <!-- Daily Summary Card -->
-            @if (!string.IsNullOrWhiteSpace(dayModel.Insights.DailySummary))
+            @if (!string.IsNullOrWhiteSpace(dayRecord.Insights.DailySummary))
             {
                 <MudPaper Class="pa-4 border-solid border" Elevation="2">
                      <div class="d-flex align-center justify-start mb-4 my-lg-6 gap-4">
                         <MudIcon Icon="@Icons.Material.Filled.Today" Size="Size.Medium" />
                         <MudText Typo="Typo.h6" Color="Color.Primary">
-                             Daily Summary - @dayModel.Date.ToString("MMMM dd, yyyy")
+                             Daily Summary - @dayRecord.Date.ToString("MMMM dd, yyyy")
                         </MudText>  
                     </div>                 
-                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayModel.Insights.DailySummary</MudText>
+                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayRecord.Insights.DailySummary</MudText>
                 </MudPaper>
             }
 
@@ -47,7 +49,7 @@
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.Chat" Color="Color.Primary" Size="Size.Large" />
                             <MudStack AlignItems="AlignItems.End">
-                                <MudText Typo="Typo.h5">@dayModel.Stats.TotalConversations</MudText>
+                                <MudText Typo="Typo.h5">@dayRecord.Stats.TotalConversations</MudText>
                                 <MudText Typo="Typo.body2">Conversations</MudText>
                             </MudStack>
                         </MudStack>
@@ -59,7 +61,7 @@
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.AccessTime" Color="Color.Secondary" Size="Size.Large" />
                             <MudStack AlignItems="AlignItems.End">
-                                <MudText Typo="Typo.h5">@($"{dayModel.Stats.TotalTalkTimeMinutes:F0}")</MudText>
+                                <MudText Typo="Typo.h5">@($"{dayRecord.Stats.TotalTalkTimeMinutes:F0}")</MudText>
                                 <MudText Typo="Typo.body2">Minutes Talked</MudText>
                             </MudStack>
                         </MudStack>
@@ -71,7 +73,7 @@
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.LocationOn" Color="Color.Success" Size="Size.Large" />
                             <MudStack AlignItems="AlignItems.End">
-                                <MudText Typo="Typo.h5">@dayModel.Stats.UniqueLocations</MudText>
+                                <MudText Typo="Typo.h5">@dayRecord.Stats.UniqueLocations</MudText>
                                 <MudText Typo="Typo.body2">Locations</MudText>
                             </MudStack>
                         </MudStack>
@@ -83,7 +85,7 @@
                         <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Warning" Size="Size.Large" />
                             <MudStack AlignItems="AlignItems.End">
-                                <MudText Typo="Typo.h5">@dayModel.Stats.UniquePeople</MudText>
+                                <MudText Typo="Typo.h5">@dayRecord.Stats.UniquePeople</MudText>
                                 <MudText Typo="Typo.body2">People</MudText>
                             </MudStack>
                         </MudStack>
@@ -93,7 +95,7 @@
 
             <!-- Key Topics and Decisions -->
             <MudGrid>
-                @if (dayModel.Insights.KeyTopics.Any())
+                @if (dayRecord.Insights.KeyTopics.Any())
                 {
                     <MudItem xs="12" md="6">
                         <MudPaper Class="pa-4 border-solid border" Elevation="2" Style="height: 100%">
@@ -102,7 +104,7 @@
                                 <MudText Typo="Typo.h6" Color="Color.Primary">Key Topics</MudText>
                             </div>
                             <MudStack Spacing="2">
-                                @foreach (var topic in dayModel.Insights.KeyTopics)
+                                @foreach (var topic in dayRecord.Insights.KeyTopics)
                                 {
                                     <MudChip Color="Color.Primary" Variant="Variant.Text" T="string">@topic</MudChip>
                                 }
@@ -111,7 +113,7 @@
                     </MudItem>
                 }
 
-                @if (dayModel.Insights.KeyDecisions.Any())
+                @if (dayRecord.Insights.KeyDecisions.Any())
                 {
                     <MudItem xs="12" md="6">
                         <MudPaper Class="pa-4 border-solid border" Elevation="2" Style="height: 100%">
@@ -120,7 +122,7 @@
                                 <MudText Typo="Typo.h6" Color="Color.Primary">Key Decisions</MudText>
                             </div>
                             <MudList Dense="true" T="string">
-                                @foreach (var decision in dayModel.Insights.KeyDecisions)
+                                @foreach (var decision in dayRecord.Insights.KeyDecisions)
                                 {
                                     <MudListItem>
                                         <MudText Typo="Typo.body2">• @decision</MudText>
@@ -133,7 +135,7 @@
             </MudGrid>
 
             <!-- People Interactions -->
-            @if (dayModel.Insights.PeopleInteracted.Any())
+            @if (dayRecord.Insights.PeopleInteracted.Any())
             {
                 <MudPaper Class="pa-4 border-solid border" Elevation="2">
                     <div class="d-flex align-center justify-start mb-4 gap-4">
@@ -141,7 +143,7 @@
                         <MudText Typo="Typo.h6" Color="Color.Primary">People Interactions</MudText>
                     </div>
                     <MudGrid>
-                        @foreach (var person in dayModel.Insights.PeopleInteracted.Take(8))
+                        @foreach (var person in dayRecord.Insights.PeopleInteracted.Take(8))
                         {
                             <MudItem xs="12" sm="6" md="3">
                                 <MudCard Elevation="1" Class="pa-3">
@@ -160,7 +162,7 @@
             }
 
             <!-- Location Activities -->
-            @if (dayModel.LocationActivities.Any())
+            @if (dayRecord.LocationActivities.Any())
             {
                 <MudPaper Class="pa-4 border-solid border" Elevation="2">
                     <div class="d-flex align-center justify-start mb-4 gap-4">
@@ -168,7 +170,7 @@
                         <MudText Typo="Typo.h6" Color="Color.Primary">Location Activities</MudText>
                     </div>
                     <MudGrid>
-                        @foreach (var location in dayModel.LocationActivities)
+                        @foreach (var location in dayRecord.LocationActivities)
                         {
                             <MudItem xs="12" md="6">
                                 <MudCard Elevation="1">
@@ -195,19 +197,19 @@
             }
 
             <!-- Action Items -->
-            @if (dayModel.OpenActions.Any() || dayModel.CompletedActions.Any())
+            @if (dayRecord.OpenActions.Any() || dayRecord.CompletedActions.Any())
             {
                 <MudGrid>
-                    @if (dayModel.OpenActions.Any())
+                    @if (dayRecord.OpenActions.Any())
                     {
                         <MudItem xs="12" md="6">
                             <MudPaper Class="pa-4 border-solid border" Elevation="2" Style="height: 100%">
                                  <div class="d-flex align-center justify-start mb-4 gap-2">
                                     <MudIcon Icon="@Icons.Material.Filled.Assignment" />
-                                    <MudText Typo="Typo.h6" Color="Color.Warning">Open Actions (@dayModel.OpenActions.Count)</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Warning">Open Actions (@dayRecord.OpenActions.Count)</MudText>
                                 </div>
                                 <MudList Dense="true" T="string" ReadOnly>
-                                    @foreach (var action in dayModel.OpenActions.Take(10))
+                                    @foreach (var action in dayRecord.OpenActions.Take(10))
                                     {
                                         <MudListItem Icon="@Icons.Material.Filled.RadioButtonUnchecked" Text="@action.Description" IconColor="Color.Warning" Dense="true" Gutters="false" />
                                     }
@@ -216,16 +218,16 @@
                         </MudItem>
                     }
 
-                    @if (dayModel.CompletedActions.Any())
+                    @if (dayRecord.CompletedActions.Any())
                     {
                         <MudItem xs="12" md="6">
                             <MudPaper Class="pa-4 border-solid border" Elevation="2" Style="height: 100%">
                                 <div class="d-flex align-center justify-start mb-4 gap-4">
                                     <MudIcon Icon="@Icons.Material.Filled.AssignmentTurnedIn" />
-                                    <MudText Typo="Typo.h6" Color="Color.Success">Completed Actions (@dayModel.CompletedActions.Count)</MudText>
+                                    <MudText Typo="Typo.h6" Color="Color.Success">Completed Actions (@dayRecord.CompletedActions.Count)</MudText>
                                 </div>
                                  <MudList Dense="true" T="string" ReadOnly>
-                                    @foreach (var action in dayModel.CompletedActions.Take(10))
+                                    @foreach (var action in dayRecord.CompletedActions.Take(10))
                                     {
                                         <MudListItem Icon="@Icons.Material.Filled.CheckCircle" Text="@action.Description" IconColor="Color.Success" Dense="true" Gutters="false" />
                                     }
@@ -237,7 +239,7 @@
             }
 
             <!-- Journal Entry -->
-            @if (dayModel.Insights.JournalEntry != null && !string.IsNullOrWhiteSpace(dayModel.Insights.JournalEntry.ExecutiveSummary))
+            @if (dayRecord.Insights.JournalEntry != null && !string.IsNullOrWhiteSpace(dayRecord.Insights.JournalEntry.ExecutiveSummary))
             {
                 <MudExpansionPanels Elevation="2" Class="pa-4 border-solid border">
                     <MudExpansionPanel Expanded>
@@ -249,20 +251,20 @@
                         </TitleContent>
                         <ChildContent>
                             <MudStack Spacing="3">
-                                @if (!string.IsNullOrWhiteSpace(dayModel.Insights.JournalEntry.ExecutiveSummary))
+                                @if (!string.IsNullOrWhiteSpace(dayRecord.Insights.JournalEntry.ExecutiveSummary))
                                 {
                                     <div>
                                         <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">Executive Summary</MudText>
-                                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayModel.Insights.JournalEntry.ExecutiveSummary</MudText>
+                                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayRecord.Insights.JournalEntry.ExecutiveSummary</MudText>
                                     </div>
                                 }
 
-                                @if (dayModel.Insights.JournalEntry.KeyAccomplishments.Any())
+                                @if (dayRecord.Insights.JournalEntry.KeyAccomplishments.Any())
                                 {
                                     <div>
                                         <MudText Typo="Typo.subtitle1" Color="Color.Success" Class="mb-2">Key Accomplishments</MudText>
                                         <MudList Dense="true" T="string">
-                                            @foreach (var accomplishment in dayModel.Insights.JournalEntry.KeyAccomplishments)
+                                            @foreach (var accomplishment in dayRecord.Insights.JournalEntry.KeyAccomplishments)
                                             {
                                                 <MudListItem>
                                                     <MudText Typo="Typo.body2">• @accomplishment</MudText>
@@ -272,12 +274,12 @@
                                     </div>
                                 }
 
-                                @if (dayModel.Insights.JournalEntry.LearningsReflections.Any())
+                                @if (dayRecord.Insights.JournalEntry.LearningsReflections.Any())
                                 {
                                     <div>
                                         <MudText Typo="Typo.subtitle1" Color="Color.Info" Class="mb-2">Learnings & Reflections</MudText>
                                         <MudList Dense="true" T="string">
-                                            @foreach (var learning in dayModel.Insights.JournalEntry.LearningsReflections)
+                                            @foreach (var learning in dayRecord.Insights.JournalEntry.LearningsReflections)
                                             {
                                                 <MudListItem>
                                                     <MudText Typo="Typo.body2">• @learning</MudText>
@@ -287,11 +289,11 @@
                                     </div>
                                 }
 
-                                @if (!string.IsNullOrWhiteSpace(dayModel.Insights.JournalEntry.PersonalReflection))
+                                @if (!string.IsNullOrWhiteSpace(dayRecord.Insights.JournalEntry.PersonalReflection))
                                 {
                                     <div>
                                         <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-2">Personal Reflection</MudText>
-                                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayModel.Insights.JournalEntry.PersonalReflection</MudText>
+                                        <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayRecord.Insights.JournalEntry.PersonalReflection</MudText>
                                     </div>
                                 }
                             </MudStack>
@@ -301,14 +303,14 @@
             }
 
             <!-- Mood Analysis -->
-            @if (!string.IsNullOrWhiteSpace(dayModel.Insights.MoodAnalysis))
+            @if (!string.IsNullOrWhiteSpace(dayRecord.Insights.MoodAnalysis))
             {
                 <MudPaper Class="pa-4 border-solid border" Elevation="2">
                     <div class="d-flex align-center justify-start mb-4 gap-4">
                         <MudIcon Icon="@Icons.Material.Filled.Psychology" />
                         <MudText Typo="Typo.h6" Color="Color.Warning">Mood Analysis</MudText>
                     </div>
-                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayModel.Insights.MoodAnalysis</MudText>
+                    <MudText Typo="Typo.body1" Class="mud-text-secondary">@dayRecord.Insights.MoodAnalysis</MudText>
                 </MudPaper>
             }
         }
@@ -323,7 +325,7 @@
 
 @code {
     private DateTime? selectedDate = DateTime.Today;
-    private DayModel? dayModel;
+    private DayRecord? dayRecord;
     private bool isLoading = false;
 
     protected override async Task OnInitializedAsync()
@@ -349,9 +351,9 @@
 
         try
         {
-            dayModel = await DayDataService.GetDayModelAsync(selectedDate.Value);
+            dayRecord = await DayJournalRepository.GetAsync(selectedDate.Value);
             
-            if (dayModel == null)
+            if (dayRecord == null)
             {
                 Snackbar.Add($"No insights found for {selectedDate.Value:MMMM dd, yyyy}", Severity.Info);
             }

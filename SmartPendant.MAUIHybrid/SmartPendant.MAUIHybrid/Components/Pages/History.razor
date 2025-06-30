@@ -1,12 +1,13 @@
 ﻿@page "/history"
-@inject ConversationService ConversationService
+@inject IConversationRepository ConversationRepository
+@inject NavigationManager NavigationManager
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
-    <div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
         <MudIcon Icon="@Icons.Material.Filled.History" Title="Favorite" Size="Size.Large" />
         <MudText Typo="Typo.h5"> Conversation History</MudText>
     </div>
-    <MudTabs Rounded Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary" >
+    <MudTabs Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary" >
         <MudTabPanel Text="By Date" Icon="@Icons.Material.Filled.DateRange">
              <div class="d-flex align-center flex-grow-1 gap-4 pt-4 mb-4">
                     <MudTextField 
@@ -14,7 +15,7 @@
                             AdornmentIcon="@Icons.Material.Outlined.Search" 
                             Adornment="Adornment.End" 
                             Label="Search" 
-                            DebounceInterval="300" 
+                            DebounceInterval="100" 
                             Variant="Variant.Outlined" 
                             Clearable
                             FullWidth
@@ -35,7 +36,7 @@
             }
             else if (!filteredConversations.Any())
             {
-                <MudPaper Elevation="1" Class="pa-8 text-center">
+                <MudPaper Elevation="0" Class="pa-10 mt-10" Style="text-align:center">
                     <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
                     <MudText Typo="Typo.h6" Color="Color.Secondary">No conversations found</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -45,29 +46,45 @@
             }
             else
             {
-                <MudText Typo="Typo.body2" Color="Color.Info" Class="mb-3">
+                <MudText Typo="Typo.body2" Color="Color.Info" Class="mb-3 px-2">
                     Showing @filteredConversations.Count of @Conversations.Count conversations
                 </MudText>
                 
-                <MudGrid Spacing="3">
+                <MudGrid Spacing="3" Style="margin-bottom:50px;">
                     @foreach (var conversationGroup in GetGroupedConversations())
                     {
-                        <MudItem xs="12">
-                            <MudText Typo="Typo.h6" Class="mb-2 mt-4" Color="Color.Primary">
-                                @conversationGroup.Key.ToString("MMMM dd, yyyy")
-                            </MudText>
+                        <MudItem xs="12" class="pa-2">
+                            <div class="d-flex align-center justify-space-between pa-2 cursor-pointer" 
+                                 @onclick="() => ToggleGroup(conversationGroup.Key)">
+                                <MudText Typo="Typo.h6">
+                                    @conversationGroup.Key.ToString("MMMM dd, yyyy")
+                                </MudText>
+                                <div class="d-flex align-center gap-2">
+                                    <MudChip Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined" T="string">
+                                        @conversationGroup.Count() conversation@(conversationGroup.Count() != 1 ? "s" : "")
+                                    </MudChip>
+                                    <MudIconButton 
+                                        Icon="@(IsGroupExpanded(conversationGroup.Key) ? Icons.Material.Filled.ExpandLess : Icons.Material.Filled.ExpandMore)"
+                                        Size="Size.Medium"
+                                        OnClick="() => ToggleGroup(conversationGroup.Key)"
+                                        Color="Color.Inherit" />
+                                </div>
+                            </div>
                             <MudDivider Class="mb-3" />
                             
-                            <MudGrid Spacing="2">
-                                @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
-                                {
-                                    <MudItem xs="12" sm="6" md="4" lg="3">
-                                        <ConversationCard 
-                                            Conversation="@conversation" 
-                                            OnConversationSelected="@OnConversationSelected" />
-                                    </MudItem>
-                                }
-                            </MudGrid>
+                            <MudCollapse Expanded="IsGroupExpanded(conversationGroup.Key)">
+                                <MudGrid Spacing="3">
+                                    @foreach (var conversation in conversationGroup.OrderByDescending(c => c.CreatedAt))
+                                    {
+                                        <MudItem xs="12">
+                                            <ConversationCard 
+                                                Conversation="@conversation" 
+                                                OnConversationSelected="@ViewConversationAsync"
+                                                OnConversationDeleted="@DeleteConversationAsync"/>
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            </MudCollapse>
                         </MudItem>
                     }
                 </MudGrid>
@@ -80,27 +97,69 @@
 </MudContainer>
 
 @code {
-    private List<Conversation> Conversations = new();
-    private List<Conversation> filteredConversations = new();
+    private List<ConversationRecord> Conversations = new();
+    private List<ConversationRecord> filteredConversations = new();
+    private HashSet<DateTime> expandedGroups = new();
+    private bool allExpanded = true;
 
     private string searchQuery = string.Empty;
     private DateRange? dateRange;
-    private string? selectedTopic;
     private HashSet<string> selectedTags = new();
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadConversationsAsync();
+    }
+
+    private async Task LoadConversationsAsync()
+    {
         isLoading = true;
         try
         {
-            Conversations = await ConversationService.GetAllConversationsAsync();
+            Conversations = await ConversationRepository.GetAllConversationsAsync();
             filteredConversations = Conversations.ToList();
+
+            InitializeExpandedGroups();
         }
         finally
         {
             isLoading = false;
         }
+    }
+
+    private void InitializeExpandedGroups()
+    {
+        expandedGroups.Clear();
+        var groupDates = GetGroupedConversations().Select(g => g.Key);
+        foreach (var date in groupDates)
+        {
+            expandedGroups.Add(date);
+        }
+        allExpanded = true;
+    }
+
+    private bool IsGroupExpanded(DateTime groupDate)
+    {
+        return expandedGroups.Contains(groupDate);
+    }
+
+    private void ToggleGroup(DateTime groupDate)
+    {
+        if (expandedGroups.Contains(groupDate))
+        {
+            expandedGroups.Remove(groupDate);
+        }
+        else
+        {
+            expandedGroups.Add(groupDate);
+        }
+
+        // Update allExpanded state
+        var totalGroups = GetGroupedConversations().Count();
+        allExpanded = expandedGroups.Count == totalGroups;
+
+        StateHasChanged();
     }
 
     private async Task OnSearchChanged()
@@ -122,7 +181,7 @@
 
     private async Task FilterConversations()
     {
-        await Task.Delay(1); // Ensure UI updates
+        await Task.Delay(100);
 
         var filtered = Conversations.AsEnumerable();
 
@@ -143,10 +202,14 @@
         }
 
         filteredConversations = filtered.ToList();
+
+        // Update expanded groups after filtering
+        InitializeExpandedGroups();
+
         StateHasChanged();
     }
 
-    private IEnumerable<IGrouping<DateTime, Conversation>> GetGroupedConversations()
+    private IEnumerable<IGrouping<DateTime, ConversationRecord>> GetGroupedConversations()
     {
         return filteredConversations
             .GroupBy(c => c.CreatedAt.Date)
@@ -155,7 +218,7 @@
 
     private IEnumerable<string> GetAvailableTopics()
     {
-        return Conversations.SelectMany(c => c.AiInsights?.Topics!);
+        return Conversations.SelectMany(c => c.ConversationInsights?.Topics!);
     }
 
     private IEnumerable<string> GetAvailableTags()
@@ -172,31 +235,21 @@
             selectedTags.Add(tag);
         else
             selectedTags.Remove(tag);
-        
+
         StateHasChanged();
     }
 
-    private IEnumerable<Conversation> GetTopicFilteredConversations()
+    private void ViewConversationAsync(ConversationRecord conversation)
     {
-        var filtered = Conversations.AsEnumerable();
-
-        if (!string.IsNullOrEmpty(selectedTopic))
-        {
-            filtered = filtered.Where(c => c.AiInsights?.Topics?.Contains(selectedTopic) ?? false);
-        }
-
-        if (selectedTags.Any())
-        {
-            filtered = filtered.Where(c => 
-                c.Tags != null && selectedTags.Any(tag => c.Tags.Contains(tag)));
-        }
-
-        return filtered.OrderByDescending(c => c.CreatedAt);
+        NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
     }
 
-    private void OnConversationSelected(Conversation conversation)
+    private async Task DeleteConversationAsync(ConversationRecord? conversation)
     {
-        // Handle conversation selection - navigate to conversation or show details
-        // Example: NavigationManager.NavigateTo($"/conversation/{conversation.Id}");
+        if (conversation == null)
+            return;
+
+        await ConversationRepository.DeleteConversationAsync(conversation.Id);
+        await LoadConversationsAsync();
     }
 }

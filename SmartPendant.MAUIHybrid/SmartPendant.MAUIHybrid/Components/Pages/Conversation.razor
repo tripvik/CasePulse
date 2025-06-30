@@ -1,0 +1,73 @@
+@page "/conversation/{ConversationId:guid}"
+@using System.Diagnostics
+@inject IConversationRepository ConversationRepository
+@inject NavigationManager NavigationManager
+
+<MudStack Justify="Justify.Center" AlignItems="AlignItems.Stretch" Class="mx-2 full-height-container">
+    <div class="conversation-wrapper mt-6">
+        @if (isLoading)
+        {
+            <MudProgressCircular Indeterminate="true" Size="Size.Large" Color="Color.Primary" />
+        }
+        else if (conversation is null)
+        {
+            <MudPaper Elevation="0" Class="pa-6 d-flex flex-column align-center text-center" Style="margin-top:20vh; text-align:center">
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" Class="mb-2" />
+                <MudText Typo="Typo.h6" Color="Color.Error">
+                    Conversation not found
+                </MudText>
+                <MudText Typo="Typo.body2" Class="text-secondary mt-1">
+                    The conversation may have been deleted or the link is incorrect.
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            <ConversationContainer Conversation="@conversation" />
+        }
+    </div>
+
+    <div class="d-flex justify-center my-3">
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@GoBack"
+                   Class="rounded-xl py-3 px-8"
+                   Style="max-width: 250px;">
+            Back to History
+        </MudButton>
+    </div>
+</MudStack>
+
+@code {
+
+    [Parameter]
+    public Guid ConversationId { get; set; }
+
+    private ConversationRecord? conversation;
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+
+        try
+        {
+            conversation = await ConversationRepository.GetConversationAsync(ConversationId);
+        }
+        catch
+        {
+
+            Debug.WriteLine($"Conversation for {ConversationId} not found");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/history");
+    }
+}

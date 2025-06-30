@@ -1,16 +1,131 @@
-<MudCard>
-    <MudCardContent>
-        <MudText>@Conversation.Title</MudText>
-        <MudText Typo="Typo.body2">@Conversation.Summary</MudText>
+@inject IDialogService DialogService
+
+<MudCard Class="m3-card-hover"
+         Style="border-left: 2px solid var(--mud-palette-primary);"
+         @onclick="HandleCardClick">
+    <MudCardHeader Class="px-4 pt-2 pb-0">
+        <CardHeaderContent>
+            <MudText Typo="Typo.subtitle1">
+                @(!string.IsNullOrEmpty(Conversation.Title) ? Conversation.Title : "Untitled Conversation")
+            </MudText>
+        </CardHeaderContent>
+        <CardHeaderActions>
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                     Color="Color.Default"
+                     Size="Size.Medium">
+                <MudMenuItem Label="Delete" Icon="@Icons.Material.Outlined.Delete" IconColor="Color.Error" OnClick="ConfirmAndDeleteAsync" />
+            </MudMenu>
+        </CardHeaderActions>
+    </MudCardHeader>
+
+    <MudCardContent Class="px-4 pb-2 pt-0">
+        @if (!string.IsNullOrEmpty(Conversation.Summary))
+        {
+            <MudText Typo="Typo.body2" Class="mb-3 mr-3 mud-text-secondary">
+                @TruncatedSummary
+            </MudText>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Class="mb-3 text-disabled fst-italic">
+                No summary available
+            </MudText>
+        }
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <MudChip Size="Size.Small" T="string"
+                     Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Outlined.Schedule">
+                @Conversation.CreatedAt.ToString("MMM dd, yyyy")
+            </MudChip>
+            <MudChip Size="Size.Small" T="string"
+                     Variant="Variant.Outlined"
+                     Icon="@Icons.Material.Outlined.Timer">
+                @($"{Conversation.DurationMinutes:F1} min")
+            </MudChip>
+            @if (!string.IsNullOrEmpty(Conversation.Location))
+            {
+                <MudChip Size="Size.Small" T="string"
+                         Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Outlined.LocationOn">
+                    @Conversation.Location
+                </MudChip>
+            }
+        </div>
     </MudCardContent>
-    <MudCardActions>
-        <MudText Color="Color.Primary">@Conversation.CreatedAt.ToShortTimeString() • @Conversation.DurationMinutes </MudText>
-    </MudCardActions>
+
+    @if (Conversation.Tags?.Any() == true)
+    {
+        <MudCardActions Class="pa-0">
+            <div class="d-flex flex-wrap align-center gap-1">
+                @foreach (var tag in Conversation.Tags.Take(3))
+                {
+                    <MudChip Size="Size.Small" T="string"
+                             Variant="Variant.Filled"
+                             Color="Color.Default">
+                        @tag
+                    </MudChip>
+                }
+                @if (Conversation.Tags.Count > 3)
+                {
+                    <MudText Typo="Typo.caption" Class="ml-1 mud-text-secondary">
+                        +@(Conversation.Tags.Count - 3) more
+                    </MudText>
+                }
+            </div>
+        </MudCardActions>
+    }
 </MudCard>
 
 @code {
-    [Parameter]
-    public Conversation Conversation { get; set; } = new();
+    [Parameter] public ConversationRecord Conversation { get; set; } = new();
+    [Parameter] public EventCallback<ConversationRecord> OnConversationSelected { get; set; }
+    [Parameter] public EventCallback<ConversationRecord> OnConversationDeleted { get; set; }
 
-    [Parameter] public EventCallback<Conversation> OnConversationSelected { get; set; }
+    private const int SummaryMaxLength = 180;
+
+    /// <summary>
+    /// Returns a truncated version of the conversation summary.
+    /// </summary>
+    private string TruncatedSummary
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(Conversation.Summary))
+            {
+                return string.Empty;
+            }
+
+            if (Conversation.Summary.Length > SummaryMaxLength)
+            {
+                // Truncate and add ellipsis
+                return $"{Conversation.Summary.Substring(0, SummaryMaxLength)}...";
+            }
+
+            return Conversation.Summary;
+        }
+    }
+
+    private async Task HandleCardClick()
+    {
+        if (OnConversationSelected.HasDelegate)
+            await OnConversationSelected.InvokeAsync(Conversation);
+    }
+
+    private async Task ConfirmAndDeleteAsync()
+    {
+        if (Conversation is null)
+            return;
+
+        var confirmed = await DialogService.ShowMessageBox(
+            title: "Delete Conversation",
+            markupMessage: (MarkupString)$"Are you sure you want to delete the conversation?",
+            yesText: "Delete",
+            noText: "Cancel",
+            options: new DialogOptions { CloseOnEscapeKey = true });
+
+        if (confirmed == true)
+        {
+            await OnConversationDeleted.InvokeAsync(Conversation);
+        }
+    }
 }

@@ -1,15 +1,28 @@
-﻿using Blazored.LocalStorage;
+﻿using Azure.AI.OpenAI;
+using Microsoft.Extensions.AI;
+using Blazored.LocalStorage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
 using System.Reflection;
+using System.ClientModel;
+
+
+// Platform-specific using directives to resolve service implementations
+#if ANDROID
+using SmartPendant.MAUIHybrid.Platforms.Android;
+#elif WINDOWS
+using SmartPendant.MAUIHybrid.Platforms.Windows;
+#endif
 
 namespace SmartPendant.MAUIHybrid
 {
-    public static class MauiProgram
+    public static partial class MauiProgram
     {
+        public static IServiceProvider Services { get; private set; } = default!;
+
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
@@ -18,15 +31,16 @@ namespace SmartPendant.MAUIHybrid
             ConfigureServices(builder);
             ConfigureDevelopmentServices(builder);
 
-            return builder.Build();
+            var mauiApp = builder.Build();
+            Services = mauiApp.Services;
+            return mauiApp;
         }
 
         #region App Configuration
-
         private static void ConfigureApp(MauiAppBuilder builder)
         {
             builder.UseMauiApp<App>()
-                   .ConfigureFonts(fonts => fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"));
+                    .ConfigureFonts(fonts => fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular"));
 
             builder.ConfigureAppSettings();
         }
@@ -44,85 +58,83 @@ namespace SmartPendant.MAUIHybrid
             using var devStream = assembly.GetManifestResourceStream(devConfigFileName);
             if (devStream != null) builder.Configuration.AddJsonStream(devStream);
         }
-
         #endregion
 
         #region Service Registration
-
         private static void ConfigureServices(MauiAppBuilder builder)
         {
-            RegisterCoreServices(builder);
-            RegisterTranscriptionServices(builder);
-            RegisterConnectionServices(builder);
-            RegisterStorageServices(builder);
-        }
-
-        private static void RegisterCoreServices(MauiAppBuilder builder)
-        {
+            // Register core, platform-agnostic services
             builder.Services.AddMauiBlazorWebView();
-            builder.Services.AddBlazoredLocalStorage();
             builder.Services.AddMudServices();
+            builder.Services.AddBlazoredLocalStorage();
+
+            // Register application-specific singleton services
+
+            builder.Services.AddSingleton<AudioPipelineManager>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
-            builder.Services.AddSingleton<ConversationService>();
+            builder.Services.AddSingleton<ConversationInsightService>();
+            builder.Services.AddSingleton<DailyJournalInsightService>();
+            builder.Services.AddSingleton<IStorageService, BlobStorageService>();
+            builder.Services.AddScoped<IConversationRepository, LocalConversationRepository>();
+            builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
+
+            var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
+            var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];
+            var openAIDeployment = builder.Configuration["Azure:OpenAI:DeploymentName"];
+
+            if (string.IsNullOrEmpty(openAIDeployment) || string.IsNullOrEmpty(openAIKey) || string.IsNullOrEmpty(openAIEndpoint))
+            {
+                throw new InvalidOperationException("Azure OpenAI configuration (DeploymentName, ApiKey, or Endpoint) is missing.");
+            }
+
+            var azureOpenAi = new AzureOpenAIClient(new Uri(openAIEndpoint), new ApiKeyCredential(openAIKey));
+            var chatClient = azureOpenAi.GetChatClient(openAIDeployment).AsIChatClient();
+            builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
+
+            // Register services that have different implementations per platform
+            RegisterPlatformDependentServices(builder);
         }
 
-        private static void RegisterTranscriptionServices(MauiAppBuilder builder)
+        private static void RegisterPlatformDependentServices(MauiAppBuilder builder)
         {
-            var config = builder.Configuration;
-            var useMockData = config.GetValue<bool>("UseMockData");
-            var useFileService = config.GetValue<bool>("UseFileRecording");
-            var useOpenAI = config.GetValue<bool>("UseOpenAI");
+            var useMockData = builder.Configuration.GetValue<bool>("UseMockData");
+            var useFileRecording = builder.Configuration.GetValue<bool>("UseFileRecording");
+            var useBLE = builder.Configuration.GetValue<bool>("UseBLE");
+            var useOpenAI = builder.Configuration.GetValue<bool>("UseOpenAI");
 
-            if (useMockData)
-            {
-                builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
-                return;
-            }
+#if WINDOWS
 
-            if (useFileService)
-            {
-                builder.Services.AddSingleton<ITranscriptionService, FileTranscriptionService>();
-            }
-            else if (useOpenAI)
-            {
-                builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
-            }
-            else
-            {
-                builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
-            }
-        }
-
-        private static void RegisterConnectionServices(MauiAppBuilder builder)
-        {
-            var config = builder.Configuration;
-            var useMockData = config.GetValue<bool>("UseMockData");
-            var useBLE = config.GetValue<bool>("UseBLE");
-
+            builder.Services.AddSingleton<IOrchestrationService, WindowsOrchestrationService>();
+#elif ANDROID
+            // On Android, register the real orchestrator and other services.
+            builder.Services.AddSingleton<IOrchestrationService, AndroidOrchestrationService>();
+#endif
             if (useMockData)
             {
                 builder.Services.AddSingleton<IConnectionService, MockConnectionService>();
-            }
-            else if (useBLE)
-            {
-                builder.Services.AddSingleton<IConnectionService, BLEService>();
+                builder.Services.AddSingleton<ITranscriptionService, MockTranscriptionService>();
             }
             else
             {
-                builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
+                // Connection service
+                if (useBLE)
+                    builder.Services.AddSingleton<IConnectionService, BLEService>();
+                else
+                    builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
+
+                // Transcription service
+                if (useFileRecording)
+                    builder.Services.AddSingleton<ITranscriptionService, FileTranscriptionService>();
+                else if (useOpenAI)
+                    builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
+                else
+                    builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
             }
         }
-
-        private static void RegisterStorageServices(MauiAppBuilder builder)
-        {
-            builder.Services.AddSingleton<IStorageService, BlobStorageService>();
-        }
-
         #endregion
 
         #region Development Configuration
-
         private static void ConfigureDevelopmentServices(MauiAppBuilder builder)
         {
 #if DEBUG
@@ -130,7 +142,6 @@ namespace SmartPendant.MAUIHybrid
             builder.Logging.AddDebug();
 #endif
         }
-
         #endregion
     }
 }

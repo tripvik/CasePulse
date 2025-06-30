@@ -1,8 +1,7 @@
-﻿using Plugin.BLE;
+﻿using Microsoft.Extensions.Configuration;
+using Plugin.BLE;
 using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
-using Plugin.BLE.Abstractions.EventArgs;
-using Plugin.BLE.Abstractions.Exceptions;
 using SmartPendant.MAUIHybrid.Abstractions;
 using System.Diagnostics;
 
@@ -16,7 +15,7 @@ namespace SmartPendant.MAUIHybrid.Services
         private ICharacteristic? _characteristic;
         private readonly Guid _serviceId = Guid.Parse("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
         private readonly Guid _characteristicId = Guid.Parse("beb5483e-36e1-4688-b7f5-ea07361b26a8");
-
+        private readonly IConfiguration _configuration;
         public event EventHandler<byte[]>? DataReceived;
         public event EventHandler<string>? ConnectionLost;
         public event EventHandler<string>? Disconnected;
@@ -24,7 +23,7 @@ namespace SmartPendant.MAUIHybrid.Services
         public bool IsConnected =>
             _connectedDevice != null && _connectedDevice.State == DeviceState.Connected;
 
-        public BLEService()
+        public BLEService(IConfiguration configuration)
         {
             _adapter.DeviceConnectionLost += (s, e) =>
             {
@@ -37,6 +36,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 if (_connectedDevice?.Id == e.Device.Id)
                     Disconnected?.Invoke(this, "Disconnected");
             };
+            _configuration = configuration;
         }
 
         public async Task<(bool, Exception?)> ConnectAsync()
@@ -49,7 +49,8 @@ namespace SmartPendant.MAUIHybrid.Services
 
             try
             {
-                var deviceId = new Guid("00000000-0000-0000-0000-f024f99b2a12");
+                var deviceGuid = _configuration.GetValue<string>("DeviceId") ?? throw new ArgumentException("DeviceId not found");
+                var deviceId = new Guid(deviceGuid);
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
                 _connectedDevice = await _adapter.ConnectToKnownDeviceAsync(deviceId, default, cts.Token);
                 Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");

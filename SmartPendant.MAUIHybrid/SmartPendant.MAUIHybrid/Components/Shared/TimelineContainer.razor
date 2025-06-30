@@ -1,0 +1,81 @@
+@using MudBlazor
+@using SmartPendant.MAUIHybrid.Models
+@if (TimelineEvents is null || !TimelineEvents.Any())
+{
+    <MudPaper Class="d-flex align-center justify-center mud-width-full my-4" Elevation="0" Style="min-height: 50vh;">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2" Style="text-align:center">
+            <MudIcon Icon="@Icons.Material.Filled.EventNote" Size="Size.Large" Color="Color.Primary" />
+            <MudText Typo="Typo.h6">No Timeline Events</MudText>
+            <MudText Typo="Typo.body2" Class="text-center mud-text-secondary">
+                Key moments will appear here once the conversation is processed.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+}
+else
+{
+    <MudTimeline TimelinePosition="TimelinePosition.Start">
+        @foreach (var timelineEvent in TimelineEvents)
+        {
+            <MudTimelineItem Color="@GetEventColor(timelineEvent)"
+                             Icon="@GetEventIcon(timelineEvent)"
+                             Variant="Variant.Filled"
+                             Size="Size.Small">
+                <ItemContent>
+                    <MudPaper Class="pa-3 mb-2" Elevation="1" Style="border-left: 3px solid var(--mud-palette-primary);">
+                        <div class="d-flex align-center mb-1">
+                            <MudText Typo="Typo.caption" Color="Color.Primary" Class="mr-2">
+                                @timelineEvent.Timestamp
+                            </MudText>
+                        </div>
+                        <MudText Typo="Typo.subtitle2" Class="mb-1">@timelineEvent.Title</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">@timelineEvent.Description</MudText>
+                    </MudPaper>
+                </ItemContent>
+            </MudTimelineItem>
+        }
+    </MudTimeline>
+}
+@code {
+    [Parameter]
+    public List<TimelineEvent> TimelineEvents { get; set; } = new();
+
+    /// <summary>
+    /// Determines the color for each timeline event based on its position.
+    /// </summary>
+    private Color GetEventColor(TimelineEvent timelineEvent)
+    {
+        var index = TimelineEvents.IndexOf(timelineEvent);
+        return (index % 4) switch
+        {
+            0 => Color.Primary,
+            1 => Color.Secondary,
+            2 => Color.Tertiary,
+            3 => Color.Success,
+            _ => Color.Default
+        };
+    }
+
+    /// <summary>
+    /// Determines the icon for each timeline event for better visual distinction.
+    /// </summary>
+    private string GetEventIcon(TimelineEvent timelineEvent)
+    {
+        var title = timelineEvent.Title?.ToLowerInvariant() ?? "";
+        if (title.Contains("summary")) return Icons.Material.Filled.Summarize;
+        if (title.Contains("topic")) return Icons.Material.Filled.Topic;
+        if (title.Contains("action item")) return Icons.Material.Filled.AssignmentTurnedIn;
+        if (title.Contains("start")) return Icons.Material.Filled.PlayCircle;
+        if (title.Contains("end")) return Icons.Material.Filled.StopCircle;
+
+        var index = TimelineEvents.IndexOf(timelineEvent);
+        return (index % 4) switch
+        {
+            0 => Icons.Material.Filled.Event,
+            1 => Icons.Material.Filled.Assignment,
+            2 => Icons.Material.Filled.Phone,
+            3 => Icons.Material.Filled.MeetingRoom,
+            _ => Icons.Material.Filled.Help
+        };
+    }
+}

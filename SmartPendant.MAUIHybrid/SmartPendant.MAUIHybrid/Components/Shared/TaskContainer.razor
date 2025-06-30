@@ -1,0 +1,75 @@
+@inject IConversationRepository ConversationRepository
+
+<MudStack Class="mx-2 my-4"
+          AlignItems="AlignItems.Center"
+          Justify="Justify.FlexStart" >
+
+    @if (Tasks is null || !Tasks.Any())
+    {
+        <MudPaper Class="d-flex align-center justify-center mud-width-full" Elevation="0" Style="min-height: 50vh;">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2" Style="text-align:center">
+                <MudIcon Icon="@Icons.Material.Outlined.AssignmentTurnedIn" Size="Size.Large" Color="Color.Primary" />
+                <MudText Typo="Typo.h6">No Tasks Available</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Once action items are created, they will be listed here.
+                </MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else
+    {
+        @foreach (var task in Tasks)
+        {
+            <TaskCard ActionItem="@task" OnMarkDone="MarkAsDone" OnDeleteTask="DeleteTask" />
+        }
+    }
+</MudStack>
+
+@code {
+    [Parameter]
+    public List<ActionItem> Tasks { get; set; } = new();
+
+    private async Task MarkAsDone(ActionItem task)
+    {
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
+        if (conversation?.ConversationInsights?.ActionItems == null)
+        {
+            return;
+        }
+
+        var item = conversation.ConversationInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (item != null)
+        {
+            item.Status = ActionStatus.Completed;
+            await ConversationRepository.SaveConversationAsync(conversation);
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteTask(ActionItem task)
+    {
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
+        if (conversation?.ConversationInsights?.ActionItems == null)
+            return;
+
+        var itemToRemove = conversation.ConversationInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (itemToRemove != null)
+        {
+            conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
+            await ConversationRepository.SaveConversationAsync(conversation);
+        }
+
+        Tasks = await ConversationRepository.GetAllTasksAsync();
+        StateHasChanged();
+    }
+}

@@ -1,55 +1,76 @@
 ﻿using MudBlazor;
 using SmartPendant.MAUIHybrid.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
-    internal class LayoutService
+    public class LayoutService
     {
+        #region Fields
+
         private readonly UserPreferencesService _userPreferencesService;
         private UserPreferences _userPreferences;
         private bool _systemPreferences;
 
-        public DarkLightMode DarkModeToggle = DarkLightMode.System;
+        #endregion
 
-        public bool IsDarkMode { get; private set; }
+        #region Properties
 
-        public MudTheme CurrentTheme { get; private set; }
+        public DarkLightMode DarkModeToggle { get; private set; } = DarkLightMode.System;
+        public bool IsDarkMode { get; private set; } = true;
+        public MudTheme CurrentTheme { get; private set; } = new MudTheme();
+
+        #endregion
+
+        #region Events
+
+        public event EventHandler? MajorUpdateOccured;
+
+        #endregion
+
+        #region Constructor
 
         public LayoutService(UserPreferencesService userPreferencesService)
         {
-            _userPreferencesService = userPreferencesService;
+            _userPreferencesService = userPreferencesService ?? throw new ArgumentNullException(nameof(userPreferencesService));
+            _userPreferences = new UserPreferences();
         }
+
+        #endregion
+
+        #region Public Methods
 
         public void SetDarkMode(bool value)
         {
             IsDarkMode = value;
+            OnMajorUpdateOccured();
         }
 
         public async Task ApplyUserPreferences(bool isDarkModeDefaultTheme)
         {
             _systemPreferences = isDarkModeDefaultTheme;
-            _userPreferences = await _userPreferencesService.LoadUserPreferences();
-            if (_userPreferences != null)
+            var loadedPreferences = await _userPreferencesService.LoadUserPreferences();
+
+            if (loadedPreferences != null)
             {
-                IsDarkMode = _userPreferences.DarkLightTheme switch
-                {
-                    DarkLightMode.Dark => true,
-                    DarkLightMode.Light => false,
-                    DarkLightMode.System => isDarkModeDefaultTheme,
-                    _ => IsDarkMode
-                };
+                _userPreferences = loadedPreferences;
+                DarkModeToggle = _userPreferences.DarkLightTheme;
             }
             else
             {
-                IsDarkMode = isDarkModeDefaultTheme;
                 _userPreferences = new UserPreferences { DarkLightTheme = DarkLightMode.System };
                 await _userPreferencesService.SaveUserPreferences(_userPreferences);
+                DarkModeToggle = DarkLightMode.System;
             }
+
+            IsDarkMode = DarkModeToggle switch
+            {
+                DarkLightMode.Dark => true,
+                DarkLightMode.Light => false,
+                DarkLightMode.System => isDarkModeDefaultTheme,
+                _ => isDarkModeDefaultTheme
+            };
+
+            OnMajorUpdateOccured();
         }
 
         public async Task OnSystemPreferenceChanged(bool newValue)
@@ -60,11 +81,9 @@ namespace SmartPendant.MAUIHybrid.Services
                 IsDarkMode = newValue;
                 OnMajorUpdateOccured();
             }
+
+            await Task.CompletedTask;
         }
-
-        public event EventHandler? MajorUpdateOccured;
-
-        private void OnMajorUpdateOccured() => MajorUpdateOccured?.Invoke(this, EventArgs.Empty);
 
         public async Task ToggleDarkMode()
         {
@@ -91,8 +110,16 @@ namespace SmartPendant.MAUIHybrid.Services
 
         public void SetBaseTheme(MudTheme theme)
         {
-            CurrentTheme = theme;
+            CurrentTheme = theme ?? throw new ArgumentNullException(nameof(theme));
             OnMajorUpdateOccured();
         }
+
+        #endregion
+
+        #region Private / Protected Methods
+
+        protected virtual void OnMajorUpdateOccured() => MajorUpdateOccured?.Invoke(this, EventArgs.Empty);
+
+        #endregion
     }
 }

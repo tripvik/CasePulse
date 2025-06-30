@@ -1,26 +1,99 @@
 ﻿@page "/tasks"
-@inject ConversationService ConversationService
+@inject IConversationRepository ConversationRepository
 
-<div class="d-flex justify-center my-4 my-lg-6 align-center gap-4">
-    <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Title="Favorite" Size="Size.Large" />
-    <MudText Typo="Typo.h5">Action Items</MudText>
-</div>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-6">
+    <!-- Header -->
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
+        <MudIcon Icon="@Icons.Material.Filled.TaskAlt" Size="Size.Large" />
+        <MudText Typo="Typo.h5">Action Items</MudText>
+    </div>
 
-<MudStack Class="mx-2 my-4"
-          AlignItems="AlignItems.Center"
-          Justify="Justify.FlexStart"
-          Style="height: calc(100vh - 100px);">
-    @foreach (var item in MyActionItems)
+    <!-- Filter Dropdown -->
+    <MudPaper Class="mb-4" Elevation="0">
+        <MudSelect @bind-Value="SelectedStatus" Label="Filter by status" Dense Variant="Variant.Outlined">
+            <MudSelectItem Value=@("All")>All</MudSelectItem>
+            <MudSelectItem Value=@("Pending")>Pending</MudSelectItem>
+            <MudSelectItem Value=@("Completed")>Completed</MudSelectItem>
+        </MudSelect>
+    </MudPaper>
+
+    <!-- Action Items -->
+    @if (FilteredTasks is null || !FilteredTasks.Any())
     {
-        <TaskCard Task="@item" />
+        <MudText Typo="Typo.body1" Class="mud-text-secondary text-center mt-4">
+            No action items available.
+        </MudText>
     }
-</MudStack>
+    else
+    {
+        <MudGrid Spacing="3" Style="margin-bottom:80px;">
+            @foreach (var task in FilteredTasks)
+            {
+                <MudItem xs="12">
+                    <TaskCard ActionItem="task" ShowLink
+                              OnMarkDone="@(() => MarkAsDone(task))"
+                              OnDeleteTask="@(() => DeleteTask(task))" />
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
 
 @code {
-    private List<ActionItem> MyActionItems = new();
+    private List<ActionItem> ActionItems = new();
+    private string SelectedStatus = "Pending";
+
+    private IEnumerable<ActionItem> FilteredTasks =>
+        SelectedStatus == "All"
+            ? ActionItems
+            : ActionItems.Where(t => string.Equals(t.Status.ToString(), SelectedStatus, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
-        MyActionItems = await ConversationService.GetAllTasksAsync();
+        ActionItems = await ConversationRepository.GetAllTasksAsync();
+    }
+
+    private async Task MarkAsDone(ActionItem task)
+    {
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
+        if (conversation?.ConversationInsights?.ActionItems == null)
+        {
+            return;
+        }
+
+        var item = conversation.ConversationInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (item != null)
+        {
+            item.Status = ActionStatus.Completed;
+            await ConversationRepository.SaveConversationAsync(conversation);
+            StateHasChanged();
+        }
+    }
+
+    private async Task DeleteTask(ActionItem task)
+    {
+        if (task?.TaskId == null)
+            return;
+
+        var conversation = await ConversationRepository.GetConversationAsync(task.ConversationId);
+        if (conversation?.ConversationInsights?.ActionItems == null)
+            return;
+
+        var itemToRemove = conversation.ConversationInsights.ActionItems
+            .FirstOrDefault(ai => ai?.TaskId == task.TaskId);
+
+        if (itemToRemove != null)
+        {
+            conversation.ConversationInsights.ActionItems.Remove(itemToRemove);
+            await ConversationRepository.SaveConversationAsync(conversation);
+        }
+
+        ActionItems = await ConversationRepository.GetAllTasksAsync();
+        StateHasChanged();
     }
 }

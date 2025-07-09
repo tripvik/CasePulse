@@ -8,7 +8,8 @@ using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
 using System.Reflection;
 using System.ClientModel;
-
+using Microsoft.EntityFrameworkCore;
+using SmartPendant.MAUIHybrid.Data;
 
 // Platform-specific using directives to resolve service implementations
 #if ANDROID
@@ -78,6 +79,16 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
             builder.Services.AddScoped<IConversationRepository, LocalConversationRepository>();
             builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
+
+            // Get the app data directory
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendant.db");
+
+            // Register DbContext
+            builder.Services.AddDbContext<SmartPendantDbContext>(options =>
+                options.UseSqlite($"Data Source={dbPath}"));
+
+            // Register DatabaseService
+            builder.Services.AddScoped<DatabaseInitializationService>();
 
             var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
             var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];

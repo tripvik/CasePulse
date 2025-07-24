@@ -132,17 +132,6 @@
 
     private async Task ToggleRecordingAsync()
     {
-        try
-        {
-            var newFoo = new Foo { Name = "fooName" };
-            DbContext.Foos.Add(newFoo);
-            await DbContext.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Failed to save Foo: {ex.Message}", Severity.Error);
-        }
-
         if (OrchestrationService.IsRecording)
         {
             await OrchestrationService.StopAsync();

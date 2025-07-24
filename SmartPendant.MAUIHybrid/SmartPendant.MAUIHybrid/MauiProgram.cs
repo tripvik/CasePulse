@@ -77,7 +77,7 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddSingleton<ConversationInsightService>();
             builder.Services.AddSingleton<DailyJournalInsightService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
-            builder.Services.AddScoped<IConversationRepository, LocalConversationRepository>();
+            builder.Services.AddScoped<IConversationRepository, EfConversationRepository>();
             builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
 
             // Get the app data directory

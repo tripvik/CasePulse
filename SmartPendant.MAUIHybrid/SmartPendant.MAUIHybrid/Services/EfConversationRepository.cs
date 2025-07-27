@@ -30,7 +30,7 @@ namespace SmartPendant.MAUIHybrid.Services
                     .Include(c => c.Transcript)
                     .Include(c => c.ActionItems)
                     .Include(c => c.Timeline)
-                    .Include(c => c.ConversationInsights).ThenInclude(ci => ci.Topics)
+                    .Include(c => c.Topics)
                     .FirstOrDefaultAsync(c => c.Id == conversation.Id);
 
                 if (existingEntity != null)
@@ -68,7 +68,7 @@ namespace SmartPendant.MAUIHybrid.Services
                 .Include(c => c.Transcript)
                 .Include(c => c.ActionItems)
                 .Include(c => c.Timeline)
-                .Include(c => c.ConversationInsights).ThenInclude(ci => ci.Topics)
+                .Include(c => c.Topics)
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
             return entity?.ToDto();
@@ -78,7 +78,7 @@ namespace SmartPendant.MAUIHybrid.Services
         {
             var entities = await _context.Conversations.AsNoTracking()
                 .Include(c => c.Tags)
-                .Include(c => c.ConversationInsights).ThenInclude(ci => ci.Topics)
+                .Include(c => c.Topics)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
@@ -91,7 +91,7 @@ namespace SmartPendant.MAUIHybrid.Services
             var entities = await _context.Conversations.AsNoTracking()
                 .Where(c => c.CreatedAt.Date == date.Date)
                 .Include(c => c.Tags)
-                .Include(c => c.ConversationInsights).ThenInclude(ci => ci.Topics)
+                .Include(c => c.Topics)
                 .ToListAsync();
 
             return entities.Select(e => e.ToDto()).ToList();
@@ -103,9 +103,9 @@ namespace SmartPendant.MAUIHybrid.Services
 
             var entities = await _context.Conversations.AsNoTracking()
                 // Efficiently query based on a child collection's property.
-                .Where(c => c.ConversationInsights != null && c.ConversationInsights.Topics.Any(t => t.Name.ToLower() == topic.ToLower()))
+                .Where(c => c.Topics.Any(t => t.Name.ToLower() == topic.ToLower()))
                 .Include(c => c.Tags)
-                .Include(c => c.ConversationInsights).ThenInclude(ci => ci.Topics)
+                .Include(c => c.Topics)
                 .ToListAsync();
 
             return entities.Select(e => e.ToDto()).ToList();

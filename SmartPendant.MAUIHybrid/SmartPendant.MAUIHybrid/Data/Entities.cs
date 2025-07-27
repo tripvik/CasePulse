@@ -18,12 +18,11 @@ namespace SmartPendant.MAUIHybrid.Data
         public double DurationMinutes { get; set; }
         public string? Location { get; set; }
         public string? Summary { get; set; }
-
-        public List<TagEntity> Tags { get; set; } = [];
         public List<TranscriptEntryEntity> Transcript { get; set; } = [];
         public List<TimelineEventEntity> Timeline { get; set; } = [];
         public List<ActionItemEntity> ActionItems { get; set; } = [];
-        public ConversationInsightsEntity? ConversationInsights { get; set; }
+        public List<TopicEntity> Topics { get; set; } = [];
+        public List<TagEntity> Tags { get; set; } = [];
     }
 
     [Table("Tags")]
@@ -79,17 +78,6 @@ namespace SmartPendant.MAUIHybrid.Data
         public ConversationRecordEntity ConversationRecord { get; set; } = null!;
     }
 
-    [Table("ConversationInsights")]
-    public class ConversationInsightsEntity
-    {
-        [Key]
-        public int Id { get; set; }
-        public List<TopicEntity> Topics { get; set; } = [];
-
-        public Guid ConversationRecordId { get; set; }
-        public ConversationRecordEntity ConversationRecord { get; set; } = null!;
-    }
-
     [Table("Topics")]
     public class TopicEntity
     {
@@ -97,7 +85,7 @@ namespace SmartPendant.MAUIHybrid.Data
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
 
-        public int ConversationInsightsId { get; set; }
-        public ConversationInsightsEntity ConversationInsights { get; set; } = null!;
+        public Guid ConversationRecordId { get; set; }
+        public ConversationRecordEntity ConversationRecord { get; set; } = null!;
     }
 }

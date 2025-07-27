@@ -24,7 +24,11 @@ namespace SmartPendant.MAUIHybrid.Helpers
                 Summary = entity.Summary,
                 Tags = entity.Tags?.Select(t => t.Name).ToList() ?? [],
                 Transcript = entity.Transcript?.Select(t => t.ToDto()).ToList() ?? [],
-                ConversationInsights = entity.ConversationInsights?.ToDto(),
+                ConversationInsights = new()
+                {
+                    ActionItems = entity.ActionItems?.Select(a => a.ToDto()).ToList() ?? [],
+                    Topics = entity.Topics?.Select(t => t.Name).ToList() ?? []
+                },
                 Timeline = entity.Timeline?.Select(t => t.ToDto()).ToList() ?? []
             };
         }
@@ -36,12 +40,6 @@ namespace SmartPendant.MAUIHybrid.Helpers
             Text = entity.Text,
             Initials = entity.Initials,
             Timestamp = entity.Timestamp
-        };
-
-        public static ConversationInsights ToDto(this ConversationInsightsEntity entity) => new()
-        {
-            Topics = entity.Topics?.Select(t => t.Name).ToList(),
-            ActionItems = new List<ActionItem>()
         };
 
         public static ActionItem ToDto(this ActionItemEntity entity) => new()
@@ -83,12 +81,9 @@ namespace SmartPendant.MAUIHybrid.Helpers
                 Summary = dto.Summary,
                 Tags = dto.Tags?.Select(t => new TagEntity { Name = t }).ToList() ?? [],
                 Transcript = dto.Transcript?.Select(t => t.ToEntity()).ToList() ?? [],
-                ConversationInsights = dto.ConversationInsights?.ToEntity(),
+                Topics = dto.ConversationInsights?.Topics?.Select(t => new TopicEntity { Name = t }).ToList() ?? [],
                 ActionItems = dto.ConversationInsights?.ActionItems?.Select(a => a.ToEntity()).ToList() ?? [],
-                // --- FIX START ---
-                // Added the missing mapping for the Timeline property.
                 Timeline = dto.Timeline?.Select(t => t.ToEntity()).ToList() ?? []
-                // --- FIX END ---
             };
         }
 
@@ -117,18 +112,11 @@ namespace SmartPendant.MAUIHybrid.Helpers
             Timestamp = dto.Timestamp
         };
 
-        public static ConversationInsightsEntity ToEntity(this ConversationInsights dto) => new()
-        {
-            Topics = dto.Topics is not null
-                ? [.. dto.Topics.Select(t => new TopicEntity { Name = t })]
-                : []
-        };
-
         public static ActionItemEntity ToEntity(this ActionItem dto) => new()
         {
             Id = dto.TaskId,
             Description = dto.Description,
-            Status = (ActionStatus)dto.Status,
+            Status = dto.Status,
             Assignee = dto.Assignee,
             DueDate = dto.DueDate
         };

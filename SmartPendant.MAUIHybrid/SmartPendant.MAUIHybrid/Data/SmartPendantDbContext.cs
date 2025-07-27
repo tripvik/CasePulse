@@ -16,15 +16,6 @@ public class SmartPendantDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // --- ConversationRecordEntity Relationships ---
-
-        // One-to-One: ConversationRecord -> ConversationInsights
-        modelBuilder.Entity<ConversationRecordEntity>()
-            .HasOne(c => c.ConversationInsights)
-            .WithOne(i => i.ConversationRecord)
-            .HasForeignKey<ConversationInsightsEntity>(i => i.ConversationRecordId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         // One-to-Many: ConversationRecord -> TranscriptEntries
         modelBuilder.Entity<ConversationRecordEntity>()
             .HasMany(c => c.Transcript)
@@ -46,6 +37,13 @@ public class SmartPendantDbContext : DbContext
             .HasForeignKey(a => a.ConversationRecordId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // One-to-Many: ConversationRecord -> ActionItems
+        modelBuilder.Entity<ConversationRecordEntity>()
+            .HasMany(c => c.Topics)
+            .WithOne(a => a.ConversationRecord)
+            .HasForeignKey(a => a.ConversationRecordId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // One-to-Many: ConversationRecord -> TimelineEvents
         modelBuilder.Entity<ConversationRecordEntity>()
             .HasMany(c => c.Timeline)
@@ -53,14 +51,6 @@ public class SmartPendantDbContext : DbContext
             .HasForeignKey(te => te.ConversationRecordId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- ConversationInsightsEntity Relationships ---
-
-        // One-to-Many: ConversationInsights -> Topics
-        modelBuilder.Entity<ConversationInsightsEntity>()
-            .HasMany(i => i.Topics)
-            .WithOne(t => t.ConversationInsights)
-            .HasForeignKey(t => t.ConversationInsightsId)
-            .OnDelete(DeleteBehavior.Cascade);
 
         // --- Data Type Conversions ---
 

@@ -89,7 +89,7 @@ namespace SmartPendant.MAUIHybrid
 
             // Register DatabaseService
             builder.Services.AddScoped<DatabaseInitializationService>();
-
+            
             var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
             var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];
             var openAIDeployment = builder.Configuration["Azure:OpenAI:DeploymentName"];

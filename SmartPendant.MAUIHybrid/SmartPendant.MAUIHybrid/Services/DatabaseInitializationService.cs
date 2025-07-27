@@ -1,4 +1,5 @@
-﻿using SmartPendant.MAUIHybrid.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using SmartPendant.MAUIHybrid.Data;
 
 namespace SmartPendant.MAUIHybrid.Services
 {
@@ -13,12 +14,18 @@ namespace SmartPendant.MAUIHybrid.Services
 
         public async Task InitializeDatabaseAsync()
         {
-            await _context.Database.EnsureCreatedAsync();
+            await _context.Database.MigrateAsync();
         }
 
         public async Task<bool> DatabaseExistsAsync()
         {
             return await _context.Database.CanConnectAsync();
+        }
+
+        public async Task ResetDatabaseAsync()
+        {
+            await _context.Database.EnsureDeletedAsync();
+            await _context.Database.MigrateAsync();
         }
     }
 }

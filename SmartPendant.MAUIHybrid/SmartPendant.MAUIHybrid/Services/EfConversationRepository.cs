@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SmartPendant.MAUIHybrid.Abstractions;
+using SmartPendant.MAUIHybrid.Data;
 using SmartPendant.MAUIHybrid.Helpers;
 using SmartPendant.MAUIHybrid.Models;
 using System.Diagnostics;
@@ -13,8 +14,6 @@ namespace SmartPendant.MAUIHybrid.Services
         public EfConversationRepository(SmartPendantDbContext context)
         {
             _context = context;
-            // This ensures the database file and schema are created on first use.
-            _context.Database.EnsureCreated();
         }
 
         #region Conversation Methods
@@ -35,29 +34,168 @@ namespace SmartPendant.MAUIHybrid.Services
 
                 if (existingEntity != null)
                 {
-                    // For a simple update, we remove the old graph and add the new one.
-                    // In a high-performance scenario, you might merge the changes instead.
-                    _context.Conversations.Remove(existingEntity);
-                    await _context.SaveChangesAsync();
+                    // Update existing entity
+                    UpdateExistingEntity(existingEntity, conversation);
+                }
+                else
+                {
+                    // Add new entity
+                    var newEntity = conversation.ToEntity();
+                    _context.Conversations.Add(newEntity);
                 }
 
-                var newEntity = conversation.ToEntity();
-                _context.Conversations.Add(newEntity);
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[DB ERROR] SaveConversationAsync: {ex.Message}");
+                // Use ILogger instead of Debug.WriteLine
+                throw new InvalidOperationException($"Failed to save conversation: {ex.Message}", ex);
             }
         }
 
         public async Task SaveConversationsAsync(IEnumerable<ConversationRecord> conversations)
         {
-            foreach (var conversation in conversations)
+            if (!conversations.Any()) return;
+
+            try
             {
-                // This calls the single-save method in a loop.
-                // For bulk operations, further optimizations are possible.
-                await SaveConversationAsync(conversation);
+                // Use a transaction for bulk operations
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                
+                foreach (var conversation in conversations)
+                {
+                    var existingEntity = await _context.Conversations
+                        .Include(c => c.Tags)
+                        .Include(c => c.Transcript)
+                        .Include(c => c.ActionItems)
+                        .Include(c => c.Timeline)
+                        .Include(c => c.Topics)
+                        .FirstOrDefaultAsync(c => c.Id == conversation.Id);
+
+                    if (existingEntity != null)
+                    {
+                        UpdateExistingEntity(existingEntity, conversation);
+                    }
+                    else
+                    {
+                        var newEntity = conversation.ToEntity();
+                        _context.Conversations.Add(newEntity);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($"Failed to save conversations: {ex.Message}", ex);
+            }
+        }
+
+        private void UpdateExistingEntity(ConversationRecordEntity existingEntity, ConversationRecord conversation)
+        {
+            // Update scalar properties
+            existingEntity.Title = conversation.Title;
+            existingEntity.Summary = conversation.Summary;
+            existingEntity.DurationMinutes = conversation.DurationMinutes;
+            existingEntity.Location = conversation.Location;
+            existingEntity.UserId = conversation.UserId;
+
+            // Update collections efficiently
+            UpdateTags(existingEntity, conversation.Tags);
+            UpdateTopics(existingEntity, conversation.ConversationInsights?.Topics);
+            UpdateTranscript(existingEntity, conversation.Transcript);
+            UpdateActionItems(existingEntity, conversation.ConversationInsights?.ActionItems);
+            UpdateTimeline(existingEntity, conversation.Timeline);
+        }
+
+        private void UpdateTags(ConversationRecordEntity entity, List<string>? newTags)
+        {
+            if (newTags == null) return;
+
+            // Remove tags that are no longer present
+            var tagsToRemove = entity.Tags.Where(t => !newTags.Contains(t.Name)).ToList();
+            foreach (var tag in tagsToRemove)
+            {
+                entity.Tags.Remove(tag);
+            }
+
+            // Add new tags
+            var existingTagNames = entity.Tags.Select(t => t.Name).ToHashSet();
+            foreach (var tagName in newTags.Where(t => !existingTagNames.Contains(t)))
+            {
+                entity.Tags.Add(new TagEntity { Name = tagName });
+            }
+        }
+
+        private void UpdateTopics(ConversationRecordEntity entity, List<string>? newTopics)
+        {
+            if (newTopics == null) return;
+
+            // Clear and rebuild topics (simpler for this use case)
+            entity.Topics.Clear();
+            foreach (var topicName in newTopics)
+            {
+                entity.Topics.Add(new TopicEntity { Name = topicName });
+            }
+        }
+
+        private void UpdateTranscript(ConversationRecordEntity entity, List<TranscriptEntry>? newTranscript)
+        {
+            if (newTranscript == null) return;
+
+            // Clear and rebuild transcript (transcript entries are typically immutable)
+            entity.Transcript.Clear();
+            foreach (var entry in newTranscript)
+            {
+                entity.Transcript.Add(entry.ToEntity());
+            }
+        }
+
+        private void UpdateActionItems(ConversationRecordEntity entity, List<ActionItem>? newActionItems)
+        {
+            if (newActionItems == null) return;
+
+            // Update existing action items and add new ones
+            var existingItems = entity.ActionItems.ToDictionary(a => a.Id);
+            var updatedIds = new HashSet<Guid>();
+
+            foreach (var item in newActionItems)
+            {
+                if (existingItems.TryGetValue(item.TaskId, out var existingItem))
+                {
+                    // Update existing
+                    existingItem.Description = item.Description;
+                    existingItem.Status = item.Status;
+                    existingItem.Assignee = item.Assignee;
+                    existingItem.DueDate = item.DueDate;
+                    updatedIds.Add(item.TaskId);
+                }
+                else
+                {
+                    // Add new
+                    entity.ActionItems.Add(item.ToEntity());
+                    updatedIds.Add(item.TaskId);
+                }
+            }
+
+            // Remove items that are no longer present
+            var itemsToRemove = entity.ActionItems.Where(a => !updatedIds.Contains(a.Id)).ToList();
+            foreach (var item in itemsToRemove)
+            {
+                entity.ActionItems.Remove(item);
+            }
+        }
+
+        private void UpdateTimeline(ConversationRecordEntity entity, List<TimelineEvent>? newTimeline)
+        {
+            if (newTimeline == null) return;
+
+            // Clear and rebuild timeline (timeline events are typically immutable)
+            entity.Timeline.Clear();
+            foreach (var timelineEvent in newTimeline)
+            {
+                entity.Timeline.Add(timelineEvent.ToEntity());
             }
         }
 
@@ -115,6 +253,11 @@ namespace SmartPendant.MAUIHybrid.Services
         {
             var entity = await _context.Conversations.AsNoTracking()
                 .Where(c => c.CreatedAt.Date == date.Date)
+                .Include(c => c.Tags)
+                .Include(c => c.Transcript)
+                .Include(c => c.ActionItems)
+                .Include(c => c.Timeline)
+                .Include(c => c.Topics)
                 .OrderBy(c => c.CreatedAt)
                 .FirstOrDefaultAsync();
 

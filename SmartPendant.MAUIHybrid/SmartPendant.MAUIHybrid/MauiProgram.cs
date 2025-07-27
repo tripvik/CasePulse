@@ -30,6 +30,7 @@ namespace SmartPendant.MAUIHybrid
 
             ConfigureApp(builder);
             ConfigureServices(builder);
+            ConfigureDatabase(builder);
             ConfigureDevelopmentServices(builder);
 
             var mauiApp = builder.Build();
@@ -70,7 +71,6 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddBlazoredLocalStorage();
 
             // Register application-specific singleton services
-
             builder.Services.AddSingleton<AudioPipelineManager>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
@@ -80,12 +80,6 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddScoped<IConversationRepository, EfConversationRepository>();
             builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
 
-            // Get the app data directory
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendant.db");
-
-            // Register DbContext
-            builder.Services.AddDbContext<SmartPendantDbContext>(options =>
-                options.UseSqlite($"Data Source={dbPath}"));
 
             // Register DatabaseService
             builder.Services.AddScoped<DatabaseInitializationService>();
@@ -107,6 +101,25 @@ namespace SmartPendant.MAUIHybrid
             RegisterPlatformDependentServices(builder);
         }
 
+        private static void ConfigureDatabase(MauiAppBuilder builder)
+        {
+            // Get the app data directory
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendant.db");
+
+            // Register DbContext with improved configuration
+            builder.Services.AddDbContextPool<SmartPendantDbContext>(options =>
+            {
+                options.UseSqlite($"Data Source={dbPath}")
+                    .EnableSensitiveDataLogging(builder.Configuration.GetValue<bool>("Database:EnableSensitiveDataLogging", false))
+                    .EnableDetailedErrors(builder.Configuration.GetValue<bool>("Database:EnableDetailedErrors", false));
+
+#if DEBUG
+                options.LogTo(message => System.Diagnostics.Debug.WriteLine(message))
+                    .EnableSensitiveDataLogging()
+                    .EnableDetailedErrors();
+#endif
+            });
+        }
         private static void RegisterPlatformDependentServices(MauiAppBuilder builder)
         {
             var useMockData = builder.Configuration.GetValue<bool>("UseMockData");

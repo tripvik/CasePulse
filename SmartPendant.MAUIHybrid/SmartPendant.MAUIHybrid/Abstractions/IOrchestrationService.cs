@@ -12,6 +12,7 @@ namespace SmartPendant.MAUIHybrid.Abstractions
         bool IsRecording { get; }
         bool IsDeviceConnected { get; }
         bool IsStateChanging { get; }
+        bool IsGeneratingInsight { get; }
         ConversationRecord CurrentConversation { get; }
         DayRecord CurrentDay { get; }
 
@@ -22,5 +23,8 @@ namespace SmartPendant.MAUIHybrid.Abstractions
 
         Task StartAsync();
         Task StopAsync();
+        Task GenerateInsightAsync(bool interim = false, CancellationToken cancellationToken = default);
+        Task SaveCurrentConversationAsync();
+        Task SaveCurrentDayAsync();
     }
 }

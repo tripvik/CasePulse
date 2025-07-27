@@ -1,4 +1,5 @@
 @page "/"
+@using SmartPendant.MAUIHybrid.Data
 @implements IAsyncDisposable
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
@@ -6,6 +7,7 @@
 @inject IDayJournalRepository DayJournalRepository
 @inject ConversationInsightService ConversationInsightService
 @inject DailyJournalInsightService DailyJournalInsightService
+@inject SmartPendantDbContext DbContext
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -146,7 +148,7 @@
         var dayRecord = OrchestrationService.CurrentDay;
 
         var todaysConversation = await ConversationRepository.GetConversationsByDateAsync(DateTime.Now.Date);
-        
+
         dayRecord.Conversations = dayRecord.Conversations
             .UnionBy(todaysConversation, c => c.Id)
             .ToList();

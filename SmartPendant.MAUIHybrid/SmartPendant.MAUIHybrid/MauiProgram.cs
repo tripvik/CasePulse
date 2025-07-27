@@ -8,7 +8,8 @@ using SmartPendant.MAUIHybrid.Abstractions;
 using SmartPendant.MAUIHybrid.Services;
 using System.Reflection;
 using System.ClientModel;
-
+using Microsoft.EntityFrameworkCore;
+using SmartPendant.MAUIHybrid.Data;
 
 // Platform-specific using directives to resolve service implementations
 #if ANDROID
@@ -29,6 +30,7 @@ namespace SmartPendant.MAUIHybrid
 
             ConfigureApp(builder);
             ConfigureServices(builder);
+            ConfigureDatabase(builder);
             ConfigureDevelopmentServices(builder);
 
             var mauiApp = builder.Build();
@@ -69,16 +71,19 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddBlazoredLocalStorage();
 
             // Register application-specific singleton services
-
             builder.Services.AddSingleton<AudioPipelineManager>();
             builder.Services.AddScoped<UserPreferencesService>();
             builder.Services.AddScoped<LayoutService>();
             builder.Services.AddSingleton<ConversationInsightService>();
             builder.Services.AddSingleton<DailyJournalInsightService>();
             builder.Services.AddSingleton<IStorageService, BlobStorageService>();
-            builder.Services.AddScoped<IConversationRepository, LocalConversationRepository>();
+            builder.Services.AddScoped<IConversationRepository, EfConversationRepository>();
             builder.Services.AddScoped<IDayJournalRepository, LocalDayJournalRepository>();
 
+
+            // Register DatabaseService
+            builder.Services.AddScoped<DatabaseInitializationService>();
+            
             var openAIKey = builder.Configuration["Azure:OpenAI:ApiKey"];
             var openAIEndpoint = builder.Configuration["Azure:OpenAI:Endpoint"];
             var openAIDeployment = builder.Configuration["Azure:OpenAI:DeploymentName"];
@@ -96,6 +101,25 @@ namespace SmartPendant.MAUIHybrid
             RegisterPlatformDependentServices(builder);
         }
 
+        private static void ConfigureDatabase(MauiAppBuilder builder)
+        {
+            // Get the app data directory
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendant.db");
+
+            // Register DbContext with improved configuration
+            builder.Services.AddDbContextPool<SmartPendantDbContext>(options =>
+            {
+                options.UseSqlite($"Data Source={dbPath}")
+                    .EnableSensitiveDataLogging(builder.Configuration.GetValue<bool>("Database:EnableSensitiveDataLogging", false))
+                    .EnableDetailedErrors(builder.Configuration.GetValue<bool>("Database:EnableDetailedErrors", false));
+
+#if DEBUG
+                options.LogTo(message => System.Diagnostics.Debug.WriteLine(message))
+                    .EnableSensitiveDataLogging()
+                    .EnableDetailedErrors();
+#endif
+            });
+        }
         private static void RegisterPlatformDependentServices(MauiAppBuilder builder)
         {
             var useMockData = builder.Configuration.GetValue<bool>("UseMockData");

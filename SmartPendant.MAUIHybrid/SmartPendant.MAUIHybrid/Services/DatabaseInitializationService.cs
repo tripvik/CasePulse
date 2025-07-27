@@ -14,18 +14,12 @@ namespace SmartPendant.MAUIHybrid.Services
 
         public async Task InitializeDatabaseAsync()
         {
-            await _context.Database.MigrateAsync();
+            await _context.Database.EnsureCreatedAsync();
         }
 
         public async Task<bool> DatabaseExistsAsync()
         {
             return await _context.Database.CanConnectAsync();
-        }
-
-        public async Task ResetDatabaseAsync()
-        {
-            await _context.Database.EnsureDeletedAsync();
-            await _context.Database.MigrateAsync();
         }
     }
 }

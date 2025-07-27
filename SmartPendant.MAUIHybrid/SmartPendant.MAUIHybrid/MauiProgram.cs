@@ -96,7 +96,7 @@ namespace SmartPendant.MAUIHybrid
             var azureOpenAi = new AzureOpenAIClient(new Uri(openAIEndpoint), new ApiKeyCredential(openAIKey));
             var chatClient = azureOpenAi.GetChatClient(openAIDeployment).AsIChatClient();
             builder.Services.AddChatClient(chatClient).UseFunctionInvocation().UseLogging();
-
+            builder.Services.AddSingleton<IAudioStorageService, AudioStorageService>();
             // Register services that have different implementations per platform
             RegisterPlatformDependentServices(builder);
         }
@@ -146,14 +146,11 @@ namespace SmartPendant.MAUIHybrid
                     builder.Services.AddSingleton<IConnectionService, BLEService>();
                 else
                     builder.Services.AddSingleton<IConnectionService, BluetoothClassicService>();
-
-                // Transcription service
-                if (useFileRecording)
-                    builder.Services.AddSingleton<ITranscriptionService, FileTranscriptionService>();
-                else if (useOpenAI)
+                if (useOpenAI)
                     builder.Services.AddSingleton<ITranscriptionService, OpenAITranscriptionService>();
                 else
                     builder.Services.AddSingleton<ITranscriptionService, SpeechTranscriptionService>();
+                
             }
         }
         #endregion

@@ -1,0 +1,203 @@
+@page "/audio-demo"
+@using SmartPendant.MAUIHybrid.Components.Shared
+@using SmartPendant.MAUIHybrid.Services
+@inject IAudioService AudioService
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h3 class="mb-4">Audio Player Demo</h3>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">File Selection</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="audioFile" class="form-label">Select Audio File (.wav, .mp3, .m4a, etc.)</label>
+                        <InputFile id="audioFile" OnChange="OnFileSelected" accept="audio/*" class="form-control" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            @errorMessage
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(selectedFileName))
+                    {
+                        <div class="alert alert-info">
+                            <strong>Selected:</strong> @selectedFileName
+                        </div>
+                    }
+                </div>
+            </div>
+
+         <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Audio Player</h5>
+                    </div>
+                    <div class="card-body d-flex justify-content-center">
+                        <AudioPlayer AudioFilePath="@audioFilePath" 
+                                   Title="@selectedFileName"
+                                   OnPlayStateChanged="OnPlayStateChanged"
+                                   OnPositionChanged="OnPositionChanged" />
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Playback Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Status:</strong> @(isPlaying ? "Playing" : "Paused/Stopped")</p>
+                                <p><strong>Current Position:</strong> @currentPosition.ToString(@"mm\:ss")</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>File:</strong> @Path.GetFileName(audioFilePath)</p>
+                                <p><strong>Size:</strong> @GetFileSize(audioFilePath)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Sample Audio Files</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">
+                        To test the audio player, you can:
+                    </p>
+                    <ul>
+                        <li>Upload your own .wav, .mp3, or other supported audio files using the file selector above</li>
+                        <li>Use any audio files you have stored locally on your device</li>
+                        <li>The player supports common audio formats including WAV, MP3, M4A, AAC, OGG, and FLAC</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? audioFilePath;
+    private string? selectedFileName;
+    private string? errorMessage;
+    private bool isPlaying = false;
+    private TimeSpan currentPosition = TimeSpan.Zero;
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        errorMessage = null;
+        selectedFileName = null;
+        audioFilePath = null;
+
+        try
+        {
+            var file = e.File;
+            if (file == null)
+                return;
+
+            // Check if it's an audio file
+            if (!AudioService.IsAudioFile(file.Name))
+            {
+                errorMessage = "Please select a valid audio file (.wav, .mp3, .m4a, etc.)";
+                return;
+            }
+
+            // Create a temporary file to store the uploaded audio
+            var tempDir = Path.Combine(FileSystem.AppDataDirectory, "temp");
+            Directory.CreateDirectory(tempDir);
+
+            var tempFilePath = Path.Combine(tempDir, $"{Guid.NewGuid()}_{file.Name}");
+
+            // Save the uploaded file
+            using var fileStream = File.Create(tempFilePath);
+            using var uploadStream = file.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024); // 50MB max
+            await uploadStream.CopyToAsync(fileStream);
+
+            audioFilePath = tempFilePath;
+            selectedFileName = file.Name;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading file: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    private Task OnPlayStateChanged(bool playing)
+    {
+        isPlaying = playing;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private Task OnPositionChanged(TimeSpan position)
+    {
+        currentPosition = position;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private string GetFileSize(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                var fileInfo = new FileInfo(filePath);
+                var sizeInBytes = fileInfo.Length;
+                
+                if (sizeInBytes < 1024)
+                    return $"{sizeInBytes} B";
+                else if (sizeInBytes < 1024 * 1024)
+                    return $"{sizeInBytes / 1024:F1} KB";
+                else
+                    return $"{sizeInBytes / (1024 * 1024):F1} MB";
+            }
+        }
+        catch { }
+        
+        return "Unknown";
+    }
+
+    protected override void OnInitialized()
+    {
+        // Clean up any old temp files on startup
+        CleanupTempFiles();
+    }
+
+    private void CleanupTempFiles()
+    {
+        try
+        {
+            var tempDir = Path.Combine(FileSystem.AppDataDirectory, "temp");
+            if (Directory.Exists(tempDir))
+            {
+                var files = Directory.GetFiles(tempDir);
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var fileInfo = new FileInfo(file);
+                        // Delete files older than 1 hour
+                        if (DateTime.Now - fileInfo.CreationTime > TimeSpan.FromHours(1))
+                        {
+                            File.Delete(file);
+                        }
+                    }
+                    catch { }
+                }
+            }
+        }
+        catch { }
+    }
+}

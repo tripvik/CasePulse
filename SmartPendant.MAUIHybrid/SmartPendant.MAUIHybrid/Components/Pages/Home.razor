@@ -3,11 +3,6 @@
 @implements IAsyncDisposable
 @inject ISnackbar Snackbar
 @inject IOrchestrationService OrchestrationService
-@inject IConversationRepository ConversationRepository
-@inject IDayJournalRepository DayJournalRepository
-@inject ConversationInsightService ConversationInsightService
-@inject DailyJournalInsightService DailyJournalInsightService
-@inject SmartPendantDbContext DbContext
 
 <MudStack Justify="Justify.SpaceBetween" Class="mx-2 full-height-container">
     @* Header Section *@
@@ -30,7 +25,7 @@
 
     @* Conversation Container *@
     <div class="conversation-wrapper">
-        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" />
+        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" IsGeneratingInsight="@OrchestrationService.IsGeneratingInsight" />
     </div>
 
     @* Footer Section *@
@@ -55,11 +50,11 @@
             }
         </MudButton>
         <MudButton OnClick="@(() => GenerateInsightAsync(true))"
-                   Disabled="@_isGeneratingInsight" Variant="Variant.Outlined"
+                   Disabled="@OrchestrationService.IsGeneratingInsight" Variant="Variant.Outlined"
                    StartIcon="@Icons.Material.Filled.AutoAwesome"
                    Color="@Color.Secondary"
                    Class="rounded-xl py-3" FullWidth="true">
-            @if (_isGeneratingInsight)
+            @if (OrchestrationService.IsGeneratingInsight)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
                 <MudText Class="ms-2">Generating</MudText>
@@ -75,8 +70,6 @@
 @code {
     #region Fields
 
-    private bool _isGeneratingInsight;
-    private readonly CancellationTokenSource _cts = new();
     private bool _isDesktop
     {
         get
@@ -97,33 +90,20 @@
         {
             Snackbar.Configuration.PositionClass = Defaults.Classes.Position.TopCenter;
         }
-
         else
         {
             Snackbar.Configuration.PositionClass = Defaults.Classes.Position.BottomCenter;
         }
         Snackbar.Configuration.ShowTransitionDuration = 500;
         // Subscribe to state changes from the orchestration service.
-        OrchestrationService.ConversationCompleted += OnConversationCompleted;
         OrchestrationService.StateHasChanged += OnStateHasChanged;
         OrchestrationService.Notify += OnNotify;
     }
 
     public async ValueTask DisposeAsync()
     {
-        // Cancel any ongoing operations and unsubscribe from events to prevent memory leaks.
-        _cts.Cancel();
-        _cts.Dispose();
-
-        OrchestrationService.ConversationCompleted -= OnConversationCompleted;
         OrchestrationService.StateHasChanged -= OnStateHasChanged;
         OrchestrationService.Notify -= OnNotify;
-
-        // Ensure the orchestration service is properly disposed if it implements IAsyncDisposable.
-        if (OrchestrationService is IAsyncDisposable disposableService)
-        {
-            await disposableService.DisposeAsync();
-        }
     }
 
     #endregion
@@ -144,43 +124,13 @@
 
     private async Task GenerateInsightAsync(bool interim = false)
     {
-        var ConversationRecord = OrchestrationService.CurrentConversation;
-        var dayRecord = OrchestrationService.CurrentDay;
-
-        var todaysConversation = await ConversationRepository.GetConversationsByDateAsync(DateTime.Now.Date);
-
-        dayRecord.Conversations = dayRecord.Conversations
-            .UnionBy(todaysConversation, c => c.Id)
-            .ToList();
-
-        if (ConversationRecord is null || !ConversationRecord.Transcript.Any())
-        {
-            Snackbar.Add("There is no transcript content to generate insights from.", Severity.Info);
-            return;
-        }
-
-        _isGeneratingInsight = true;
-        await InvokeAsync(StateHasChanged);
-
         try
         {
-            await ConversationInsightService.GenerateAndApplyInsightAsync(ConversationRecord, _cts.Token);
-            await DailyJournalInsightService.GenerateAndApplyDailyInsightAsync(dayRecord, _cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-            Snackbar.Add("Insight generation was canceled.", Severity.Warning);
+            await OrchestrationService.GenerateInsightAsync(interim);
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Failed to generate insight: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            if (interim)
-                Snackbar.Add($"Insights generated", Severity.Success);
-            _isGeneratingInsight = false;
-            await InvokeAsync(StateHasChanged);
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -196,41 +146,6 @@
     private void OnNotify(object? sender, (string message, Severity severity) args)
     {
         Snackbar.Add(args.message, args.severity);
-    }
-
-    /// <summary>
-    /// Handles the completion of a conversation, triggers insight generation and saving.
-    /// </summary>
-    private async void OnConversationCompleted(object? sender, EventArgs e)
-    {
-        try
-        {
-            // First, generate the AI insight for the completed conversation.
-            await GenerateInsightAsync();
-
-            // Next, save the conversation with the generated insights.
-            var conversatioModel = OrchestrationService.CurrentConversation;
-            if (conversatioModel != null)
-            {
-                await ConversationRepository.SaveConversationAsync(conversatioModel);
-                Snackbar.Add("Conversation processed", Severity.Success);
-            }
-
-            var dayRecord = OrchestrationService.CurrentDay;
-            if (dayRecord != null)
-            {
-                await DayJournalRepository.SaveAsync(dayRecord);
-                Snackbar.Add("Conversation processed", Severity.Success);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"A critical error occurred during conversation finalization: {ex.Message}", Severity.Error);
-        }
-        finally
-        {
-            await InvokeAsync(StateHasChanged);
-        }
     }
 
     #endregion

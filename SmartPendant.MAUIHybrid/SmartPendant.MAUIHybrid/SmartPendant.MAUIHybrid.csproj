@@ -88,6 +88,7 @@
         <PackageReference Include="MudBlazor.ThemeManager" Version="3.0.0" />
         <PackageReference Include="NAudio" Version="2.2.1" />
         <PackageReference Include="Plugin.BLE" Version="3.1.0" />
+        <PackageReference Include="Plugin.Maui.Audio" Version="4.0.0" />
     </ItemGroup>
 
 	<ItemGroup>

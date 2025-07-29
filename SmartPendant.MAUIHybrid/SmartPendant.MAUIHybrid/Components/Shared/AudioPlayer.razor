@@ -1,0 +1,408 @@
+@using Plugin.Maui.Audio
+@using System.Timers
+@using MudBlazor
+@implements IAsyncDisposable
+@inject IAudioManager AudioManager
+
+<MudPaper Class="rounded-lg pa-2" >
+    <MudStack Row AlignItems="AlignItems.Center" Spacing="2" Style="gap: 16px;">
+
+        <MudIconButton Icon="@GetPlayIcon()"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       Disabled="@(audioPlayer == null || IsLoading)"
+                       OnClick="TogglePlayPause"
+                       Edge="Edge.Start" />
+
+        <MudText Typo="Typo.body2" Class="text-no-wrap" Style="min-width: 80px; font-variant-numeric: tabular-nums;">
+            @FormatTime(CurrentTime) / @FormatTime(TotalDuration)
+        </MudText>
+
+        <MudSlider T="double"
+                   Value="@sliderValue"
+                   ValueChanged="OnSliderValueChanged"
+                   Min="0"
+                   Max="@GetSliderMax()"
+                   Disabled="@(audioPlayer == null || IsLoading)"
+                   Style="flex-grow: 1;"
+                   Color="Color.Primary" />
+    </MudStack>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <MudAlert Severity="Severity.Error"
+                  ShowCloseIcon="true"
+                  CloseIconClicked="() => ErrorMessage = null"
+                  Class="mt-3">
+            @ErrorMessage
+
+            @if (ShowRetryButton)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Refresh"
+                           Size="Size.Small"
+                           Variant="Variant.Text"
+                           Color="Color.Error"
+                           OnClick="RetryLoad"
+                           Class="ml-2">
+                    Retry
+                </MudButton>
+            }
+        </MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public string? AudioFilePath { get; set; }
+    [Parameter] public Stream? AudioStream { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool AutoPlay { get; set; } = false;
+    [Parameter] public bool ShowLoadingProgress { get; set; } = true;
+    [Parameter] public bool ShowRetryButton { get; set; } = true;
+    [Parameter] public double InitialVolume { get; set; } = 1.0;
+    [Parameter] public EventCallback<bool> OnPlayStateChanged { get; set; }
+    [Parameter] public EventCallback<TimeSpan> OnPositionChanged { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+    [Parameter] public EventCallback OnAudioLoaded { get; set; }
+
+    private IAudioPlayer? audioPlayer;
+    private Timer? progressTimer;
+    private bool IsPlaying = false;
+    private bool IsLoading = false;
+    private TimeSpan CurrentTime = TimeSpan.Zero;
+    private TimeSpan TotalDuration = TimeSpan.Zero;
+    private double Volume = 1.0;
+    private string? ErrorMessage;
+    private bool isSeeking = false;
+    private bool disposed = false;
+    private double sliderValue = 0;
+    private bool isPlaybackCompleted = false;
+
+    protected override void OnInitialized()
+    {
+        Volume = Math.Clamp(InitialVolume, 0.0, 1.0);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (disposed) return;
+
+        if (!string.IsNullOrEmpty(AudioFilePath) && audioPlayer == null)
+        {
+            await LoadAudioFile();
+        }
+        else if (string.IsNullOrEmpty(AudioFilePath) && AudioStream == null && audioPlayer != null)
+        {
+            await DisposeAudioPlayer();
+        }
+
+        if (AudioStream != null && audioPlayer == null)
+        {
+            await LoadAudioStream();
+        }
+    }
+
+    private double GetSliderMax()
+    {
+        return TotalDuration.TotalSeconds > 0 ? Math.Ceiling(TotalDuration.TotalSeconds * 10) / 10 : 100;
+    }
+    
+    private void OnPlaybackEnded(object? sender, EventArgs e)
+    {
+        InvokeAsync(async () =>
+        {
+            progressTimer?.Stop();
+            
+            IsPlaying = false;
+            isPlaybackCompleted = true;
+            CurrentTime = TotalDuration;
+            sliderValue = GetSliderMax();
+            
+            await InvokeAsync(StateHasChanged);
+            await OnPlayStateChanged.InvokeAsync(IsPlaying);
+        });
+    }
+    
+    private async Task OnSliderValueChanged(double newValue)
+    {
+        if (audioPlayer == null || disposed) return;
+
+        isSeeking = true;
+        isPlaybackCompleted = false;
+        
+        var maxValue = GetSliderMax();
+        var clampedValue = Math.Clamp(newValue, 0, maxValue);
+        var actualSeekPosition = Math.Min(clampedValue, TotalDuration.TotalSeconds);
+        
+        audioPlayer.Seek(actualSeekPosition);
+        CurrentTime = TimeSpan.FromSeconds(actualSeekPosition);
+        sliderValue = clampedValue; 
+
+        await OnPositionChanged.InvokeAsync(CurrentTime);
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(50);
+        isSeeking = false;
+    }
+
+    private string GetPlayIcon()
+    {
+        if (IsLoading)
+            return Icons.Material.Filled.HourglassEmpty;
+        
+        return IsPlaying ? Icons.Material.Filled.Pause : Icons.Material.Filled.PlayArrow;
+    }
+
+    private async Task LoadAudioFile()
+    {
+        if (string.IsNullOrEmpty(AudioFilePath) || disposed) return;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+            await InvokeAsync(StateHasChanged);
+            await DisposeAudioPlayer();
+
+            if (File.Exists(AudioFilePath))
+            {
+                var fileStream = File.OpenRead(AudioFilePath);
+                audioPlayer = AudioManager.CreatePlayer(fileStream);
+                await ConfigureAudioPlayer();
+            }
+            else
+            {
+                ErrorMessage = "Audio file not found.";
+                await OnError.InvokeAsync(ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading audio: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task LoadAudioStream()
+    {
+        if (AudioStream == null || disposed) return;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+            await InvokeAsync(StateHasChanged);
+            await DisposeAudioPlayer();
+            audioPlayer = AudioManager.CreatePlayer(AudioStream);
+            await ConfigureAudioPlayer();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading audio stream: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task ConfigureAudioPlayer()
+    {
+        if (audioPlayer == null) return;
+
+        try
+        {
+            audioPlayer.PlaybackEnded += OnPlaybackEnded;
+            TotalDuration = TimeSpan.FromSeconds(audioPlayer.Duration);
+            audioPlayer.Volume = Volume;
+            isPlaybackCompleted = false;
+            SetupProgressTimer();
+
+            if (AutoPlay)
+            {
+                await Task.Delay(100); 
+                await TogglePlayPause();
+            }
+
+            await OnAudioLoaded.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error configuring audio player: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+    }
+
+    private void SetupProgressTimer()
+    {
+        progressTimer?.Dispose();
+        progressTimer = new Timer(50);
+        progressTimer.Elapsed += UpdateProgress;
+        progressTimer.AutoReset = true;
+        progressTimer.Start();
+    }
+
+    private void UpdateProgress(object? sender, ElapsedEventArgs e)
+    {
+        if (disposed || audioPlayer == null || !IsPlaying || isSeeking || isPlaybackCompleted)
+            return;
+
+        try
+        {
+            if (TotalDuration.TotalSeconds == 0 && audioPlayer.Duration > 0)
+            {
+                InvokeAsync(() =>
+                {
+                    TotalDuration = TimeSpan.FromSeconds(audioPlayer.Duration);
+                    StateHasChanged();
+                });
+            }
+
+            var currentPosition = audioPlayer.CurrentPosition;
+            var newPosition = TimeSpan.FromSeconds(currentPosition);
+            var maxSliderValue = GetSliderMax();
+            
+            // Calculate slider value with proper scaling
+            var newSliderValue = Math.Min(currentPosition, maxSliderValue);
+            
+            // Check if we're approaching the end to ensure smooth completion
+            if (currentPosition >= audioPlayer.Duration - 0.05 && !isPlaybackCompleted)
+            {
+                InvokeAsync(() =>
+                {
+                    CurrentTime = TotalDuration;
+                    sliderValue = maxSliderValue;
+                    StateHasChanged();
+                    OnPositionChanged.InvokeAsync(CurrentTime);
+                });
+            }
+            else
+            {
+                InvokeAsync(() =>
+                {
+                    CurrentTime = newPosition;
+                    sliderValue = newSliderValue;
+                    StateHasChanged();
+                    OnPositionChanged.InvokeAsync(CurrentTime);
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Progress timer error: {ex.Message}");
+        }
+    }
+
+    private async Task TogglePlayPause()
+    {
+        if (audioPlayer == null || disposed) return;
+
+        try
+        {
+            if (IsPlaying)
+            {
+                audioPlayer.Pause();
+                IsPlaying = false;
+                progressTimer?.Stop();
+            }
+            else
+            {
+                // If playback completed, reset to beginning
+                if (isPlaybackCompleted || (audioPlayer.Duration > 0 && CurrentTime.TotalSeconds >= audioPlayer.Duration))
+                {
+                    audioPlayer.Seek(0);
+                    CurrentTime = TimeSpan.Zero;
+                    sliderValue = 0;
+                    isPlaybackCompleted = false;
+                }
+                
+                audioPlayer.Play();
+                IsPlaying = true;
+                progressTimer?.Start();
+            }
+
+            await OnPlayStateChanged.InvokeAsync(IsPlaying);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error controlling playback: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task RetryLoad()
+    {
+        ErrorMessage = null;
+        if (!string.IsNullOrEmpty(AudioFilePath))
+        {
+            await LoadAudioFile();
+        }
+        else if (AudioStream != null)
+        {
+            await LoadAudioStream();
+        }
+    }
+
+    private string FormatTime(TimeSpan time)
+    {
+        if (time.TotalHours >= 1)
+            return time.ToString(@"h\:mm\:ss");
+        
+        return time.ToString(@"m\:ss");
+    }
+
+    private async Task DisposeAudioPlayer()
+    {
+        if (audioPlayer != null)
+        {
+            try
+            {
+                audioPlayer.PlaybackEnded -= OnPlaybackEnded;
+                if (IsPlaying)
+                {
+                    audioPlayer.Stop();
+                    IsPlaying = false;
+                }
+                audioPlayer.Dispose();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing audio player: {ex.Message}");
+            }
+            finally
+            {
+                audioPlayer = null;
+            }
+        }
+
+        progressTimer?.Stop();
+        progressTimer?.Dispose();
+        progressTimer = null;
+        
+        CurrentTime = TimeSpan.Zero;
+        TotalDuration = TimeSpan.Zero;
+        sliderValue = 0;
+        isPlaybackCompleted = false;
+        
+        if (!disposed)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        await DisposeAudioPlayer();
+    }
+}

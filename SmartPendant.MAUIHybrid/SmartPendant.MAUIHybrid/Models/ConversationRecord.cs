@@ -20,7 +20,7 @@ namespace SmartPendant.MAUIHybrid.Models
         /// Added to support the location view and detail headers.
         /// </summary>
         public string? Location { get; set; }
-
+        public string? AudioFilePath { get; set; }  
         public string? Summary { get; set; }
         public List<string> Tags { get; set; } = [];
         public List<TranscriptEntry> Transcript { get; set; } = [];

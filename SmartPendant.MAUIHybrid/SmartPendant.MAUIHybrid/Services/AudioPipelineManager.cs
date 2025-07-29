@@ -25,6 +25,8 @@ public class AudioPipelineManager : IAsyncDisposable
 
     private readonly IConnectionService _connectionService;
     private readonly ITranscriptionService _transcriptionService;
+    private readonly IAudioStorageService _audioStorageService;
+    private static readonly WaveFormat DefaultWaveFormat = new WaveFormat(16000, 16, 1);
     private readonly Channel<byte[]> _audioDataChannel;
     private CancellationTokenSource? _pipelineCts;
     private Timer? _inactivityTimer;
@@ -49,10 +51,11 @@ public class AudioPipelineManager : IAsyncDisposable
 
     #region Constructor
 
-    public AudioPipelineManager(IConnectionService connectionService, ITranscriptionService transcriptionService)
+    public AudioPipelineManager(IConnectionService connectionService, ITranscriptionService transcriptionService, IAudioStorageService audioStorageService)
     {
         _connectionService = connectionService;
         _transcriptionService = transcriptionService;
+        _audioStorageService = audioStorageService;
         CurrentConversation = new ConversationRecord();
 
         _audioDataChannel = Channel.CreateBounded<byte[]>(new BoundedChannelOptions(5000)
@@ -91,7 +94,8 @@ public class AudioPipelineManager : IAsyncDisposable
             return (false, message);
         }
         SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: true, isStateChanging: true));
-        await _transcriptionService.InitializeAsync(new WaveFormat(16000, 16, 1));
+        await _transcriptionService.InitializeAsync(DefaultWaveFormat);
+        await _audioStorageService.InitializeAsync(DefaultWaveFormat);
         SubscribeToEvents();
         _pipelineCts = new CancellationTokenSource();
         _processingTask = ProcessAudioDataFromChannelAsync(_pipelineCts.Token);
@@ -126,6 +130,17 @@ public class AudioPipelineManager : IAsyncDisposable
         // Finalize conversation if there's content.
         if (CurrentConversation.Transcript.Any())
         {
+            var (filepath,exception) = await _audioStorageService.StopAsync(CurrentConversation.Id.ToString());
+            if (exception != null)
+            {
+                Debug.WriteLine($"Error stopping audio storage: {exception.Message}");
+                Notify?.Invoke(this, ($"Failed to save audio file: {exception.Message}", Severity.Error));
+            }
+            else
+            {
+                CurrentConversation.AudioFilePath = filepath;
+                Debug.WriteLine($"Audio file saved at: {filepath}");
+            }
             Debug.WriteLine("Finalizing conversation upon stopping.");
             if (CurrentConversation.CreatedAt.Date == DateTime.Now.Date)
             {
@@ -138,7 +153,11 @@ public class AudioPipelineManager : IAsyncDisposable
 
             ConversationCompleted?.Invoke(this, EventArgs.Empty);
         }
-
+        else
+        {
+            await _audioStorageService.StopAsync();
+        }
+            
         await _transcriptionService.StopAsync();
         await _connectionService.DisconnectAsync();
         SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: false, isStateChanging: false));
@@ -180,6 +199,7 @@ public class AudioPipelineManager : IAsyncDisposable
             {
                 Debug.WriteLine("Audio data channel writer or cancellation token is null.");
             }
+            await _audioStorageService.ProcessChunkAsync(data);
         }
         catch (OperationCanceledException)
         {

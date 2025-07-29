@@ -16,6 +16,7 @@ namespace SmartPendant.MAUIHybrid.Data
         public string? Title { get; set; }
         public DateTime CreatedAt { get; set; }
         public double DurationMinutes { get; set; }
+        public string? AudioFilePath { get; set; }
         public string? Location { get; set; }
         public string? Summary { get; set; }
         public List<TranscriptEntryEntity> Transcript { get; set; } = [];

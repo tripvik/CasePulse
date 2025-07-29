@@ -312,3 +312,217 @@ h1:focus {
         transform: scale(1.05);
     }
 }
+
+.audio-player {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    max-width: 600px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.audio-info {
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.audio-title {
+    margin: 0 0 0.25rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.time-display {
+    text-align: center;
+    margin-bottom: 0.75rem;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    color: #495057;
+    font-weight: 500;
+}
+
+.separator {
+    margin: 0 0.5rem;
+    color: #6c757d;
+}
+
+.seek-container {
+    margin-bottom: 1rem;
+}
+
+.seek-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+    .seek-slider:hover {
+        background: #ccc;
+    }
+
+    .seek-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        transition: transform 0.1s ease;
+    }
+
+        .seek-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+        }
+
+    .seek-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.control-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    font-size: 1.2rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+    .control-btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+
+    .control-btn:active:not(:disabled) {
+        transform: translateY(0);
+    }
+
+.speed-control, .volume-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.speed-select {
+    width: auto;
+    min-width: 80px;
+    font-size: 0.9rem;
+    border-radius: 4px;
+}
+
+.volume-slider {
+    width: 80px;
+    height: 4px;
+    border-radius: 2px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+    .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+    }
+
+    .volume-slider::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #007bff;
+        cursor: pointer;
+        border: none;
+    }
+
+.loading-progress {
+    text-align: center;
+}
+
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+.alert {
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* Mobile styles */
+@media (max-width: 576px) {
+    .audio-player {
+        padding: 0.75rem;
+        max-width: 100%;
+    }
+
+    .controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .speed-control, .volume-control {
+        flex-direction: column;
+        text-align: center;
+        gap: 0.25rem;
+    }
+
+    .control-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+    }
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+    .audio-player {
+        background: #2d3748;
+        border-color: #4a5568;
+        color: #e2e8f0;
+    }
+
+    .audio-title {
+        color: #e2e8f0;
+    }
+
+    .time-display {
+        color: #cbd5e0;
+    }
+
+    .seek-slider, .volume-slider {
+        background: #4a5568;
+    }
+}

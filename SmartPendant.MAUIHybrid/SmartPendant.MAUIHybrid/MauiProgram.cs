@@ -10,6 +10,7 @@ using System.Reflection;
 using System.ClientModel;
 using Microsoft.EntityFrameworkCore;
 using SmartPendant.MAUIHybrid.Data;
+using Plugin.Maui.Audio;
 
 // Platform-specific using directives to resolve service implementations
 #if ANDROID
@@ -69,6 +70,10 @@ namespace SmartPendant.MAUIHybrid
             builder.Services.AddMauiBlazorWebView();
             builder.Services.AddMudServices();
             builder.Services.AddBlazoredLocalStorage();
+
+            // Register Plugin.Maui.Audio
+            builder.Services.AddSingleton(AudioManager.Current);
+            builder.Services.AddScoped<IAudioService, AudioService>();
 
             // Register application-specific singleton services
             builder.Services.AddSingleton<AudioPipelineManager>();

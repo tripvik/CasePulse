@@ -1,0 +1,503 @@
+@using Plugin.Maui.Audio
+@using System.Timers
+@implements IAsyncDisposable
+@inject IAudioManager AudioManager
+
+<div class="audio-player">
+    <div class="audio-info">
+        <h5 class="audio-title">@(string.IsNullOrEmpty(Title) ? "Audio Player" : Title)</h5>
+        @if (!string.IsNullOrEmpty(AudioFilePath))
+        {
+            <small class="text-muted">@Path.GetFileName(AudioFilePath)</small>
+        }
+    </div>
+
+    <div class="time-display">
+        <span class="current-time">@FormatTime(CurrentTime)</span>
+        <span class="separator">/</span>
+        <span class="total-time">@FormatTime(TotalDuration)</span>
+    </div>
+
+    <div class="seek-container">
+        <input type="range" 
+               class="seek-slider" 
+               min="0" 
+               max="@((int)TotalDuration.TotalSeconds)" 
+               value="@((int)CurrentTime.TotalSeconds)" 
+               @oninput="OnSeekInput"
+               @onchange="OnSeek" 
+               disabled="@(audioPlayer == null || IsLoading)" />
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-primary control-btn" 
+                @onclick="TogglePlayPause" 
+                disabled="@(audioPlayer == null || IsLoading)"
+                title="@(IsPlaying ? "Pause" : "Play")">
+            @if (IsLoading)
+            {
+                <span class="spinner-border spinner-border-sm" role="status"></span>
+            }
+            else if (IsPlaying)
+            {
+                <i class="fas fa-pause"></i>
+            }
+            else
+            {
+                <i class="fas fa-play"></i>
+            }
+        </button>
+
+        <button class="btn btn-secondary control-btn" 
+                @onclick="Stop" 
+                disabled="@(audioPlayer == null || IsLoading)"
+                title="Stop">
+            <i class="fas fa-stop"></i>
+        </button>
+
+        <div class="speed-control">
+            <label for="speed-select-@ComponentId">Speed:</label>
+            <select id="speed-select-@ComponentId" 
+                    class="form-select speed-select" 
+                    @bind="PlaybackSpeed" 
+                    @bind:after="OnSpeedChanged"
+                    disabled="@(audioPlayer == null || IsLoading)"
+                    title="Playback Speed">
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1.0">1.0x</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="2.0">2.0x</option>
+            </select>
+        </div>
+
+        @if (ShowVolumeControl)
+        {
+            <div class="volume-control">
+                <label for="volume-slider-@ComponentId">
+                    <i class="fas fa-volume-up"></i>
+                </label>
+                <input type="range" 
+                       id="volume-slider-@ComponentId"
+                       class="volume-slider" 
+                       min="0" 
+                       max="100" 
+                       value="@((int)(Volume * 100))" 
+                       @oninput="OnVolumeChange"
+                       disabled="@(audioPlayer == null || IsLoading)"
+                       title="Volume" />
+            </div>
+        }
+    </div>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-2" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            @ErrorMessage
+            @if (ShowRetryButton)
+            {
+                <button class="btn btn-sm btn-outline-danger ms-2" @onclick="RetryLoad">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            }
+        </div>
+    }
+
+    @if (ShowLoadingProgress && IsLoading)
+    {
+        <div class="loading-progress mt-2">
+            <div class="progress" style="height: 4px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                     role="progressbar" 
+                     style="width: 100%"></div>
+            </div>
+            <small class="text-muted">Loading audio...</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? AudioFilePath { get; set; }
+    [Parameter] public Stream? AudioStream { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public bool AutoPlay { get; set; } = false;
+    [Parameter] public bool ShowVolumeControl { get; set; } = true;
+    [Parameter] public bool ShowLoadingProgress { get; set; } = true;
+    [Parameter] public bool ShowRetryButton { get; set; } = true;
+    [Parameter] public double InitialVolume { get; set; } = 1.0;
+    [Parameter] public EventCallback<bool> OnPlayStateChanged { get; set; }
+    [Parameter] public EventCallback<TimeSpan> OnPositionChanged { get; set; }
+    [Parameter] public EventCallback<string> OnError { get; set; }
+    [Parameter] public EventCallback OnAudioLoaded { get; set; }
+
+    private string ComponentId = Guid.NewGuid().ToString("N")[..8];
+    private IAudioPlayer? audioPlayer;
+    private Timer? progressTimer;
+    private bool IsPlaying = false;
+    private bool IsLoading = false;
+    private TimeSpan CurrentTime = TimeSpan.Zero;
+    private TimeSpan TotalDuration = TimeSpan.Zero;
+    private double PlaybackSpeed = 1.0;
+    private double Volume = 1.0;
+    private string? ErrorMessage;
+    private bool isSeeking = false;
+    private bool disposed = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Volume = Math.Clamp(InitialVolume, 0.0, 1.0);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (disposed) return;
+
+        // Handle AudioFilePath parameter
+        if (!string.IsNullOrEmpty(AudioFilePath) && audioPlayer == null)
+        {
+            await LoadAudioFile();
+        }
+        else if (string.IsNullOrEmpty(AudioFilePath) && AudioStream == null && audioPlayer != null)
+        {
+            await DisposeAudioPlayer();
+        }
+
+        // Handle AudioStream parameter
+        if (AudioStream != null && audioPlayer == null)
+        {
+            await LoadAudioStream();
+        }
+    }
+
+    private async Task LoadAudioFile()
+    {
+        if (string.IsNullOrEmpty(AudioFilePath) || disposed)
+            return;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+            StateHasChanged();
+
+            // Dispose existing player
+            await DisposeAudioPlayer();
+
+            // Load the audio file
+            if (File.Exists(AudioFilePath))
+            {
+                var fileStream = File.OpenRead(AudioFilePath);
+                audioPlayer = AudioManager.CreatePlayer(fileStream);
+                
+                await ConfigureAudioPlayer();
+            }
+            else
+            {
+                ErrorMessage = "Audio file not found.";
+                await OnError.InvokeAsync(ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading audio: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadAudioStream()
+    {
+        if (AudioStream == null || disposed)
+            return;
+
+        try
+        {
+            IsLoading = true;
+            ErrorMessage = null;
+            StateHasChanged();
+
+            // Dispose existing player
+            await DisposeAudioPlayer();
+
+            audioPlayer = AudioManager.CreatePlayer(AudioStream);
+            await ConfigureAudioPlayer();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error loading audio stream: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ConfigureAudioPlayer()
+    {
+        if (audioPlayer == null) return;
+
+        try
+        {
+            // Get duration - Plugin.Maui.Audio returns duration in seconds as double
+            TotalDuration = TimeSpan.FromSeconds(audioPlayer.Duration);
+            
+            // Set initial volume
+            audioPlayer.Volume = Volume;
+            
+            // Set up progress timer
+            SetupProgressTimer();
+
+            // Auto play if requested
+            if (AutoPlay)
+            {
+                await Task.Delay(100); // Small delay to ensure everything is ready
+                await TogglePlayPause();
+            }
+
+            await OnAudioLoaded.InvokeAsync();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error configuring audio player: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+    }
+
+    private void SetupProgressTimer()
+    {
+        progressTimer?.Dispose();
+        progressTimer = new Timer(100); // Update every 100ms
+        progressTimer.Elapsed += async (sender, e) =>
+        {
+            if (disposed || audioPlayer == null || !IsPlaying || isSeeking)
+                return;
+
+            try
+            {
+                var newPositionSeconds = audioPlayer.CurrentPosition;
+                var newPosition = TimeSpan.FromSeconds(newPositionSeconds);
+                
+                if (Math.Abs(newPosition.TotalSeconds - CurrentTime.TotalSeconds) > 0.1)
+                {
+                    CurrentTime = newPosition;
+                    await InvokeAsync(() =>
+                    {
+                        StateHasChanged();
+                        OnPositionChanged.InvokeAsync(CurrentTime);
+                    });
+                }
+
+                // Check if playback has ended
+                if (CurrentTime >= TotalDuration && TotalDuration > TimeSpan.Zero)
+                {
+                    IsPlaying = false;
+                    await InvokeAsync(() =>
+                    {
+                        StateHasChanged();
+                        OnPlayStateChanged.InvokeAsync(IsPlaying);
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Progress timer error: {ex.Message}");
+            }
+        };
+        progressTimer.Start();
+    }
+
+    private async Task TogglePlayPause()
+    {
+        if (audioPlayer == null || disposed) return;
+
+        try
+        {
+            if (IsPlaying)
+            {
+                audioPlayer.Pause();
+                IsPlaying = false;
+            }
+            else
+            {
+                audioPlayer.Play();
+                IsPlaying = true;
+            }
+
+            await OnPlayStateChanged.InvokeAsync(IsPlaying);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error controlling playback: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+            StateHasChanged();
+        }
+    }
+
+    private async Task Stop()
+    {
+        if (audioPlayer == null || disposed) return;
+
+        try
+        {
+            audioPlayer.Stop();
+            IsPlaying = false;
+            CurrentTime = TimeSpan.Zero;
+            await OnPlayStateChanged.InvokeAsync(IsPlaying);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error stopping playback: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+            StateHasChanged();
+        }
+    }
+
+    private void OnSeekInput(ChangeEventArgs e)
+    {
+        if (audioPlayer == null || e.Value == null || disposed) return;
+
+        isSeeking = true;
+        if (double.TryParse(e.Value.ToString(), out var seconds))
+        {
+            CurrentTime = TimeSpan.FromSeconds(Math.Clamp(seconds, 0, TotalDuration.TotalSeconds));
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSeek(ChangeEventArgs e)
+    {
+        if (audioPlayer == null || e.Value == null || disposed) return;
+
+        try
+        {
+            if (double.TryParse(e.Value.ToString(), out var seconds))
+            {
+                var clampedSeconds = Math.Clamp(seconds, 0, TotalDuration.TotalSeconds);
+                audioPlayer.Seek(clampedSeconds);
+                CurrentTime = TimeSpan.FromSeconds(clampedSeconds);
+                await OnPositionChanged.InvokeAsync(CurrentTime);
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error seeking: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+        }
+        finally
+        {
+            isSeeking = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnSpeedChanged()
+    {
+        if (audioPlayer == null || disposed) return;
+
+        try
+        {
+            // Note: Plugin.Maui.Audio may not support playback speed on all platforms
+            // This is a placeholder for when the feature becomes available
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing speed: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnVolumeChange(ChangeEventArgs e)
+    {
+        if (audioPlayer == null || e.Value == null || disposed) return;
+
+        try
+        {
+            if (double.TryParse(e.Value.ToString(), out var volumePercent))
+            {
+                Volume = Math.Clamp(volumePercent / 100.0, 0.0, 1.0);
+                audioPlayer.Volume = Volume;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error changing volume: {ex.Message}";
+            await OnError.InvokeAsync(ErrorMessage);
+            StateHasChanged();
+        }
+    }
+
+    private async Task RetryLoad()
+    {
+        ErrorMessage = null;
+        if (!string.IsNullOrEmpty(AudioFilePath))
+        {
+            await LoadAudioFile();
+        }
+        else if (AudioStream != null)
+        {
+            await LoadAudioStream();
+        }
+    }
+
+    private string FormatTime(TimeSpan time)
+    {
+        if (time.TotalHours >= 1)
+            return time.ToString(@"h\:mm\:ss");
+        else
+            return time.ToString(@"m\:ss");
+    }
+
+    private async Task DisposeAudioPlayer()
+    {
+        if (audioPlayer != null)
+        {
+            try
+            {
+                if (IsPlaying)
+                {
+                    audioPlayer.Stop();
+                    IsPlaying = false;
+                }
+                audioPlayer.Dispose();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error disposing audio player: {ex.Message}");
+            }
+            finally
+            {
+                audioPlayer = null;
+            }
+        }
+
+        progressTimer?.Dispose();
+        progressTimer = null;
+        
+        CurrentTime = TimeSpan.Zero;
+        TotalDuration = TimeSpan.Zero;
+        
+        if (!disposed)
+        {
+            StateHasChanged();
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        disposed = true;
+        await DisposeAudioPlayer();
+    }
+}

@@ -157,7 +157,6 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
             if (conversationModel != null)
             {
                 await _conversationRepository.SaveConversationAsync(conversationModel);
-                Notify?.Invoke(this, ("Conversation saved", Severity.Success));
             }
         }
 
@@ -167,7 +166,6 @@ namespace SmartPendant.MAUIHybrid.Platforms.Android
             if (dayRecord != null)
             {
                 await _dayJournalRepository.SaveAsync(dayRecord);
-                Notify?.Invoke(this, ("Day record saved", Severity.Success));
             }
         }
         #endregion

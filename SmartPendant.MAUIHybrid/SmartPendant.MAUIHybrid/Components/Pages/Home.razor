@@ -25,7 +25,7 @@
 
     @* Conversation Container *@
     <div class="conversation-wrapper">
-        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" />
+        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" IsGeneratingInsight="@OrchestrationService.IsGeneratingInsight" />
     </div>
 
     @* Footer Section *@

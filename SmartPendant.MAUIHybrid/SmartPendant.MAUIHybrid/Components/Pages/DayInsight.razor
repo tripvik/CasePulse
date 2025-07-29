@@ -352,11 +352,6 @@
         try
         {
             dayRecord = await DayJournalRepository.GetAsync(selectedDate.Value);
-            
-            if (dayRecord == null)
-            {
-                Snackbar.Add($"No insights found for {selectedDate.Value:MMMM dd, yyyy}", Severity.Info);
-            }
         }
         catch (Exception ex)
         {

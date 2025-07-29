@@ -26,7 +26,8 @@
             <ConversationContainer Conversation="@conversation" />
         }
     </div>
-
+    <AudioPlayer AudioFilePath="@conversation?.AudioFilePath"
+                 Title="@conversation?.Title" />
     <div class="d-flex justify-center my-3">
         <MudButton Variant="Variant.Outlined"
                    Color="Color.Primary"

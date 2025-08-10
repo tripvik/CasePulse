@@ -11,7 +11,8 @@ namespace SmartPendant.MAUIHybrid.Services
     internal class AudioStorageService : IAudioStorageService
     {
         private readonly IStorageService _storageService;
-        private readonly MemoryStream _memoryStream = new();
+        private string? _currentFilePath;
+        private string? _fileName;
         private WaveFileWriter? _waveFileWriter;
         private WaveFormat _waveFormat = new(16000, 16, 1);
 
@@ -33,11 +34,24 @@ namespace SmartPendant.MAUIHybrid.Services
                 await _waveFileWriter.DisposeAsync();
                 _waveFileWriter = null;
             }
-            await _memoryStream.DisposeAsync();
+            
+            // Clean up file if it exists and hasn't been moved
+            if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+            {
+                try
+                {
+                    File.Delete(_currentFilePath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[DisposeAsync] Error deleting file: {ex.Message}");
+                }
+            }
+            
             GC.SuppressFinalize(this);
         }
 
-        public Task InitializeAsync(WaveFormat? micFormat)
+        public Task InitializeAsync(WaveFormat? micFormat, string conversationId)
         {
             if (micFormat is not null)
             {
@@ -45,15 +59,36 @@ namespace SmartPendant.MAUIHybrid.Services
             }
 
             // Dispose previous writer if exists
-            //_waveFileWriter?.Dispose();
+            _waveFileWriter?.Dispose();
+            _waveFileWriter = null;
 
-            // Reset memory stream position to beginning
-            _memoryStream.SetLength(0);
-            _memoryStream.Position = 0;
+            // Clean up previous file if it exists
+            if (!string.IsNullOrEmpty(_currentFilePath) && File.Exists(_currentFilePath))
+            {
+                try
+                {
+                    File.Delete(_currentFilePath);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[InitializeAsync] Error deleting previous file: {ex.Message}");
+                }
+            }
 
-            //Todo : Find the best way to dispose the WaveFileWriter. It appears like Disposing WaveFileWriter will also dispose the MemoryStream.
+            // Generate filename from conversationId
+            _fileName = conversationId;
+            
+            // Create the directory structure and file path
+            var date = DateTime.UtcNow;
+            var directoryPath = Path.Combine(FileSystem.AppDataDirectory, date.ToString("yyyy"), date.ToString("MM"), date.ToString("dd"));
+            Directory.CreateDirectory(directoryPath);
+            
+            _currentFilePath = Path.Combine(directoryPath, _fileName + ".wav");
 
-            _waveFileWriter = new WaveFileWriter(_memoryStream, _waveFormat);
+            // Create WaveFileWriter with the file path
+            _waveFileWriter = new WaveFileWriter(_currentFilePath, _waveFormat);
+
+            Debug.WriteLine($"[InitializeAsync] Initialized recording to: {_currentFilePath}");
 
             return Task.CompletedTask;
         }
@@ -64,8 +99,9 @@ namespace SmartPendant.MAUIHybrid.Services
             ArgumentNullException.ThrowIfNull(_waveFileWriter);
             try
             {
+                // Write raw audio data bytes to the WAV file
                 await _waveFileWriter.WriteAsync(audioData);
-                await _waveFileWriter.FlushAsync(); // Ensure data is written
+                //await _waveFileWriter.FlushAsync(); // Was causing issues, so removed
             }
             catch (Exception ex)
             {
@@ -74,7 +110,7 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        public async Task<(string path, Exception? ex)> StopAsync(string? fileName = null)
+        public async Task<(string path, Exception? ex)> StopAsync()
         {
             try
             {
@@ -84,29 +120,40 @@ namespace SmartPendant.MAUIHybrid.Services
                     return (string.Empty, new InvalidOperationException("WaveFileWriter is not initialized."));
                 }
 
+                if (string.IsNullOrEmpty(_fileName) || string.IsNullOrEmpty(_currentFilePath))
+                {
+                    Debug.WriteLine("[StopAsync] FileName or current file path is null or empty.");
+                    return (string.Empty, new InvalidOperationException("FileName is not set."));
+                }
+
                 // Flush and dispose the writer to finalize the WAV file
                 await _waveFileWriter.FlushAsync();
-                //_waveFileWriter.Dispose();
-                //_waveFileWriter = null;
+                await _waveFileWriter.DisposeAsync();
+                _waveFileWriter = null;
 
-                if (_memoryStream.Length == 0 || string.IsNullOrEmpty(fileName))
+                // Check if file exists and has content
+                if (!File.Exists(_currentFilePath))
                 {
-                    Debug.WriteLine($"[StopAsync] No audio data to save. Stream length: {_memoryStream.Length}, FileName: {fileName}");
+                    Debug.WriteLine($"[StopAsync] Audio file does not exist: {_currentFilePath}");
+                    return (string.Empty, new InvalidOperationException("Audio file does not exist."));
+                }
+
+                var fileInfo = new FileInfo(_currentFilePath);
+                if (fileInfo.Length == 0)
+                {
+                    Debug.WriteLine($"[StopAsync] No audio data to save. File size: {fileInfo.Length}");
                     return (string.Empty, new InvalidOperationException("No audio data to save."));
                 }
 
-                var date = DateTime.UtcNow;
-                var directoryPath = Path.Combine(FileSystem.AppDataDirectory, date.ToString("yyyy"), date.ToString("MM"), date.ToString("dd"));
-
                 var path = useBlobStorage
-                    ? await UploadToBlobStorageAsync(directoryPath, fileName)
-                    : await SaveToLocalFileAsync(directoryPath, fileName);
+                    ? await UploadToBlobStorageAsync(_currentFilePath, _fileName)
+                    : _currentFilePath; // For local storage, the file is already in the right place
 
                 Debug.WriteLine($"[StopAsync] Audio saved successfully to: {path}");
 
-                // Reset memory stream for next recording
-                _memoryStream.SetLength(0);
-                _memoryStream.Position = 0;
+                // Clear the current file path since it's been processed
+                _currentFilePath = null;
+                _fileName = null;
 
                 return (path, null);
             }
@@ -117,47 +164,31 @@ namespace SmartPendant.MAUIHybrid.Services
             }
         }
 
-        private async Task<string> SaveToLocalFileAsync(string directoryPath, string fileName)
+        private async Task<string> UploadToBlobStorageAsync(string currentFilePath, string fileName)
         {
             try
             {
-                Directory.CreateDirectory(directoryPath);
-                var filePath = Path.Combine(directoryPath, fileName + ".wav");
+                var date = DateTime.UtcNow;
+                var blobPath = Path.Combine(date.ToString("yyyy"), date.ToString("MM"), date.ToString("dd"), fileName + ".wav");
 
-                Debug.WriteLine($"[SaveToLocalFileAsync] Saving to: {filePath}, Stream length: {_memoryStream.Length}");
+                Debug.WriteLine($"[UploadToBlobStorageAsync] Uploading from: {currentFilePath} to blob: {blobPath}");
 
-                // Reset stream position to beginning for reading
-                _memoryStream.Position = 0;
-
-                using var fileStream = File.Create(filePath);
-                await _memoryStream.CopyToAsync(fileStream);
-                await fileStream.FlushAsync();
-
-                Debug.WriteLine($"[SaveToLocalFileAsync] File saved successfully. Size: {new FileInfo(filePath).Length} bytes");
-
-                return filePath;
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[SaveToLocalFileAsync] Error: {ex.Message}");
-                throw;
-            }
-        }
-
-        private async Task<string> UploadToBlobStorageAsync(string directoryPath, string fileName)
-        {
-            try
-            {
-                var filePath = Path.Combine(directoryPath, fileName + ".wav");
-
-                Debug.WriteLine($"[UploadToBlobStorageAsync] Uploading: {filePath}, Stream length: {_memoryStream.Length}");
-
-                // Reset stream position to beginning for reading
-                _memoryStream.Position = 0;
-
-                var uri = await _storageService.UploadAudioAsync(_memoryStream, filePath);
+                // Read the file and upload it to blob storage
+                using var fileStream = File.OpenRead(currentFilePath);
+                var uri = await _storageService.UploadAudioAsync(fileStream, blobPath);
 
                 Debug.WriteLine($"[UploadToBlobStorageAsync] Upload successful. URI: {uri}");
+
+                // Delete the local file after successful upload
+                try
+                {
+                    File.Delete(currentFilePath);
+                    Debug.WriteLine($"[UploadToBlobStorageAsync] Local file deleted: {currentFilePath}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[UploadToBlobStorageAsync] Error deleting local file: {ex.Message}");
+                }
 
                 return uri;
             }

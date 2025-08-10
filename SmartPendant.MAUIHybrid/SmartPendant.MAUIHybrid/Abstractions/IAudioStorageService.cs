@@ -4,8 +4,9 @@ namespace SmartPendant.MAUIHybrid.Abstractions
 {
     public interface IAudioStorageService : IAsyncDisposable
     {
-        Task InitializeAsync(WaveFormat micFormat);
+        Task InitializeAsync(WaveFormat micFormat,string conversationId);
         Task ProcessChunkAsync(byte[] audioData);
-        Task<(string path, Exception? ex)> StopAsync(string? fileName = null);
+        Task<(string path, Exception? ex)> StopAsync();
     }
 }
+    

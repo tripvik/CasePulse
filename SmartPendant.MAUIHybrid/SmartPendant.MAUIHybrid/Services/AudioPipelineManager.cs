@@ -95,7 +95,7 @@ public class AudioPipelineManager : IAsyncDisposable
         }
         SetStateEvent?.Invoke(this, (isRecording: false, isDeviceConnected: true, isStateChanging: true));
         await _transcriptionService.InitializeAsync(DefaultWaveFormat);
-        await _audioStorageService.InitializeAsync(DefaultWaveFormat);
+        await _audioStorageService.InitializeAsync(DefaultWaveFormat, CurrentConversation.Id.ToString());
         SubscribeToEvents();
         _pipelineCts = new CancellationTokenSource();
         _processingTask = ProcessAudioDataFromChannelAsync(_pipelineCts.Token);
@@ -130,7 +130,7 @@ public class AudioPipelineManager : IAsyncDisposable
         // Finalize conversation if there's content.
         if (CurrentConversation.Transcript.Any())
         {
-            var (filepath,exception) = await _audioStorageService.StopAsync(CurrentConversation.Id.ToString());
+            var (filepath,exception) = await _audioStorageService.StopAsync();
             if (exception != null)
             {
                 Debug.WriteLine($"Error stopping audio storage: {exception.Message}");

@@ -109,7 +109,7 @@ namespace SmartPendant.MAUIHybrid
         private static void ConfigureDatabase(MauiAppBuilder builder)
         {
             // Get the app data directory
-            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendant2.db");
+            var dbPath = Path.Combine(FileSystem.AppDataDirectory, "smartpendantv3.db");
 
             // Register DbContext with improved configuration
             builder.Services.AddDbContextPool<SmartPendantDbContext>(options =>

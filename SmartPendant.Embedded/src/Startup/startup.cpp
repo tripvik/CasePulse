@@ -5,27 +5,25 @@
 #include <BLE2902.h>
 
 
-
-
 void setupLogging()
 {
     // refering sample - https://github.com/m5stack/M5Unified/blob/master/examples/Basic/LogOutput/LogOutput.ino
-    // Built in display settings
+    // Built in display settings - DISABLED FOR CUSTOM UI
     //***********************************/
-    M5.setLogDisplayIndex(0);
-    M5.Display.setRotation(3);
-    M5.Display.setTextSize(2);
+    // M5.setLogDisplayIndex(0);
+    // M5.Display.setRotation(3);
+    // M5.Display.setTextSize(2);
     /// use wrapping from bottom edge to top edge.
-    M5.Display.setTextWrap(true, true);
+    // M5.Display.setTextWrap(true, true);
     /// use scrolling.
-    M5.Display.setTextScroll(true);
+    // M5.Display.setTextScroll(true);
 
     // Log output destination settings
     //***********************************/
     /// You can set Log levels for each output destination.
     /// ESP_LOG_ERROR / ESP_LOG_WARN / ESP_LOG_INFO / ESP_LOG_DEBUG / ESP_LOG_VERBOSE
     M5.Log.setLogLevel(m5::log_target_serial, ESP_LOG_VERBOSE);
-    M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_INFO);
+    M5.Log.setLogLevel(m5::log_target_display, ESP_LOG_NONE); // Disable display logging for custom UI
     //  M5.Log.setLogLevel(m5::log_target_callback, ESP_LOG_INFO);
 
     /// Set up user-specific callback functions.

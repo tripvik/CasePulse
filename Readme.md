@@ -32,6 +32,52 @@ ConverSense consists of two main components working in perfect harmony:
 - **Local Storage**: SQLite database for privacy and offline access
 - **Cross-platform**: Runs on Android and Windows
 
+## 📱 Application Screenshots
+
+### Pendant Device Interface
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/embedded_1.jpg" alt="Pendant Device - Home Screen" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/embedded_2.jpg" alt="Pendant Device - Connection Status" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/embedded_recording.jpg" alt="Pendant Device - Recording Mode" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
+### Mobile Application Interface
+
+#### Main Recording & Control
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/mobile_landing.jpg" alt="Mobile App - Landing Screen" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_recording_1.jpg" alt="Mobile App - Recording Interface" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_recoding_2.jpg" alt="Mobile App - Recording Controls" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
+#### Conversation Analysis & Insights
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/mobile_generating_insight.jpg" alt="AI Insight Generation" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_conversation_transcript.jpg" alt="Conversation Transcript" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_conversation_summary.jpg" alt="Conversation Summary" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_conversation_summary_1.jpg" alt="Detailed Summary View" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_conversation_summary_2.jpg" alt="Summary Insights" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
+#### Timeline & Task Management
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/mobile_conversation_timeline.jpg" alt="Conversation Timeline" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_conversation_tasks.jpg" alt="Extracted Tasks" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_tasks.jpg" alt="Task Management" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
+#### Daily Journal & Insights
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/mobile_journal_1.jpg" alt="Daily Journal Overview" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_journal_2.jpg" alt="Journal Insights" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/mobile_journal_3.jpg" alt="Daily Patterns" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
+#### Search & History
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+  <img src="/Resources/mobile_history_search.jpg" alt="Conversation History Search" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+</div>
+
 ## 🏗️ System Architecture
 
 ```mermaid
@@ -41,7 +87,7 @@ graph TB
         A1[ESP32-PICO-V3-02]
         A2[Built-in Microphone]
         A3[BLE Module]
-        A4[1.14" TFT LCD Display]
+        A4[TFT LCD Display]
         A5[FreeRTOS Audio Buffer]
         A1 --> A2
         A1 --> A3
@@ -174,51 +220,9 @@ sequenceDiagram
 - Synchronized data across all your devices
 - Responsive web-based interface
 
-## 📱 Application Screenshots
+## Desktop Demo
+![Desktop Demo](/Resources/desktop_windows_demo.gif)
 
-### Pendant Device Interface
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/embedded_1.jpg" alt="Pendant Device - Home Screen" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/embedded_2.jpg" alt="Pendant Device - Connection Status" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/embedded_recording.jpg" alt="Pendant Device - Recording Mode" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
-
-### Mobile Application Interface
-
-#### Main Recording & Control
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/mobile_landing.jpg" alt="Mobile App - Landing Screen" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_recording_1.jpg" alt="Mobile App - Recording Interface" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_recoding_2.jpg" alt="Mobile App - Recording Controls" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
-
-#### Conversation Analysis & Insights
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/mobile_conversation_transcript.jpg" alt="Conversation Transcript" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_conversation_summary.jpg" alt="Conversation Summary" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_conversation_summary_1.jpg" alt="Detailed Summary View" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_conversation_summary_2.jpg" alt="Summary Insights" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
-
-#### Timeline & Task Management
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/mobile_conversation_timeline.jpg" alt="Conversation Timeline" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_conversation_tasks.jpg" alt="Extracted Tasks" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_tasks.jpg" alt="Task Management" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
-
-#### Daily Journal & Insights
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/mobile_journal_1.jpg" alt="Daily Journal Overview" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_journal_2.jpg" alt="Journal Insights" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_journal_3.jpg" alt="Daily Patterns" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
-
-#### Search & History
-<div style="display: flex; gap: 10px; flex-wrap: wrap;">
-  <img src="/Resources/mobile_history_search.jpg" alt="Conversation History Search" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-  <img src="/Resources/mobile_generating_insight.jpg" alt="AI Insight Generation" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
-</div>
 
 ## 🛠️ Technical Implementation
 
@@ -285,8 +289,7 @@ graph TD
     CC --> AA
 ```
 
-## Desktop Demo
-[![Desktop Demo](/Resources/desktop_windows_demo.gif)]
+
 
 ### Key Components
 
@@ -301,7 +304,7 @@ graph LR
     
     subgraph "Core Pipeline"
         D[AudioPipelineManager]
-        D --> E[Channel<byte[]> Audio Data]
+        D --> E[Channel Audio Data]
         D --> F[Inactivity Timer]
         D --> G[ConversationRecord]
         D --> H[DayRecord]

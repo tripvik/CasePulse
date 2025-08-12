@@ -39,6 +39,7 @@ ConverSense consists of two main components working in perfect harmony:
   <img src="/Resources/embedded_1.jpg" alt="Pendant Device - Home Screen" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
   <img src="/Resources/embedded_2.jpg" alt="Pendant Device - Connection Status" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
   <img src="/Resources/embedded_recording.jpg" alt="Pendant Device - Recording Mode" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+  <img src="/Resources/embedded_meeting.jpg" alt="Pendant Device used in a meeting" width="200" height="auto" style="border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
 </div>
 
 ### Mobile Application Interface

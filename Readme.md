@@ -15,56 +15,6 @@ In our fast-paced world, we have countless important conversations daily - meeti
 
 ConverSense solves these problems by providing an intelligent, wearable solution that automatically captures, processes, and analyzes your conversations in real-time.
 
-## 🏗️ System Architecture
-
-```mermaid
-graph TB
-    subgraph "Hardware Layer"
-        A[M5StickC PLUS2 Device]
-        A1[ESP32-PICO-V3-02]
-        A2[Built-in Microphone]
-        A3[BLE Module]
-        A4[LCD Display]
-        A1 --> A2
-        A1 --> A3
-        A1 --> A4
-    end
-    
-    subgraph "Mobile/Desktop App"
-        B[MAUI Hybrid App]
-        B1[Blazor UI Components]
-        B2[Connection Service]
-        B3[Audio Processing]
-        B4[AI Transcription]
-        B5[Insight Generation]
-        B6[Local Database]
-        B1 --> B2
-        B2 --> B3
-        B3 --> B4
-        B4 --> B5
-        B5 --> B6
-    end
-    
-    subgraph "AI Services"
-        C[Azure Speech Service]
-        C1[Speech-to-Text]
-        C2[Speaker Diarization]
-        D[OpenAI GPT]
-        D1[Content Analysis]
-        D2[Task Extraction]
-        D3[Summary Generation]
-    end
-    
-    A3 -.->|BLE Audio Stream| B2
-    B4 --> C
-    C1 --> B5
-    C2 --> B5
-    B5 --> D
-    D1 --> B6
-    D2 --> B6
-    D3 --> B6
-```
-
 ## 💡 How It Works
 
 ConverSense consists of two main components working in perfect harmony:
@@ -82,25 +32,112 @@ ConverSense consists of two main components working in perfect harmony:
 - **Local Storage**: SQLite database for privacy and offline access
 - **Cross-platform**: Runs on Android and Windows
 
+## 🏗️ System Architecture
+
+```mermaid
+graph TB
+    subgraph "Hardware Layer"
+        A[M5StickC PLUS2 Device]
+        A1[ESP32-PICO-V3-02]
+        A2[Built-in Microphone]
+        A3[BLE Module]
+        A4[1.14" TFT LCD Display]
+        A5[FreeRTOS Audio Buffer]
+        A1 --> A2
+        A1 --> A3
+        A1 --> A4
+        A1 --> A5
+        A5 --> A3
+    end
+    
+    subgraph "MAUI Hybrid Application"
+        B[Platform Services]
+        B1[Windows/Android Orchestration]
+        B2[BLE/Bluetooth Classic Service]
+        B3[Audio Pipeline Manager]
+        B4[Azure Speech Service]
+        B5[Conversation Insight Service]
+        B6[Audio Storage Service]
+        B7[Entity Framework Repositories]
+        B8[SQLite Database]
+        B1 --> B3
+        B2 --> B3
+        B3 --> B4
+        B3 --> B6
+        B5 --> B7
+        B7 --> B8
+    end
+    
+    subgraph "Blazor UI Components"
+        C[Home.razor]
+        C1[Conversation.razor]
+        C2[Tasks.razor]
+        C3[History.razor]
+        C4[DayInsight.razor]
+        C5[MudBlazor Framework]
+        C --> C5
+        C1 --> C5
+        C2 --> C5
+        C3 --> C5
+        C4 --> C5
+    end
+    
+    subgraph "AI Services"
+        D[Azure Speech Service]
+        D1[Real-time Transcription]
+        D2[Speaker Diarization]
+        E[Azure OpenAI]
+        E1[GPT-4 Analysis]
+        E2[Content Summarization]
+        E3[Task Extraction]
+        D --> D1
+        D --> D2
+        E --> E1
+        E --> E2
+        E --> E3
+    end
+    
+    A3 -.->|BLE Audio Stream| B2
+    B4 --> D
+    B5 --> E
+    C5 --> B1
+    D1 --> B3
+    D2 --> B3
+    E1 --> B5
+    E2 --> B5
+    E3 --> B5
+```
+
+
+
 ## 🔄 Data Flow & Processing Pipeline
 
 ```mermaid
 sequenceDiagram
-    participant P as Pendant Device
-    participant A as Mobile App
-    participant T as Transcription AI
-    participant I as Insight AI
-    participant D as Local Database
+    participant P as M5StickC PLUS2
+    participant BLE as BLE Service
+    participant APM as Audio Pipeline Manager
+    participant ASS as Audio Storage Service
+    participant AzS as Azure Speech Service
+    participant OS as Orchestration Service
+    participant CIS as Conversation Insight Service
+    participant AzOAI as Azure OpenAI
+    participant EF as EF Repository
+    participant DB as SQLite Database
     
-    P->>A: Audio Stream (BLE)
-    A->>A: Buffer & Process Audio
-    A->>T: Send Audio Chunks
-    T->>A: Transcribed Text + Speaker ID
-    A->>A: Build Real-time Transcript
-    A->>I: Generate Insights (On-demand)
-    I->>A: Summary, Tasks, Topics, Timeline
-    A->>D: Store Conversation Data
-    A->>A: Update UI with Results
+    P->>BLE: Audio Stream (16kHz BLE packets)
+    BLE->>APM: Audio Data Channel
+    APM->>ASS: Store Audio File
+    APM->>AzS: Real-time Audio Chunks
+    AzS->>APM: Transcribed Text + Speaker ID
+    APM->>OS: Transcript Updates
+    OS->>CIS: Generate Insights (on-demand)
+    CIS->>AzOAI: Conversation Analysis Request
+    AzOAI->>CIS: Summary, Tasks, Topics, Timeline
+    CIS->>OS: Structured Insights
+    OS->>EF: Save Conversation Record
+    EF->>DB: Persist to SQLite
+    OS->>UI: Update Blazor Components
 ```
 
 ## ✨ Key Features & Benefits
@@ -197,40 +234,98 @@ sequenceDiagram
 
 ```mermaid
 graph TD
-    subgraph "Mobile Application"
-        A[.NET MAUI 9.0]
+    subgraph "Presentation Layer"
+        A[.NET MAUI 9.0 Hybrid]
         A --> B[Blazor Server Components]
         A --> C[Platform-Specific Services]
         B --> D[MudBlazor UI Framework]
-        C --> E[Android BLE Service]
-        C --> F[Windows Audio Processing]
-        C --> G[Cross-Platform Storage]
+        B --> E[Home, Conversation, Tasks, History, DayInsight Pages]
     end
     
-    subgraph "Data Layer"
-        H[Entity Framework Core]
-        H --> I[SQLite Database]
-        I --> J[Conversation Records]
-        I --> K[Transcript Entries]
-        I --> L[Action Items]
-        I --> M[Daily Journals]
+    subgraph "Service Layer"
+        F[Orchestration Services]
+        F --> G[Windows/Android Platform Services]
+        F --> H[Audio Pipeline Manager]
+        F --> I[Connection Services]
+        I --> J[BLE Service]
+        I --> K[Bluetooth Classic Service] 
+        I --> L[Mock Service for Testing]
+        H --> M[Audio Storage Service]
+        H --> N[Azure Speech Service Integration]
     end
     
-    subgraph "AI Integration"
-        N[Azure Speech Service + OpenAI]
-        N --> O[Azure Speech-to-Text]
-        N --> P[Azure Speaker Diarization]
-        N --> Q[GPT-4 Analysis]
-        Q --> R[Content Summarization]
-        Q --> S[Task Extraction]
-        Q --> T[Topic Classification]
+    subgraph "Data Access Layer"
+        O[Entity Framework Core]
+        O --> P[EF Conversation Repository]
+        O --> Q[EF Day Journal Repository]
+        O --> R[SQLite Database]
+        P --> S[Conversation Records]
+        P --> T[Transcript Entries]
+        P --> U[Action Items]
+        P --> V[Timeline Events]
+        Q --> W[Daily Journal Records]
     end
     
-    A --> H
-    B --> N
+    subgraph "AI Integration Layer"
+        X[Azure Speech Service]
+        X --> Y[Real-time Transcription]
+        X --> Z[Speaker Diarization]
+        AA[Azure OpenAI]
+        AA --> BB[Conversation Insight Service]
+        AA --> CC[Daily Journal Insight Service]
+        BB --> DD[Content Analysis]
+        BB --> EE[Task Extraction]
+        BB --> FF[Topic Classification]
+    end
+    
+    A --> F
+    F --> O
+    H --> X
+    BB --> AA
+    CC --> AA
 ```
 
+## Desktop Demo
+[![Desktop Demo](/Resources/desktop_windows_demo.gif)]
+
 ### Key Components
+
+#### 🎯 **Orchestration Service Architecture**
+```mermaid
+graph LR
+    subgraph "Platform Orchestration"
+        A[IOrchestrationService]
+        A --> B[WindowsOrchestrationService]
+        A --> C[AndroidOrchestrationService]
+    end
+    
+    subgraph "Core Pipeline"
+        D[AudioPipelineManager]
+        D --> E[Channel<byte[]> Audio Data]
+        D --> F[Inactivity Timer]
+        D --> G[ConversationRecord]
+        D --> H[DayRecord]
+    end
+    
+    subgraph "Connection Layer"
+        I[IConnectionService]
+        I --> J[BLEService]
+        I --> K[BluetoothClassicService]
+        I --> L[MockConnectionService]
+    end
+    
+    subgraph "Transcription Layer"
+        M[ITranscriptionService]
+        M --> N[SpeechTranscriptionService]
+        M --> O[OpenAITranscriptionService]
+        M --> P[MockTranscriptionService]
+    end
+    
+    B --> D
+    C --> D
+    D --> I
+    D --> M
+```
 
 #### 🎯 **Orchestration Service**
 Central coordinator managing the application lifecycle:
@@ -241,16 +336,17 @@ Central coordinator managing the application lifecycle:
 - State management across UI components
 
 #### 🔊 **Audio Processing Pipeline**
-- **Capture**: 16kHz audio sampling from pendant device
-- **Buffering**: Multi-chunk circular buffer for smooth streaming
-- **Transmission**: BLE packet optimization for audio data
+- **Capture**: 16kHz audio sampling from pendant device via FreeRTOS stream buffer
+- **Buffering**: Multi-chunk circular buffer with Channel<byte[]> for smooth streaming
+- **Transmission**: BLE packet optimization for audio data with MTU size management
 - **Processing**: Real-time audio enhancement and noise reduction
+- **Storage**: Local audio file storage via AudioStorageService
 
 #### 🤖 **AI Integration Services**
-- **Transcription Service**: Azure Speech Service integration with real-time processing
-- **Speaker Diarization**: Advanced speaker identification and conversation turn detection
-- **Insight Service**: GPT-4 powered conversation analysis
-- **Content Analysis**: Smart extraction of topics, tasks, and summaries
+- **Transcription Service**: Azure Speech Service with ConversationTranscriber for real-time processing
+- **Speaker Diarization**: Advanced speaker identification with conversation turn detection
+- **Insight Service**: Azure OpenAI GPT-4 powered conversation analysis using IChatClient
+- **Content Analysis**: Smart extraction of topics, tasks, and summaries via structured prompts
 
 ## 💼 Business Benefits
 
@@ -272,25 +368,7 @@ Central coordinator managing the application lifecycle:
 - **Learning**: Review and reflect on educational or mentoring conversations
 - **Goal Tracking**: Monitor progress on personal development discussions
 
-## 🔐 Privacy & Data Protection
 
-### Local-First Architecture
-```mermaid
-graph LR
-    A[Audio Capture] --> B[Local Processing]
-    B --> C[Local AI Analysis]
-    C --> D[Local Storage]
-    D --> E[Local Search]
-    
-    F[Cloud Services] -.->|API Calls Only| C
-    F -.->|No Data Storage| G[No Personal Data]
-    
-    style D fill:#90EE90
-    style G fill:#FFB6C1
-```
-
-- **Zero Cloud Storage**: All conversation data remains on your device
-- **Selective AI Processing**: Only processed audio chunks sent to Azure Speech Service for transcription
 
 
 ## 🏗️ Development & Architecture
@@ -328,7 +406,6 @@ SmartPendant/
 - **Multi-language Support**: Transcription and analysis in 50+ languages
 - **Audio Memories**: Like photos, users can save and revisit important audio snippets (like on this day...)
 - **Smart Notifications**: Proactive reminders for action items
-
 
 
 ## 📄 License

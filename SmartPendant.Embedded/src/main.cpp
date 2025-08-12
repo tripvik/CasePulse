@@ -63,7 +63,10 @@ static constexpr unsigned long BATTERY_CHECK_INTERVAL = 5000; // Check battery e
 static int batteryPercentage = 100;
 static bool lastClientConnected = false;
 static bool lastReadyToReceive = false;
-static bool forceFullRedraw = true; 
+static bool forceFullRedraw = true;
+
+// Task handles
+static TaskHandle_t uiTaskHandle = nullptr; 
 
 // UI Drawing Functions - Optimized for portrait mode and flicker-free updates
 void drawBluetoothIcon(bool connected, bool forceRedraw = false) {
@@ -335,49 +338,63 @@ void updateBatteryPercentage() {
 }
 
 void updateUI() {
-  if (millis() - lastUIUpdate > UI_UPDATE_INTERVAL) {
-    lastUIUpdate = millis();
-    
-    // Check if we need a full redraw
-    bool stateChanged = (lastClientConnected != clientConnected) || 
-                       (lastReadyToReceive != readyToReceive) ||
-                       forceFullRedraw;
-    
-    if (forceFullRedraw) {
-      // Full screen clear only on first run or major state changes
-      M5.Display.fillScreen(UI_BLACK);
-      forceFullRedraw = false;
+  // Check if we need a full redraw
+  bool stateChanged = (lastClientConnected != clientConnected) || 
+                     (lastReadyToReceive != readyToReceive) ||
+                     forceFullRedraw;
+  
+  if (forceFullRedraw) {
+    // Full screen clear only on first run or major state changes
+    M5.Display.fillScreen(UI_BLACK);
+    forceFullRedraw = false;
+  }
+  
+  // Update battery percentage
+  updateBatteryPercentage();
+  
+  // Draw battery icon (only if changed)
+  drawBatteryIcon(batteryPercentage, stateChanged);
+  
+  // Draw Bluetooth status (only if changed)
+  drawBluetoothIcon(clientConnected, stateChanged);
+  
+  // Draw main content based on state
+  if (clientConnected && readyToReceive) {
+    // Clear connection status area when switching to recording
+    if (stateChanged && !lastReadyToReceive) {
+      M5.Display.fillRect(0, 40, M5.Display.width(), M5.Display.height() - 80, UI_BLACK);
     }
-    
-    // Update battery percentage
-    updateBatteryPercentage();
-    
-    // Draw battery icon (only if changed)
-    drawBatteryIcon(batteryPercentage, stateChanged);
-    
-    // Draw Bluetooth status (only if changed)
-    drawBluetoothIcon(clientConnected, stateChanged);
-    
-    // Draw main content based on state
-    if (clientConnected && readyToReceive) {
-      // Clear connection status area when switching to recording
-      if (stateChanged && !lastReadyToReceive) {
-        M5.Display.fillRect(0, 40, M5.Display.width(), M5.Display.height() - 80, UI_BLACK);
-      }
-      // Show recording indicator with breathing effect (always update for animation)
-      drawRecordingIndicator();
-    } else {
-      // Clear any recording remnants when switching from recording
-      if (stateChanged && lastReadyToReceive) {
-        M5.Display.fillRect(0, 40, M5.Display.width(), M5.Display.height() - 80, UI_BLACK);
-      }
-      // Show connection status (only if state changed)
-      drawConnectionStatus(stateChanged);
+    // Show recording indicator with breathing effect (always update for animation)
+    drawRecordingIndicator();
+  } else {
+    // Clear any recording remnants when switching from recording
+    if (stateChanged && lastReadyToReceive) {
+      M5.Display.fillRect(0, 40, M5.Display.width(), M5.Display.height() - 80, UI_BLACK);
     }
+    // Show connection status (only if state changed)
+    drawConnectionStatus(stateChanged);
+  }
+  
+  // Update state tracking
+  lastClientConnected = clientConnected;
+  lastReadyToReceive = readyToReceive;
+}
+
+//----------------------------------------------------------------------
+// Task: uiTask
+//   - Handles all UI updates and rendering
+//   - Runs at lower priority than audio tasks
+//----------------------------------------------------------------------
+void uiTask(void* pv) {
+  // Initialize UI on this task
+  forceFullRedraw = true;
+  
+  while (true) {
+    // Update UI with optimized rendering
+    updateUI();
     
-    // Update state tracking
-    lastClientConnected = clientConnected;
-    lastReadyToReceive = readyToReceive;
+    // UI task delay - 50ms for smooth animation
+    vTaskDelay(pdMS_TO_TICKS(50));
   }
 }
 
@@ -588,20 +605,23 @@ BLEDevice::startAdvertising();
 
   M5.Log(ESP_LOG_INFO ,"BLE audio device ready - waiting for connection...");
 
-  // create and pin tasks to different cores with larger stack sizes
-  xTaskCreatePinnedToCore(recordTask, "recordTask", 4096, nullptr, 5, nullptr, 0);
-  xTaskCreatePinnedToCore(sendTask,   "sendTask",   4096, nullptr, 5, nullptr, 1);
+  // Create and pin tasks to different cores with priority hierarchy
+  // Priority levels: 7 = highest (record), 5 = high (send), 3 = medium (UI)
+  
+  // Create UI task on core 1 with medium priority
+  xTaskCreatePinnedToCore(uiTask, "uiTask", 3072, nullptr, 3, &uiTaskHandle, 1);
+  
+  // Create record task on core 0 with highest priority  
+  xTaskCreatePinnedToCore(recordTask, "recordTask", 4096, nullptr, 7, nullptr, 0);
+  
+  // Create send task on core 1 with high priority
+  xTaskCreatePinnedToCore(sendTask, "sendTask", 4096, nullptr, 5, nullptr, 1);
 }
 
 void loop() {
-  // Update UI with optimized rendering
-  updateUI();
-  
-  // Reduce CPU usage with appropriate delay
-  M5.delay(20);
-  
-  // Optional: uncomment for diagnostics
-  //diagnostics();
+  // All functionality moved to dedicated tasks
+  // Main loop is kept empty for optimal task scheduling
+  vTaskDelay(pdMS_TO_TICKS(1000)); // Sleep for 1 second
 }
 
 void diagnostics() {

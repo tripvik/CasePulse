@@ -228,6 +228,7 @@ namespace SmartPendant.MAUIHybrid.Services
             // This query is highly efficient as it filters in the database.
             var entities = await _context.Conversations.AsNoTracking()
                 .Where(c => c.CreatedAt.Date == date.Date)
+                .Include(c => c.Transcript)
                 .Include(c => c.Tags)
                 .Include(c => c.Topics)
                 .ToListAsync();

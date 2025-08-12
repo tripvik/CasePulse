@@ -44,7 +44,7 @@
         6. **UsernameMappings**: Based on the dialogue, map diarized speaker labels (e.g., "Guest-1", "Speaker-2") to real names or usernames where possible:
         - Use contextual clues such as introductions, references, or known roles to identify speakers
         - If confident, provide the actual name or username
-        - If unsure, omit that mapping or return it with a null or empty "Name" field
+        - If unsure, omit that mapping or return it with a original speaker label. Even if the speaker is not identified, include a distinguishing label in the mapping.
 
         **Guidelines:**
         - Be accurate and only extract information explicitly mentioned or clearly implied

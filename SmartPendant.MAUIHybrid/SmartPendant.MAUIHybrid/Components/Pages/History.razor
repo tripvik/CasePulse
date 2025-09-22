@@ -5,10 +5,10 @@
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
     <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
         <MudIcon Icon="@Icons.Material.Filled.History" Title="Favorite" Size="Size.Large" />
-        <MudText Typo="Typo.h5">Conversation History</MudText>
+        <MudText Typo="Typo.h4">Case History</MudText>
     </div>
     <MudTabs Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary rounded-t">
-        <MudTabPanel Text="By Date" Icon="@Icons.Material.Filled.DateRange">
+        <MudTabPanel Text="Date" Icon="@Icons.Material.Filled.DateRange">
              <div class="d-flex align-center flex-grow-1 gap-4 pt-4 mb-4">
                     <MudTextField 
                             @bind-Value="searchQuery"
@@ -38,7 +38,7 @@
             {
                 <MudPaper Elevation="0" Class="pa-10 mt-10" Style="text-align:center">
                     <MudIcon Icon="@Icons.Material.Outlined.SearchOff" Size="Size.Large" Color="Color.Secondary" Class="mb-2" />
-                    <MudText Typo="Typo.h6" Color="Color.Secondary">No conversations found</MudText>
+                    <MudText Typo="Typo.h6" Color="Color.Secondary">No data found</MudText>
                     <MudText Typo="Typo.body2" Color="Color.Secondary">
                         Try adjusting your search criteria or date range
                     </MudText>
@@ -90,7 +90,7 @@
                 </MudGrid>
             }
         </MudTabPanel>
-        <MudTabPanel Text="By Location" Icon="@Icons.Material.Filled.MyLocation">
+        <MudTabPanel Text="Patient" Icon="@Icons.Material.Filled.MyLocation">
            
         </MudTabPanel>
     </MudTabs>

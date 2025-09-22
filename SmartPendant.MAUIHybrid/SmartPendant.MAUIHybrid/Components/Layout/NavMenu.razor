@@ -9,30 +9,30 @@
                        Color="Color.Inherit" 
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/")" />
+        <MudIconButton Href="/tasks"
+                       Icon="@Icons.Material.Filled.Dashboard"
+                       Color="Color.Inherit"
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/dashboard")" />
         <MudIconButton Href="/history" 
                        Icon="@Icons.Material.Filled.History" 
                        Color="Color.Inherit" 
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/history")" />
-        <MudIconButton Href="/tasks" 
-                       Icon="@Icons.Material.Filled.TaskAlt" 
-                       Color="Color.Inherit" 
-                       Size="Size.Medium"
-                       Style="@GetButtonStyle("/tasks")" />
-        <MudIconButton Href="/dayinsights" 
+        <MudIconButton Href="/impact" 
                        Icon="@Icons.Material.Filled.LightMode" 
                        Color="Color.Inherit" 
                        Size="Size.Medium"
-                       Style="@GetButtonStyle("/dayinsights")" />
+                       Style="@GetButtonStyle("/impact")" />
     </MudStack>
 }
 else
 {
     <MudNavMenu Color="Color.Primary" Margin="Margin.Normal">
         <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Home</MudNavLink>
+        <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Tasks</MudNavLink>
         <MudNavLink Href="/history" Icon="@Icons.Material.Filled.History">History</MudNavLink>
-        <MudNavLink Href="/tasks" Icon="@Icons.Material.Filled.TaskAlt">Tasks</MudNavLink>
-        <MudNavLink Href="/dayinsights" Icon="@Icons.Material.Filled.LightMode">Today</MudNavLink>
+        <MudNavLink Href="/impact" Icon="@Icons.Material.Filled.LightMode">Impact</MudNavLink>
     </MudNavMenu>
 }
 

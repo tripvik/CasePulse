@@ -1,0 +1,146 @@
+@page "/dashboard"
+@using MudBlazor
+
+<PageTitle>Insights - CarePulse</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Style="padding: 16px 24px; min-height: 100vh;">
+    
+    <!-- Header -->
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4" style="margin-bottom: 24px;">
+        <MudIcon Icon="@Icons.Material.Filled.Insights" Title="Favorite" Size="Size.Large" />
+        <MudText Typo="Typo.h4">Shift Insights</MudText>
+    </div>
+
+    <MudGrid Spacing="3">
+        
+        <!-- Top 3 Domains Card -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-5" Style="border-radius: 12px;">
+                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px;">
+                    Top 3 Domains This Shift
+                </MudText>
+                <div style="gap: 12px;">
+                    <!-- Domain 1 -->
+                    <div style="margin-bottom: 12px;">
+                        <div class="d-flex justify-space-between align-center mb-1">
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Assess & Manage Symptoms</MudText>
+                            <MudText Typo="Typo.body2" Style="  font-weight: 600;">28%</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Primary" Value="28" Style="height: 10px; border-radius: 5px;" />
+                    </div>
+                    
+                    <!-- Domain 2 -->
+                    <div style="margin-bottom: 12px;">
+                        <div class="d-flex justify-space-between align-center mb-1">
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Administer Care</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #16a34a; font-weight: 600;">22%</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Success" Value="22" Style="height: 10px; border-radius: 5px;" />
+                    </div>
+                    
+                    <!-- Domain 3 -->
+                    <div>
+                        <div class="d-flex justify-space-between align-center mb-1">
+                            <MudText Typo="Typo.body2" Style="font-weight: 500;">Provide Surveillance</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #f97316; font-weight: 600;">18%</MudText>
+                        </div>
+                        <MudProgressLinear Color="Color.Warning" Value="18" Style="height: 10px; border-radius: 5px;" />
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Moments of Excellence Card -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-5" Style="border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px;">
+                    Moments of Excellence
+                </MudText>
+                <MudList T="string">
+                    <MudListItem>
+                        <div class="d-flex align-start" style="gap: 12px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Style="color: #f59e0b; font-size: 20px; margin-top: 2px;" />
+                            <MudText Typo="Typo.body2" Style="font-size: 14px;">
+                                Demonstrated exceptional empathy when calming a patient's family member, de-escalating a tense situation.
+                            </MudText>
+                        </div>
+                    </MudListItem>
+                    <MudListItem>
+                        <div class="d-flex align-start" style="gap: 12px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Star" Style="color: #f59e0b; font-size: 20px; margin-top: 2px;" />
+                            <MudText Typo="Typo.body2" Style="font-size: 14px;">
+                                Proactively identified a potential medication interaction and collaborated with pharmacy to adjust the plan, ensuring patient safety.
+                            </MudText>
+                        </div>
+                    </MudListItem>
+                </MudList>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Domain Breakdown -->
+        <MudItem xs="12">
+            <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px; margin-left: 4px;">
+                Domain Breakdown
+            </MudText>
+            
+            <div style="gap: 8px;">
+                @foreach (var domain in GetDomains())
+                {
+                    <MudExpansionPanels Class="mb-2">
+                        <MudExpansionPanel Style="background-color: teal; border-radius: 8px; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+                            <TitleContent>
+                                <div class="d-flex justify-space-between align-center" style="width: 100%;">
+                                    <MudText Style="font-weight: 500;">@domain.Name</MudText>
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600; margin-right: 8px;">@domain.Value%</MudText>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <div style="border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                                    <MudText Typo="Typo.body2" Style="font-weight: 600; margin-bottom: 8px; font-size: 14px;">
+                                        Key Conversation Snippets:
+                                    </MudText>
+                                    <MudList Dense="true" Style="padding-left: 8px;" T="string">
+                                        @foreach (var example in domain.Examples)
+                                        {
+                                            <MudListItem Style="padding: 2px 0;">
+                                                <MudText Typo="Typo.body2" Style="font-size: 14px; font-style: italic;">
+                                                    • "@example"
+                                                </MudText>
+                                            </MudListItem>
+                                        }
+                                    </MudList>
+                                </div>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                }
+            </div>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<Domain> GetDomains()
+    {
+        return new List<Domain>
+        {
+            new Domain { Id = 1, Name = "1. Create Safe Healing Environments", Value = 12, Examples = new[] { "Let's make sure this IV line is untangled so you can move around safely.", "I've dimmed the lights to help you rest better." } },
+            new Domain { Id = 2, Name = "2. Build Caring Relationships", Value = 15, Examples = new[] { "Tell me more about how you're feeling today, not just physically but emotionally.", "I can see this is tough. We're here with you every step of the way." } },
+            new Domain { Id = 3, Name = "3. Assess & Manage Symptoms", Value = 28, Examples = new[] { "On a scale of 1 to 10, what's your pain level right now?", "The new medication seems to be helping with the nausea." } },
+            new Domain { Id = 4, Name = "4. Administer Care", Value = 22, Examples = new[] { "It's time for your morning medication.", "I'm here to help you with your daily walk." } },
+            new Domain { Id = 5, Name = "5. Provide Surveillance & Intervene", Value = 18, Examples = new[] { "Your heart rate is a little high, I'm going to stay and monitor it.", "I noticed a subtle change in your breathing, let's check your oxygen levels." } },
+            new Domain { Id = 6, Name = "6. Teach Patients & Families", Value = 10, Examples = new[] { "This is how you'll use the inhaler when you get home.", "I've written down the signs to watch for and who to call." } },
+            new Domain { Id = 7, Name = "7. Collaborate with Team", Value = 8, Examples = new[] { "I've paged Dr. Chen to discuss the latest lab results.", "Physical therapy will be here around 10 AM for your session." } },
+            new Domain { Id = 8, Name = "8. Advocate for Patient & Family", Value = 5, Examples = new[] { "The patient has expressed a clear wish not to be woken before 6 AM for routine checks.", "I've requested a consult with the palliative care team as the family asked." } },
+            new Domain { Id = 9, Name = "9. Navigate Care Transitions", Value = 2, Examples = new[] { "Let's go over your discharge paperwork together to make sure everything is clear.", "We've confirmed your follow-up appointment for next Tuesday." } }
+        };
+    }
+
+    public class Domain
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Value { get; set; }
+        public string[] Examples { get; set; }
+    }
+}

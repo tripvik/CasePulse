@@ -1,0 +1,167 @@
+@page "/impact"
+@using MudBlazor
+
+<PageTitle>Impact - CarePulse</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Style="padding: 16px 24px; min-height: 100vh;">
+
+    <!-- Header -->
+    <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4" style="margin-bottom: 24px;">
+        <MudIcon Icon="@Icons.Material.Filled.Diversity1" Title="Favorite" Size="Size.Large" />
+        <MudText Typo="Typo.h4">Your Professional Impact</MudText>
+    </div>
+
+    <MudGrid Spacing="3">
+
+        <!-- Practice Domains Chart -->
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-5" Style="border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); height: 384px;">
+                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px;">
+                    Practice Domains (Last 30 Days)
+                </MudText>
+                <div class="d-flex align-center justify-center" style="height: 300px;">
+                    <div class="radar-chart-container">
+                        <svg width="280" height="280" viewBox="0 0 280 280">
+                            <!-- Grid circles -->
+                            <circle cx="140" cy="140" r="40" fill="none" stroke="#e2e8f0" stroke-width="1" />
+                            <circle cx="140" cy="140" r="80" fill="none" stroke="#e2e8f0" stroke-width="1" />
+                            <circle cx="140" cy="140" r="120" fill="none" stroke="#e2e8f0" stroke-width="1" />
+
+                            <!-- Grid lines -->
+                            <line x1="140" y1="20" x2="140" y2="260" stroke="#e2e8f0" stroke-width="1" />
+                            <line x1="20" y1="140" x2="260" y2="140" stroke="#e2e8f0" stroke-width="1" />
+                            <line x1="55" y1="55" x2="225" y2="225" stroke="#e2e8f0" stroke-width="1" />
+                            <line x1="225" y1="55" x2="55" y2="225" stroke="#e2e8f0" stroke-width="1" />
+
+                            <!-- Data polygon -->
+                            <polygon points="140,58 170,75 185,110 175,180 140,205 105,180 95,110 125,75"
+                                     fill="#0ea5e9" fill-opacity="0.6" stroke="#0284c7" stroke-width="2" />
+
+                            <!-- Labels -->
+                            <text x="140" y="15" text-anchor="middle" font-size="10" fill="#64748b">Safety</text>
+                            <text x="235" y="70" text-anchor="middle" font-size="10" fill="#64748b">Caring</text>
+                            <text x="235" y="155" text-anchor="middle" font-size="10" fill="#64748b">Symptoms</text>
+                            <text x="180" y="235" text-anchor="middle" font-size="10" fill="#64748b">Care Admin</text>
+                            <text x="100" y="235" text-anchor="middle" font-size="10" fill="#64748b">Surveillance</text>
+                            <text x="45" y="155" text-anchor="middle" font-size="10" fill="#64748b">Teaching</text>
+                            <text x="45" y="70" text-anchor="middle" font-size="10" fill="#64748b">Collaboration</text>
+                            <text x="140" y="275" text-anchor="middle" font-size="10" fill="#64748b">Advocacy</text>
+                        </svg>
+                    </div>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Patient Outcomes Chart -->
+        <MudItem xs="12" lg="6">
+            <MudPaper Class="pa-5" Style="border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); height: 384px;">
+                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px;">
+                    Key Patient Outcome Metrics
+                </MudText>
+                <div style="height: 300px;">
+                    @foreach (var outcome in GetOutcomes())
+                    {
+                        <div class="d-flex align-center mb-4" style="height: 60px;">
+                            <div style="width: 110px; text-align: right; margin-right: 20px;">
+                                <MudText Typo="Typo.body2" Style="color: #4b5563; font-size: 14px;">@outcome.Name</MudText>
+                            </div>
+                            <div style="flex: 1; position: relative;">
+                                <div style="width: 100%; height: 20px; background-color: #f1f5f9; border-radius: 10px; position: relative;">
+                                    <div style="width: @(outcome.Value)%; height: 20px; background-color: @outcome.Color; border-radius: 10px; position: relative;">
+                                        <span style="position: absolute; right: 8px; top: 2px; font-size: 12px; color: white; font-weight: 600;">@outcome.Value%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Professional Growth Goals -->
+        <MudItem xs="12">
+            <MudPaper Class="pa-5" Style="border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);">
+                <MudText Typo="Typo.h6" Style="font-weight: 600; margin-bottom: 16px;">
+                    Professional Growth Goals
+                </MudText>
+
+                <div style="gap: 12px;">
+                    @foreach (var goal in GetGoals())
+                    {
+                        <MudPaper Class="pa-4 d-flex align-center justify-space-between mb-3"
+                                  Style="@($"border-radius: 8px; background-color: {(goal.Completed ? "#065f46" : "#1f2937")}; transition: all 0.3s;")">
+                            <MudText Typo="Typo.body2"
+                                     Style="@($"color: {(goal.Completed ? "#9ca3af" : "#e5e7eb")}; {(goal.Completed ? "text-decoration: line-through;" : "")} font-size: 14px;")">
+                                @goal.Text
+                            </MudText>
+                            <MudButton Variant="Variant.Text"
+                                       Style="@($"min-width: 32px; width: 32px; height: 32px; border-radius: 50%; {(goal.Completed ? "background-color: #059669;" : "border: 2px solid #4b5563;")} cursor: pointer;")"
+                                       OnClick="() => ToggleGoal(goal)">
+                                @if (goal.Completed)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Check" Style="color: white; font-size: 20px;" />
+                                }
+                            </MudButton>
+                        </MudPaper>
+                    }
+                </div>
+
+                <MudButton Variant="Variant.Text"
+                           FullWidth="true"
+                           Style="margin-top: 16px; color: #2563eb; font-weight: 600; text-transform: none; font-size: 14px;"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    Add New Goal
+                </MudButton>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<Outcome> GetOutcomes()
+    {
+        return new List<Outcome>
+        {
+            new Outcome { Name = "Symptom Relief", Value = 92, Color = "#2563eb" },
+            new Outcome { Name = "Patient Education", Value = 78, Color = "#16a34a" },
+            new Outcome { Name = "Decision Making", Value = 85, Color = "#f97316" },
+            new Outcome { Name = "Feeling Safe", Value = 95, Color = "#9333ea" }
+        };
+    }
+
+    private List<Goal> goals = new List<Goal>
+    {
+        new Goal { Id = 1, Text = "Increase focus on family communication during transitions", Completed = false },
+        new Goal { Id = 2, Text = "Mentor a new graduate nurse on symptom assessment techniques", Completed = true }
+    };
+
+    private List<Goal> GetGoals() => goals;
+
+    private void ToggleGoal(Goal goal)
+    {
+        goal.Completed = !goal.Completed;
+    }
+
+    public class Outcome
+    {
+        public string Name { get; set; }
+        public int Value { get; set; }
+        public string Color { get; set; }
+    }
+
+    public class Goal
+    {
+        public int Id { get; set; }
+        public string Text { get; set; }
+        public bool Completed { get; set; }
+    }
+}
+
+<style>
+    .radar-chart-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+    }
+</style>

@@ -24,6 +24,11 @@
                        Color="Color.Inherit" 
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/impact")" />
+        <MudIconButton Href="/manager-dashboard"
+                       Icon="@Icons.Material.Outlined.ManageAccounts"
+                       Color="Color.Inherit"
+                       Size="Size.Medium"
+                       Style="@GetButtonStyle("/impact")" />
     </MudStack>
 }
 else
@@ -33,6 +38,7 @@ else
         <MudNavLink Href="/dashboard" Icon="@Icons.Material.Outlined.Dashboard">Dashboard</MudNavLink>
         <MudNavLink Href="/logs" Icon="@Icons.Material.Outlined.Book">Log Book</MudNavLink>
         <MudNavLink Href="/impact" Icon="@Icons.Material.Outlined.LightMode">Impact</MudNavLink>
+        <MudNavLink Href="/manager-dashboard" Icon="@Icons.Material.Outlined.ManageAccounts">Manager Dashboard</MudNavLink>
     </MudNavMenu>
 }
 

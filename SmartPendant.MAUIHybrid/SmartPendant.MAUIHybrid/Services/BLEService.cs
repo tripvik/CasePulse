@@ -2,6 +2,7 @@
 using Plugin.BLE;
 using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
+using Plugin.BLE.Abstractions.Extensions;
 using SmartPendant.MAUIHybrid.Abstractions;
 using System.Diagnostics;
 
@@ -52,8 +53,11 @@ namespace SmartPendant.MAUIHybrid.Services
                 var deviceGuid = _configuration.GetValue<string>("DeviceId") ?? throw new ArgumentException("DeviceId not found");
                 var deviceId = new Guid(deviceGuid);
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                //scan and print devices matching the service id
+                //_adapter.DeviceDiscovered += (s, a) => Debug.WriteLine($"Discovered device: {a.Device.Name}, ID: {a.Device.Id}");
+                //await _adapter.StartScanningForDevicesAsync();
                 _connectedDevice = await _adapter.ConnectToKnownDeviceAsync(deviceId, default, cts.Token);
-                Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
+                //Debug.WriteLine($"MTU - {await _connectedDevice.RequestMtuAsync(250)}");
                 return (true, null);
             }
             catch (OperationCanceledException)

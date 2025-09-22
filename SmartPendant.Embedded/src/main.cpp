@@ -271,12 +271,12 @@ void drawConnectionStatus(bool forceRedraw = false) {
     // Draw app icon above the device name (moved higher up)
     int iconX = centerX - 12; // Center the 23px icon (new logo is 23x24px)
     int iconY = centerY - 65; // Moved higher up from -50 to -65
-    M5.Display.drawXBitmap(iconX, iconY, epd_bitmap_LogoMono, 23, 24, UI_WHITE);
+    M5.Display.drawXBitmap(iconX, iconY, epd_bitmap_CareSense, 24, 24, UI_WHITE);
     
     // Draw device name below the icon
     M5.Display.setTextColor(UI_WHITE);
     M5.Display.setTextSize(2);
-    M5.Display.drawString("ConverSense", centerX, centerY - 20);
+    M5.Display.drawString("CarePulse", centerX, centerY - 20);
     
     // Draw connection status
     M5.Display.setTextColor(UI_LIGHTGREY);
@@ -288,7 +288,7 @@ void drawConnectionStatus(bool forceRedraw = false) {
     // Draw app icon above the connected status (moved higher up)
     int iconX = centerX - 12; // Center the 23px icon (new logo is 23x24px)
     int iconY = centerY - 65; // Moved higher up from -50 to -65
-    M5.Display.drawXBitmap(iconX, iconY, epd_bitmap_LogoMono, 23, 24, UI_GREEN);
+    M5.Display.drawXBitmap(iconX, iconY, epd_bitmap_CareSense, 24, 24, UI_GREEN);
     
     // Draw connected status
     M5.Display.setTextColor(UI_GREEN);
@@ -539,7 +539,7 @@ void setup() {
   M5.Speaker.end();
   
   // Initialize display for UI - Portrait mode optimizations
-  M5.Display.setRotation(0); // Portrait mode
+  //M5.Display.setRotation(0); // Portrait mode
   M5.Display.setBrightness(100);
   M5.Display.fillScreen(UI_BLACK);
   M5.Display.setTextColor(UI_WHITE);
@@ -567,7 +567,7 @@ void setup() {
   }
 
   // set up BLE
-  BLEDevice::init("ESP32_Audio");
+  BLEDevice::init("CareSense"); // Device name
   BLEDevice::setMTU(MTU_SIZE);
 
   BLEServer* srv = BLEDevice::createServer();

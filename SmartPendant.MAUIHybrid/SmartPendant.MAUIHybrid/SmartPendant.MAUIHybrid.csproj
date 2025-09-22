@@ -45,10 +45,10 @@
 
     <ItemGroup>
         <!-- App Icon -->
-			<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" BaseSize="118,128" />
+			<MauiIcon Include="Resources\AppIcon\caresense1.svg" BaseSize="118,128" />
 
         <!-- Splash Screen -->
-        <MauiSplashScreen Include="Resources\Splash\logo.svg" Color="#1F1F1F" />
+        <MauiSplashScreen Include="Resources\Splash\caresense1.svg" />
 
         <!-- Images -->
         <MauiImage Include="Resources\Images\*" />

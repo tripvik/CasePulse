@@ -4,7 +4,7 @@
     <MudSpacer />
     <!-- Main Content -->
     <MudStack AlignItems="AlignItems.Center" Spacing="6">
-        @if (OrchestrationService.IsRecording)
+        @if (OrchestrationService.IsDeviceConnected)
         {
             <!-- Animated Live Icon -->
             <div class="live-icon-container">

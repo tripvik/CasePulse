@@ -18,72 +18,37 @@
         {
             <MudStack Row Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mr-3">
                 <span class="recording-indicator"></span>
-                <MudText Typo="Typo.body1" Color="Color.Error">Recording</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Error">Monitoring</MudText>
             </MudStack>
         }
     </MudStack>
 
     @* Conversation Container *@
     <div class="conversation-wrapper">
-        <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Style="height: 100vh; max-width: 400px; margin: 0 auto;">
-            <MudSpacer />
-            <!-- Main Content -->
-            <MudStack AlignItems="AlignItems.Center" Spacing="6">
-
-                <!-- Animated Live Icon -->
-                <div class="live-icon-container">
-                    <div class="pulse-ring"></div>
-                    <MudPaper Class="live-icon-paper">
-                        <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord"
-                                 Class="live-icon" />
-                    </MudPaper>
-                </div>
-
-                <!-- Title -->
-                <MudText Typo="Typo.h4" Align="Align.Center" Style="font-weight: 700;">
-                    CarePulse is Active
-                </MudText>
-
-                <!-- Subtitle -->
-                <MudText Typo="Typo.body1" Align="Align.Center" Class="mud-text-secondary" Style="max-width: 300px;">
-                    Making your invisible work visible. Focus on your patient—we'll capture the insights.
-                </MudText>
-            </MudStack>
-
-            <!-- Spacer to push footer to bottom -->
-            <MudSpacer />
-
-            <!-- Footer Button -->
-            <MudStack AlignItems="AlignItems.Center" Style="width: 100%;">
-                <MudButton OnClick="ToggleRecordingAsync"
-                           Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Outlined"
-                           StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Stop : Icons.Material.Filled.Mic)"
-                           Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
-                           Class="rounded-xl py-3"
-                           FullWidth="true">
-                    @if (OrchestrationService.IsStateChanging)
-                    {
-                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                        <MudText Class="ms-2">Processing</MudText>
-                    }
-                    else
-                    {
-                        <MudText>@(OrchestrationService.IsRecording ? "Go Private" : "Resume")</MudText>
-                    }
-                </MudButton>
-                <MudText Typo="Typo.caption" Align="Align.Center" Class="mud-text-secondary" Style="font-size: 12px; margin-top: 12px;">
-                    Tap to pause for breaks or private conversations.
-                </MudText>
-            </MudStack>
-        </MudStack>
+        <ConversationContainer Conversation="@OrchestrationService.CurrentConversation" IsGeneratingInsight="@OrchestrationService.IsGeneratingInsight" />
     </div>
 
-    @* Footer Section *@
-    <MudStack Justify="Justify.SpaceEvenly" Row
-              AlignItems="AlignItems.Center"
-              Style="max-width: 400px; width: 100%; margin: 0 auto;"
-              Class="py-4 flex-shrink-0">
-      
+    <!-- Footer Button -->
+    <MudStack AlignItems="AlignItems.Center" Style="width: 100%;">
+        <MudButton OnClick="ToggleRecordingAsync"
+                    Disabled="@OrchestrationService.IsStateChanging" Variant="Variant.Outlined"
+                    StartIcon="@(OrchestrationService.IsRecording ? Icons.Material.Filled.Pause : Icons.Material.Filled.Start)"
+                    Color="@(OrchestrationService.IsRecording ? Color.Error : Color.Primary)"
+                    Class="rounded-xl py-3"
+                    FullWidth="true">
+            @if (OrchestrationService.IsStateChanging)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>@(OrchestrationService.IsRecording ? "Go Private" : "Resume")</MudText>
+            }
+        </MudButton>
+        <MudText Typo="Typo.caption" Align="Align.Center" Class="mud-text-secondary">
+            Tap to pause for breaks or private conversations.
+        </MudText>
     </MudStack>
 </MudStack>
 

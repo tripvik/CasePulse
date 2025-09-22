@@ -6,6 +6,11 @@
              ApplyEffectsToContainer
              PanelClass="conversation-tab-panel"
              MinimumTabWidth="80px">
+       <MudTabPanel Icon="@Icons.Material.Filled.Wifi">
+            <div class="transcript-panel-wrapper">
+                <Status />
+            </div>
+        </MudTabPanel>
         <MudTabPanel Icon="@Icons.Material.Filled.Mic">
             <div class="transcript-panel-wrapper">
                 <TranscriptContainer Messages="@Conversation?.Transcript" />

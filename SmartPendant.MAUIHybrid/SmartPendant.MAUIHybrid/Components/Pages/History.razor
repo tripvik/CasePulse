@@ -1,11 +1,11 @@
-﻿@page "/history"
+﻿@page "/logs"
 @inject IConversationRepository ConversationRepository
 @inject NavigationManager NavigationManager
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
     <div class="d-flex justify-center mb-4 my-lg-6 align-center gap-4">
-        <MudIcon Icon="@Icons.Material.Filled.History" Title="Favorite" Size="Size.Large" />
-        <MudText Typo="Typo.h4">Case History</MudText>
+        <MudIcon Icon="@Icons.Material.Filled.Book" Title="Favorite" Size="Size.Large" />
+        <MudText Typo="Typo.h4">Log Book</MudText>
     </div>
     <MudTabs Centered ApplyEffectsToContainer PanelClass="mt-4" Class="history" ActiveTabClass="border-solid border-2 mud-border-primary rounded-t">
         <MudTabPanel Text="Date" Icon="@Icons.Material.Filled.DateRange">

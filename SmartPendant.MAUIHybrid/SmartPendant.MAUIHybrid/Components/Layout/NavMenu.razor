@@ -5,22 +5,22 @@
 {
     <MudStack Row Justify="Justify.SpaceAround" Style="width:100%">
         <MudIconButton Href="/" 
-                       Icon="@Icons.Material.Filled.Home" 
+                       Icon="@Icons.Material.Outlined.Home" 
                        Color="Color.Inherit" 
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/")" />
-        <MudIconButton Href="/tasks"
-                       Icon="@Icons.Material.Filled.Dashboard"
+        <MudIconButton Href="/dashboard"
+                       Icon="@Icons.Material.Outlined.Dashboard"
                        Color="Color.Inherit"
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/dashboard")" />
         <MudIconButton Href="/history" 
-                       Icon="@Icons.Material.Filled.History" 
+                       Icon="@Icons.Material.Outlined.Book" 
                        Color="Color.Inherit" 
                        Size="Size.Medium"
-                       Style="@GetButtonStyle("/history")" />
+                       Style="@GetButtonStyle("/logs")" />
         <MudIconButton Href="/impact" 
-                       Icon="@Icons.Material.Filled.LightMode" 
+                       Icon="@Icons.Material.Outlined.LightMode" 
                        Color="Color.Inherit" 
                        Size="Size.Medium"
                        Style="@GetButtonStyle("/impact")" />
@@ -29,10 +29,10 @@
 else
 {
     <MudNavMenu Color="Color.Primary" Margin="Margin.Normal">
-        <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">Home</MudNavLink>
-        <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Tasks</MudNavLink>
-        <MudNavLink Href="/history" Icon="@Icons.Material.Filled.History">History</MudNavLink>
-        <MudNavLink Href="/impact" Icon="@Icons.Material.Filled.LightMode">Impact</MudNavLink>
+        <MudNavLink Href="/" Icon="@Icons.Material.Outlined.Home" Match="NavLinkMatch.All">Home</MudNavLink>
+        <MudNavLink Href="/dashboard" Icon="@Icons.Material.Outlined.Dashboard">Dashboard</MudNavLink>
+        <MudNavLink Href="/logs" Icon="@Icons.Material.Outlined.Book">Log Book</MudNavLink>
+        <MudNavLink Href="/impact" Icon="@Icons.Material.Outlined.LightMode">Impact</MudNavLink>
     </MudNavMenu>
 }
 

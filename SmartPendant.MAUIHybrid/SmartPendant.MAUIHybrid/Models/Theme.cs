@@ -10,135 +10,162 @@ namespace SmartPendant.MAUIHybrid.Models
             {
                 PaletteLight = new PaletteLight()
                 {
-                    Primary = "#6750A4",
+                    // Calming medical blue with professional contrast
+                    Primary = "#2E7DC6",
                     PrimaryContrastText = "#FFFFFF",
 
-                    Secondary = "#625B71",
+                    // Soft teal for secondary actions (non-critical)
+                    Secondary = "#4A9B8E",
                     SecondaryContrastText = "#FFFFFF",
 
-                    Tertiary = "#7D5260",
+                    // Warm gray for tertiary elements
+                    Tertiary = "#6B7280",
                     TertiaryContrastText = "#FFFFFF",
 
-                    Background = "#FFFBFE",
-                    Surface = "#FFFBFE",
+                    // Clean, clinical backgrounds
+                    Background = "#FAFBFC",
+                    Surface = "#FFFFFF",
 
-                    AppbarBackground = "#FFFBFE",
-                    AppbarText = "#1C1B1F",
+                    // Professional header
+                    AppbarBackground = "#FFFFFF",
+                    AppbarText = "#1F2937",
 
-                    DrawerBackground = "#FFFBFE",
-                    DrawerText = "#1C1B1F",
-                    DrawerIcon = "#1C1B1F",
+                    // Clean sidebar
+                    DrawerBackground = "#F8FAFC",
+                    DrawerText = "#374151",
+                    DrawerIcon = "#6B7280",
 
-                    TextPrimary = "#1C1B1F",
-                    TextSecondary = "#49454F",
-                    TextDisabled = "rgba(28, 27, 31, 0.38)",
+                    // High contrast text for readability
+                    TextPrimary = "#1F2937",
+                    TextSecondary = "#6B7280",
+                    TextDisabled = "rgba(31, 41, 55, 0.4)",
 
-                    ActionDefault = "#49454F",
-                    ActionDisabled = "rgba(28, 27, 31, 0.26)",
-                    ActionDisabledBackground = "rgba(28, 27, 31, 0.12)",
+                    // Accessible action colors
+                    ActionDefault = "#6B7280",
+                    ActionDisabled = "rgba(31, 41, 55, 0.3)",
+                    ActionDisabledBackground = "rgba(31, 41, 55, 0.1)",
 
-                    LinesDefault = "#79747E",
-                    LinesInputs = "#79747E",
-                    Divider = "#79747E",
+                    // Subtle lines and dividers
+                    LinesDefault = "#D1D5DB",
+                    LinesInputs = "#9CA3AF",
+                    Divider = "#E5E7EB",
 
-                    TableLines = "#E7E0EC",
-                    TableStriped = "rgba(103, 80, 164, 0.04)",
-                    TableHover = "rgba(103, 80, 164, 0.08)",
+                    // Clean table styling
+                    TableLines = "#E5E7EB",
+                    TableStriped = "rgba(46, 125, 198, 0.03)",
+                    TableHover = "rgba(46, 125, 198, 0.06)",
 
-                    Error = "#B3261E",
+                    // Medical-appropriate alert colors
+                    Error = "#DC2626", // Clear red for critical alerts
                     ErrorContrastText = "#FFFFFF",
 
-                    Success = "#2E7D32",
+                    Success = "#059669", // Medical green for positive outcomes
                     SuccessContrastText = "#FFFFFF",
 
-                    Warning = "#FFAB00",
-                    WarningContrastText = "#000000",
+                    Warning = "#D97706", // Amber for caution
+                    WarningContrastText = "#FFFFFF",
 
-                    Info = "#2196F3",
+                    Info = "#2563EB", // Professional blue for information
                     InfoContrastText = "#FFFFFF",
                 },
 
                 PaletteDark = new PaletteDark()
                 {
-                    Primary = "#D0BCFF",
-                    PrimaryContrastText = "#381E72",
+                    // Softer primary for dark mode (easier on eyes during night shifts)
+                    Primary = "#60A5FA",
+                    PrimaryContrastText = "#1E3A8A",
 
-                    Secondary = "#CCC2DC",
-                    SecondaryContrastText = "#332D41",
+                    // Muted teal for secondary
+                    Secondary = "#6EE7B7",
+                    SecondaryContrastText = "#064E3B",
 
-                    Tertiary = "#EFB8C8",
-                    TertiaryContrastText = "#492532",
+                    // Warm gray for tertiary
+                    Tertiary = "#A1A1AA",
+                    TertiaryContrastText = "#27272A",
 
-                    Background = "#1C1B1F",
-                    Surface = "#1C1B1F",
+                    // Dark medical backgrounds
+                    Background = "#0F172A",
+                    Surface = "#1E293B",
 
-                    AppbarBackground = "#1C1B1F",
-                    AppbarText = "#E6E1E5",
+                    // Dark header
+                    AppbarBackground = "#1E293B",
+                    AppbarText = "#F1F5F9",
 
-                    DrawerBackground = "#1C1B1F",
-                    DrawerText = "#E6E1E5",
-                    DrawerIcon = "#E6E1E5",
+                    // Dark sidebar
+                    DrawerBackground = "#0F172A",
+                    DrawerText = "#CBD5E1",
+                    DrawerIcon = "#94A3B8",
 
-                    TextPrimary = "#E6E1E5",
-                    TextSecondary = "#CAC4D0",
-                    TextDisabled = "rgba(230, 225, 229, 0.38)",
+                    // High contrast text for dark mode
+                    TextPrimary = "#F1F5F9",
+                    TextSecondary = "#CBD5E1",
+                    TextDisabled = "rgba(241, 245, 249, 0.4)",
 
-                    ActionDefault = "#C4C6C9",
-                    ActionDisabled = "rgba(230, 225, 229, 0.26)",
-                    ActionDisabledBackground = "rgba(230, 225, 229, 0.12)",
+                    // Dark mode actions
+                    ActionDefault = "#94A3B8",
+                    ActionDisabled = "rgba(241, 245, 249, 0.3)",
+                    ActionDisabledBackground = "rgba(241, 245, 249, 0.1)",
 
-                    LinesDefault = "#938F99",
-                    LinesInputs = "#938F99",
-                    Divider = "#938F99",
+                    // Dark lines and dividers
+                    LinesDefault = "#475569",
+                    LinesInputs = "#64748B",
+                    Divider = "#334155",
 
-                    TableLines = "#444449",
-                    TableStriped = "rgba(208, 188, 255, 0.04)",
-                    TableHover = "rgba(208, 188, 255, 0.08)",
+                    // Dark table styling
+                    TableLines = "#334155",
+                    TableStriped = "rgba(96, 165, 250, 0.05)",
+                    TableHover = "rgba(96, 165, 250, 0.1)",
 
-                    Error = "#F2B8B5",
-                    ErrorContrastText = "#601410",
+                    // Dark mode alert colors (slightly muted for comfort)
+                    Error = "#F87171",
+                    ErrorContrastText = "#7F1D1D",
 
-                    Success = "#A5D6A7",
-                    SuccessContrastText = "#1B5E20",
+                    Success = "#34D399",
+                    SuccessContrastText = "#064E3B",
 
-                    Warning = "#FFD54F",
-                    WarningContrastText = "#000000",
+                    Warning = "#FBBF24",
+                    WarningContrastText = "#92400E",
 
-                    Info = "#90CAF9",
-                    InfoContrastText = "#0D47A1",
+                    Info = "#60A5FA",
+                    InfoContrastText = "#1E3A8A",
                 },
 
                 LayoutProperties = new LayoutProperties()
                 {
-                    DefaultBorderRadius = "16px",
+                    // Slightly smaller radius for more clinical feel
+                    DefaultBorderRadius = "8px",
+                    // Standard height for easy navigation
                     AppbarHeight = "64px",
-                    DrawerWidthLeft = "250px",
-                    DrawerMiniWidthLeft = "72px"
+                    // Adequate space for medical navigation
+                    DrawerWidthLeft = "280px",
+                    // Compact mini drawer
+                    DrawerMiniWidthLeft = "64px"
                 },
 
                 Typography = new Typography()
                 {
                     Default = new DefaultTypography()
                     {
-                        FontFamily = ["Roboto", "Helvetica", "Arial", "sans-serif"],
-                        FontSize = ".875rem",
+                        // Clear, readable font stack
+                        FontFamily = ["Inter", "Roboto", "Arial", "sans-serif"],
+                        FontSize = ".9rem", // Slightly larger for better readability
                         FontWeight = "400",
-                        LineHeight = "1.43",
-                        LetterSpacing = ".01071em"
+                        LineHeight = "1.5", // Better line spacing for readability
+                        LetterSpacing = "0"
                     },
-                    H1 = new H1Typography() { FontSize = "6rem", FontWeight = "300", LineHeight = "1.167", LetterSpacing = "-.01562em" },
-                    H2 = new H2Typography() { FontSize = "3.75rem", FontWeight = "300", LineHeight = "1.2", LetterSpacing = "-.00833em" },
-                    H3 = new H3Typography() { FontSize = "3rem", FontWeight = "400", LineHeight = "1.167", LetterSpacing = "0" },
-                    H4 = new H4Typography() { FontSize = "2.125rem", FontWeight = "400", LineHeight = "1.235", LetterSpacing = ".00735em" },
-                    H5 = new H5Typography() { FontSize = "1.5rem", FontWeight = "400", LineHeight = "1.334", LetterSpacing = "0" },
-                    H6 = new H6Typography() { FontSize = "1.25rem", FontWeight = "500", LineHeight = "1.6", LetterSpacing = ".0075em" },
-                    Subtitle1 = new Subtitle1Typography() { FontSize = "1rem", FontWeight = "500", LineHeight = "1.75", LetterSpacing = ".00938em" },
-                    Subtitle2 = new Subtitle2Typography() { FontSize = ".875rem", FontWeight = "500", LineHeight = "1.57", LetterSpacing = ".00714em" },
-                    Body1 = new Body1Typography() { FontSize = "1rem", FontWeight = "400", LineHeight = "1.5", LetterSpacing = ".03125em" },
-                    Body2 = new Body2Typography() { FontSize = ".875rem", FontWeight = "400", LineHeight = "1.43", LetterSpacing = ".01786em" },
-                    Button = new ButtonTypography() { FontSize = ".875rem", FontWeight = "500", LineHeight = "1.75", LetterSpacing = ".02857em" },
-                    Caption = new CaptionTypography() { FontSize = ".75rem", FontWeight = "400", LineHeight = "1.66", LetterSpacing = ".03333em" },
-                    Overline = new OverlineTypography() { FontSize = ".6875rem", FontWeight = "400", LineHeight = "2.66", LetterSpacing = ".08333em", TextTransform = "uppercase" }
+                    H1 = new H1Typography() { FontSize = "2.5rem", FontWeight = "600", LineHeight = "1.2", LetterSpacing = "-.025em" },
+                    H2 = new H2Typography() { FontSize = "2rem", FontWeight = "600", LineHeight = "1.25", LetterSpacing = "-.025em" },
+                    H3 = new H3Typography() { FontSize = "1.75rem", FontWeight = "600", LineHeight = "1.3", LetterSpacing = "0" },
+                    H4 = new H4Typography() { FontSize = "1.5rem", FontWeight = "600", LineHeight = "1.35", LetterSpacing = "0" },
+                    H5 = new H5Typography() { FontSize = "1.25rem", FontWeight = "600", LineHeight = "1.4", LetterSpacing = "0" },
+                    H6 = new H6Typography() { FontSize = "1.125rem", FontWeight = "600", LineHeight = "1.4", LetterSpacing = "0" },
+                    Subtitle1 = new Subtitle1Typography() { FontSize = "1rem", FontWeight = "500", LineHeight = "1.5", LetterSpacing = "0" },
+                    Subtitle2 = new Subtitle2Typography() { FontSize = ".9rem", FontWeight = "500", LineHeight = "1.5", LetterSpacing = "0" },
+                    Body1 = new Body1Typography() { FontSize = "1rem", FontWeight = "400", LineHeight = "1.6", LetterSpacing = "0" },
+                    Body2 = new Body2Typography() { FontSize = ".9rem", FontWeight = "400", LineHeight = "1.5", LetterSpacing = "0" },
+                    Button = new ButtonTypography() { FontSize = ".875rem", FontWeight = "500", LineHeight = "1.5", LetterSpacing = ".025em", TextTransform = "none" },
+                    Caption = new CaptionTypography() { FontSize = ".8rem", FontWeight = "400", LineHeight = "1.5", LetterSpacing = ".025em" },
+                    Overline = new OverlineTypography() { FontSize = ".75rem", FontWeight = "500", LineHeight = "1.5", LetterSpacing = ".1em", TextTransform = "uppercase" }
                 },
             };
 

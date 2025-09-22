@@ -6,13 +6,13 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap rescap">
 
-  <Identity Name="maui-package-name-placeholder" Publisher="CN=ConverSense" Version="0.0.0.0" />
+  <Identity Name="maui-package-name-placeholder" Publisher="CN=CasePulse" Version="0.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="00861D85-43BC-4DAC-B598-5726C82254FF" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>$placeholder$</DisplayName>
-    <PublisherDisplayName>ConverSense</PublisherDisplayName>
+    <PublisherDisplayName>CasePulse</PublisherDisplayName>
     <Logo>$placeholder$.png</Logo>
   </Properties>
 
